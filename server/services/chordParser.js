@@ -156,6 +156,87 @@ export function parseInlineBracketedChords(line) {
 }
 
 /**
+ * Intelligently unbundles glued/attached chords (e.g. "DmMaravaamal", "AmA#Manathaara", "CIthuvarai")
+ * into clean lyric characters and positioned chords.
+ */
+export function parseAttachedChordLine(rawLine) {
+  if (!rawLine || typeof rawLine !== 'string') return { lyrics: '', chords: [] };
+
+  // 1. If line already contains bracketed notation [Dm], use bracket parser
+  if (/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/.test(rawLine)) {
+    return parseInlineBracketedChords(rawLine);
+  }
+
+  // Multi-character chord prefix (e.g. "Dm", "Am", "A#", "F#m", "G7") attached to letters
+  const MULTI_CHAR_CHORD_PREFIX = /^([A-G][#b](?:m|min|maj|dim|aug|sus[24]?|add[924]?|[245679]|maj7|m7|min7)?|[A-G](?:m|min|maj|dim|aug|sus[24]?|add[924]?|[245679]|maj7|m7|min7))(?=[A-Za-z\u0B80-\u0BFF\u0900-\u097F])/;
+  
+  // Single-letter chord ('A'-'G') followed by an UPPERCASE letter or chord separator (e.g. "CIthuvarai", "CElroyee", "DMaravaamal")
+  const SINGLE_LETTER_CHORD_PREFIX = /^([A-G])(?=[A-Z\u0B80-\u0BFF\u0900-\u097F])/;
+
+  const tokens = rawLine.split(/(\s+)/);
+  let cleanLyrics = '';
+  const chords = [];
+
+  for (const token of tokens) {
+    if (/^\s+$/.test(token)) {
+      cleanLyrics += token;
+      continue;
+    }
+
+    let remaining = token;
+    let wordClean = '';
+
+    while (remaining.length > 0) {
+      // Check for standalone chord token
+      if (isChord(remaining, true)) {
+        chords.push({
+          chord: remaining,
+          position: cleanLyrics.length + wordClean.length,
+          confidence: 0.95
+        });
+        break;
+      }
+
+      // Check for multi-character chord prefix (e.g. "Dm" in "DmMaravaamal", "Am" in "AmA#Manathaara")
+      const multiMatch = remaining.match(MULTI_CHAR_CHORD_PREFIX);
+      if (multiMatch && isChord(multiMatch[1], true)) {
+        const chordCandidate = multiMatch[1];
+        chords.push({
+          chord: chordCandidate,
+          position: cleanLyrics.length + wordClean.length,
+          confidence: 0.95
+        });
+        remaining = remaining.substring(chordCandidate.length);
+        continue;
+      }
+
+      // Check for single-letter chord attached to a capitalized word (e.g. "C" in "CIthuvarai")
+      const singleMatch = remaining.match(SINGLE_LETTER_CHORD_PREFIX);
+      if (singleMatch && isChord(singleMatch[1], true) && remaining.length >= 3) {
+        const chordCandidate = singleMatch[1];
+        chords.push({
+          chord: chordCandidate,
+          position: cleanLyrics.length + wordClean.length,
+          confidence: 0.95
+        });
+        remaining = remaining.substring(chordCandidate.length);
+        continue;
+      }
+
+      wordClean += remaining[0];
+      remaining = remaining.substring(1);
+    }
+
+    cleanLyrics += wordClean;
+  }
+
+  return {
+    lyrics: cleanLyrics,
+    chords
+  };
+}
+
+/**
  * Constructs an aligned chord string with whitespace padding corresponding to character offsets
  */
 export function buildAlignedChordString(chords = []) {

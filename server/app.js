@@ -121,9 +121,11 @@ async function analyzeChordSheetWithGemini(imageBuffer, mimeType) {
   const genAI = new GoogleGenerativeAI(key);
 
   const modelNames = [
-    'gemini-flash-latest',
-    'gemini-1.5-pro',
-    'gemini-2.5-pro'
+    'gemini-3.7-flash',
+    'gemini-3.5-flash',
+    'gemini-3.6-flash',
+    'gemini-3.8-flash',
+    'gemini-flash-latest'
   ];
   let lastError = null;
 

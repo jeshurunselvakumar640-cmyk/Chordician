@@ -2,6 +2,7 @@ import {
   isChordLine,
   extractChordsFromLine,
   parseInlineBracketedChords,
+  parseAttachedChordLine,
   buildAlignedChordString,
   isChord
 } from './chordParser.js';
@@ -102,7 +103,33 @@ export function normalizeSongData({ title, artist, originalKey, rawText }, sourc
       }
     }
 
-    // 4. Check for Chord Line vs Lyric Line (Two-Layer chord-above-lyrics)
+    // 4. Check for Attached Chords (e.g. "DmMaravaamal NinaiththeeraiyaaAmA#Manathaara")
+    const attached = parseAttachedChordLine(rawLine);
+    if (attached.chords.length > 0 && attached.lyrics.trim().length > 0) {
+      if (pendingChordLine !== null) {
+        currentSection.rows.push({
+          id: `r_${sectionIndex}_${rowIndex++}`,
+          type: 'chords',
+          content: pendingChordLine
+        });
+        pendingChordLine = null;
+      }
+
+      const chordRowContent = buildAlignedChordString(attached.chords);
+      currentSection.rows.push({
+        id: `r_${sectionIndex}_${rowIndex++}`,
+        type: 'chords',
+        content: chordRowContent
+      });
+      currentSection.rows.push({
+        id: `r_${sectionIndex}_${rowIndex++}`,
+        type: 'lyrics',
+        content: attached.lyrics.trimEnd()
+      });
+      continue;
+    }
+
+    // 5. Check for Chord Line vs Lyric Line (Two-Layer chord-above-lyrics)
     if (isChordLine(rawLine)) {
       if (pendingChordLine !== null) {
         // Two consecutive chord lines -> flush previous as standalone
