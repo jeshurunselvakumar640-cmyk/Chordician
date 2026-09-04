@@ -1,10 +1,26 @@
 import React from 'react';
 
+/**
+ * Intelligent whitespace compression for chords and note rows.
+ * If a row has excessive spaces (runs of 4 or more spaces), it compresses them to 2-3 spaces
+ * to fit smoothly on mobile screens without triggering horizontal sliders.
+ */
+function cleanRowText(rawText, type) {
+  const text = Array.isArray(rawText) ? rawText.join('   ') : String(rawText || '');
+  
+  if (type === 'chords' || type === 'lead' || type === 'bass') {
+    // Compress runs of 4 or more spaces into 3 spaces
+    return text.replace(/ {4,}/g, '   ');
+  }
+  
+  return text;
+}
+
 export default function RowViewer({ row }) {
   const { type = 'chords', displayContent, content } = row;
   const rawText = displayContent !== undefined ? displayContent : content;
   
-  const text = Array.isArray(rawText) ? rawText.join('   ') : String(rawText || '');
+  const text = cleanRowText(rawText, type);
 
   if (!text.trim() && type !== 'lyrics') {
     return null;

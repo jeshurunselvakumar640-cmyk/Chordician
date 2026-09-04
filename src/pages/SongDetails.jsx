@@ -8,7 +8,11 @@ import {
   Maximize2,
   Printer,
   Music,
-  Sliders
+  Sliders,
+  Clock,
+  Gauge,
+  FileText,
+  User
 } from 'lucide-react';
 import { getSongById } from '../firebase/songs.js';
 import { transposeSong } from '../services/transposer.js';
@@ -202,19 +206,30 @@ export default function SongDetails({
         </div>
       </div>
 
-      {/* Song Header Card */}
+      {/* Unified Modern Song Header Card */}
       <div className="card song-details-header-card">
         <div className="song-details-header-content">
           <div className="song-details-title-group">
             <h1 className="song-details-title">
               {title}
             </h1>
-            <p className="song-details-artist">
-              {artist || 'Unknown Artist'}
-            </p>
+            <div className="song-details-artist-row">
+              <span className="song-details-artist">
+                <User size={14} style={{ opacity: 0.7 }} />
+                {artist || 'Unknown Artist'}
+              </span>
+            </div>
           </div>
 
           <div className="song-details-badges-group">
+            <span className="badge badge-key">
+              Key: <strong>{originalKey || 'C'}</strong>
+            </span>
+            {isTransposed && (
+              <span className="badge badge-key transposed-badge">
+                Playing in: <strong>{activeKey}</strong>
+              </span>
+            )}
             {category && (
               <span
                 className={`badge badge-category ${
@@ -231,15 +246,28 @@ export default function SongDetails({
             {style?.name && (
               <span
                 className="badge badge-style badge-style-highlight"
-                title={`Style: ${style.category} → ${style.name} (${formatStyleCode(style)})`}
+                title={`Style: ${style.category || ''} → ${style.name} (${formatStyleCode(style)})`}
               >
-                <Sliders size={13} />
+                <Sliders size={12} />
                 <span>Style: <strong>{formatMainStyleHighlight(style)}</strong></span>
               </span>
             )}
-            {isTransposed && (
-              <span className="badge badge-key transposed-badge">
-                Playing in: {activeKey}
+            {song.tempo && (
+              <span className="badge badge-meta" title={`Tempo: ${song.tempo} BPM`}>
+                <Gauge size={12} />
+                <span>{song.tempo} BPM</span>
+              </span>
+            )}
+            {song.timeSignature && (
+              <span className="badge badge-meta" title={`Time Signature: ${song.timeSignature}`}>
+                <Clock size={12} />
+                <span>{song.timeSignature}</span>
+              </span>
+            )}
+            {song.notes && (
+              <span className="badge badge-notes" title={`Performance Notes: ${song.notes}`}>
+                <FileText size={12} />
+                <span>{song.notes}</span>
               </span>
             )}
           </div>

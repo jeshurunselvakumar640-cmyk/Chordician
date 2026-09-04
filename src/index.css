@@ -1232,42 +1232,91 @@ button:disabled {
 }
 
 .song-details-header-card {
-  padding: 20px 24px;
+  padding: 18px 22px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(18, 26, 45, 0.95) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme='light'] .song-details-header-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
 }
 
 .song-details-header-content {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .song-details-title-group {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
 .song-details-title {
-  font-size: clamp(1.6rem, 5.5vw, 2.3rem);
+  font-size: clamp(1.4rem, 4.5vw, 2.1rem);
   font-weight: 800;
-  line-height: 1.2;
-  margin-bottom: 4px;
+  line-height: 1.25;
+  margin-bottom: 6px;
   word-break: break-word;
 }
 
+.song-details-artist-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .song-details-artist {
-  font-size: clamp(1rem, 3.2vw, 1.2rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: clamp(0.9rem, 2.8vw, 1.05rem);
   color: var(--text-muted);
   font-weight: 500;
-  word-break: break-word;
 }
 
 .song-details-badges-group {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 7px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.badge-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.badge-notes {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  background-color: rgba(236, 72, 153, 0.12);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  color: #f472b6;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .transposed-badge {
@@ -1330,24 +1379,36 @@ button:disabled {
 
 .song-row-display {
   padding: 3px 0;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  box-sizing: border-box;
+}
+
+.song-row-display::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .row-chords {
   font-family: var(--font-mono);
-  font-size: clamp(1.12rem, 3.8vw, 1.35rem);
+  font-size: clamp(1rem, 3.4vw, 1.25rem);
   font-weight: 700;
   color: var(--chord-text);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.3;
+  word-break: normal;
+  overflow-wrap: normal;
+  line-height: 1.35;
 }
 
 .row-lyrics {
   font-family: var(--font-body);
-  font-size: clamp(1.02rem, 3.2vw, 1.2rem);
+  font-size: clamp(0.95rem, 3.2vw, 1.15rem);
   color: var(--lyrics-text);
   line-height: 1.5;
   white-space: pre-wrap;
@@ -1357,11 +1418,11 @@ button:disabled {
 
 .row-lead, .row-bass {
   font-family: var(--font-mono);
-  font-size: clamp(0.98rem, 3vw, 1.15rem);
+  font-size: clamp(0.92rem, 3vw, 1.1rem);
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-break: normal;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -5144,26 +5205,31 @@ button:disabled {
   }
 
   .song-details-header-card {
-    padding: 12px 14px;
+    padding: 14px 14px;
     margin-bottom: 12px;
     border-radius: var(--radius-md);
   }
 
   .song-details-title {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     line-height: 1.25;
     word-break: break-word;
+    margin-bottom: 4px;
+  }
+
+  .song-details-artist-row {
+    margin-bottom: 6px;
   }
 
   .song-details-artist {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
   }
 
   .song-details-badges-group {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-top: 8px;
+    padding-top: 6px;
   }
 
   /* Transposer Bar on Phones */
@@ -5200,59 +5266,6 @@ button:disabled {
     font-size: 0.82rem;
   }
 
-  /* Main Style Highlight Card on Phones */
-  .song-main-style-highlight-card {
-    padding: 10px 12px;
-    margin-bottom: 12px;
-    border-radius: var(--radius-md);
-  }
-
-  .song-main-style-inner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .song-main-style-left {
-    width: 100%;
-    gap: 10px;
-  }
-
-  .song-main-style-icon-wrapper {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-  }
-
-  .song-main-style-name {
-    font-size: 1.05rem;
-  }
-
-  .song-main-style-number-badge {
-    font-size: 0.95rem;
-    padding: 2px 7px;
-  }
-
-  .song-main-style-right {
-    width: 100%;
-  }
-
-  .song-main-style-details-text {
-    font-size: 0.78rem;
-    line-height: 1.35;
-  }
-
-  .song-meta-summary-card {
-    padding: 8px 12px;
-    margin-bottom: 12px;
-    border-radius: var(--radius-md);
-  }
-
-  .song-meta-summary-content {
-    gap: 6px 12px;
-    font-size: 0.8rem;
-  }
-
   /* Song Section Cards & Monospace Piano Rows */
   .song-section-card {
     padding: 12px 10px;
@@ -5279,39 +5292,51 @@ button:disabled {
     box-sizing: border-box;
   }
 
-  /* ZERO-OVERFLOW Monospace Chord Sheet for Phones */
+  /* ZERO-SLIDER Responsive Chord Sheet for Phones */
   .song-row-display {
     padding: 2px 0;
     width: 100%;
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
     box-sizing: border-box;
   }
 
+  .song-row-display::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
   .row-chords {
-    font-size: 1.05rem;
+    font-size: clamp(0.92rem, 3.2vw, 1.15rem);
     line-height: 1.35;
-    letter-spacing: 0.03em;
-    white-space: pre;
+    letter-spacing: 0.02em;
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: normal;
     font-family: var(--font-mono);
   }
 
   .row-lyrics {
-    font-size: 0.98rem;
+    font-size: clamp(0.9rem, 3vw, 1.05rem);
     line-height: 1.45;
-    white-space: pre;
+    white-space: pre-wrap;
+    word-break: break-word;
     font-family: var(--font-sans);
   }
 
   .row-lead, .row-bass {
-    font-size: 0.92rem;
-    white-space: pre;
+    font-size: 0.88rem;
+    white-space: pre-wrap;
+    word-break: normal;
     font-family: var(--font-mono);
   }
 
   .row-notes {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     padding: 6px 10px;
   }
 
