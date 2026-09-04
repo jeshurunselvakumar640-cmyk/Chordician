@@ -109,8 +109,8 @@ Messy Raw Webpage / Text
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/jeshuruns/chordician.git
-cd chordician
+git clone https://github.com/jeshurunselvakumar640-cmyk/Chordician.git
+cd Chordician
 ```
 
 ### 2. Install Dependencies
