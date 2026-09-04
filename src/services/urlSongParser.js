@@ -1,6 +1,7 @@
 /**
  * Frontend client service for importing song chord sheets from webpage URLs.
  */
+import { fetchWithRetry } from '../utils/apiClient.js';
 
 export const SAMPLE_URL_PRESETS = [
   {
@@ -146,13 +147,13 @@ export async function importSongFromUrl(urlString, selectedPresetId = null) {
   }
 
   try {
-    const response = await fetch('/api/import-url', {
+    const response = await fetchWithRetry('/api/import-url', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ url: validation.url })
-    });
+    }, 2, 800);
 
     const result = await response.json();
 
@@ -230,7 +231,7 @@ export async function restructureSongTextWithChordexAI(rawText, metadata = {}, s
   }
 
   try {
-    const response = await fetch('/api/chordex/analyze-text', {
+    const response = await fetchWithRetry('/api/chordex/analyze-text', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -241,7 +242,7 @@ export async function restructureSongTextWithChordexAI(rawText, metadata = {}, s
         artist: metadata.artist,
         originalKey: metadata.originalKey
       })
-    });
+    }, 2, 800);
 
     const result = await response.json();
 

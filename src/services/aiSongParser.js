@@ -1,4 +1,5 @@
 import { convertChordexToChordician, validateChordexData } from './chordexConverter.js';
+import { fetchWithRetry } from '../utils/apiClient.js';
 
 export const DEMO_PRESETS = [
   {
@@ -192,10 +193,10 @@ export async function analyzeImageWithChordexAI(imageFile, imageBase64 = null) {
     return { success: false, error: 'No image provided.' };
   }
 
-  const response = await fetch('/api/chordex/analyze', {
+  const response = await fetchWithRetry('/api/chordex/analyze', {
     method: 'POST',
     body: formData
-  });
+  }, 2, 1000);
 
   const result = await response.json();
   if (!response.ok || !result.success) {
