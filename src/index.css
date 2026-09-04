@@ -4727,7 +4727,1049 @@ button:disabled {
   font-weight: 700;
 }
 
+/* ==========================================================================
+   MASTER MOBILE RESPONSIVE OVERHAUL (PHONES, TABLETS & NOTCH DEVICES)
+   ========================================================================== */
 
+/* --------------------------------------------------------------------------
+   1. TABLETS & SMALL LAPTOPS (<= 900px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+    width: min(85vw, 300px);
+  }
 
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-xl);
+  }
 
+  .sidebar-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 
+  .main-wrapper {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .header {
+    height: var(--header-height-mobile);
+    padding: 0 14px;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .desktop-search-wrapper {
+    display: none;
+  }
+
+  .mobile-search-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .desktop-only-action {
+    display: none !important;
+  }
+
+  .bottom-nav {
+    display: flex;
+  }
+
+  .main-content {
+    padding: 16px 14px calc(var(--bottom-nav-height) + 28px + env(safe-area-inset-bottom));
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .dashboard-banner {
+    padding: 18px 16px;
+    margin-bottom: 20px;
+    gap: 14px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+
+  .dashboard-language-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .songs-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. STANDARD SMARTPHONES (<= 640px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    font-size: 15px;
+  }
+
+  .app-container {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .main-wrapper {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .main-content {
+    padding: 12px 12px calc(var(--bottom-nav-height) + 24px + env(safe-area-inset-bottom));
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* --- Top Header & Brand on Phones --- */
+  .header {
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  .header-left {
+    gap: 10px;
+  }
+
+  .mobile-brand-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-xs);
+  }
+
+  .mobile-brand-title {
+    font-size: 1.05rem;
+  }
+
+  .header-right {
+    gap: 6px;
+  }
+
+  /* --- Dashboard Mobile Layout --- */
+  .dashboard-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px 14px;
+    gap: 12px;
+    border-radius: var(--radius-lg);
+  }
+
+  .dashboard-title {
+    font-size: 1.4rem;
+    line-height: 1.2;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .dashboard-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .dashboard-action-btn {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 0.86rem;
+    justify-content: center;
+  }
+
+  .dashboard-languages-section {
+    margin-bottom: 22px;
+  }
+
+  .dashboard-section-header {
+    margin-bottom: 12px;
+  }
+
+  .dashboard-section-title {
+    font-size: 1.15rem;
+  }
+
+  .dashboard-section-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .dashboard-language-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .dashboard-lang-card {
+    padding: 12px 14px;
+  }
+
+  .lang-card-flag {
+    font-size: 1.25rem;
+  }
+
+  .lang-card-title {
+    font-size: 0.92rem;
+  }
+
+  .lang-card-sub {
+    font-size: 0.74rem;
+  }
+
+  .lang-card-count-badge {
+    font-size: 0.74rem;
+    padding: 2px 7px;
+  }
+
+  /* --- 2x2 Stats Grid on Phones --- */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    padding: 12px 10px;
+    gap: 8px;
+    border-radius: var(--radius-md);
+  }
+
+  .stat-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: var(--radius-sm);
+  }
+
+  .stat-value {
+    font-size: 1.35rem;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+  }
+
+  /* --- Dashboard Filter Pills --- */
+  .dashboard-filter-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    width: 100%;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .dashboard-filter-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dashboard-filter-pill {
+    padding: 4px 10px;
+    font-size: 0.76rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* --- Songs Page & Cards on Phones --- */
+  .songs-page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .songs-page-title {
+    font-size: 1.35rem;
+  }
+
+  .songs-page-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .songs-language-chips-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .songs-language-chips-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .songs-lang-chip {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .songs-filter-card {
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .songs-filter-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .songs-search-col {
+    width: 100%;
+  }
+
+  .filter-select {
+    width: 100%;
+    height: 40px;
+    font-size: 0.86rem;
+    padding: 8px 10px;
+  }
+
+  .songs-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .song-card {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .song-card-title {
+    font-size: 1.05rem;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .song-card-artist {
+    font-size: 0.82rem;
+  }
+
+  .song-card-badges {
+    margin: 8px 0;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  .song-card-footer {
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+
+  .song-card-date {
+    font-size: 0.72rem;
+  }
+
+  .song-card-action-group {
+    gap: 6px;
+  }
+
+  .song-list-item {
+    padding: 10px 12px;
+    gap: 8px;
+    border-radius: var(--radius-md);
+  }
+
+  .song-list-title {
+    font-size: 0.95rem;
+  }
+
+  .song-list-subtitle {
+    font-size: 0.75rem;
+  }
+
+  /* --- Song Details & Lyrics / Chords Viewer on Phones --- */
+  .song-details-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .song-details-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .song-details-action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .song-perf-trigger-btn {
+    padding: 7px 11px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .song-details-header-card {
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: var(--radius-md);
+  }
+
+  .song-details-title {
+    font-size: 1.3rem;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .song-details-artist {
+    font-size: 0.85rem;
+  }
+
+  .song-details-badges-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  /* Transposer Bar on Phones */
+  .song-details-transposer-wrapper {
+    margin-bottom: 12px;
+  }
+
+  .transposer-bar {
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: space-between;
+    border-radius: var(--radius-md);
+  }
+
+  .transposer-info {
+    font-size: 0.84rem;
+    gap: 6px;
+  }
+
+  .transposer-controls {
+    gap: 5px;
+  }
+
+  .transposer-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .transposer-select {
+    height: 36px;
+    padding: 4px 8px;
+    font-size: 0.82rem;
+  }
+
+  /* Main Style Highlight Card on Phones */
+  .song-main-style-highlight-card {
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border-radius: var(--radius-md);
+  }
+
+  .song-main-style-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .song-main-style-left {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .song-main-style-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .song-main-style-name {
+    font-size: 1.05rem;
+  }
+
+  .song-main-style-number-badge {
+    font-size: 0.95rem;
+    padding: 2px 7px;
+  }
+
+  .song-main-style-right {
+    width: 100%;
+  }
+
+  .song-main-style-details-text {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .song-meta-summary-card {
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border-radius: var(--radius-md);
+  }
+
+  .song-meta-summary-content {
+    gap: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  /* Song Section Cards & Monospace Piano Rows */
+  .song-section-card {
+    padding: 12px 10px;
+    margin-bottom: 12px;
+    border-radius: var(--radius-md);
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .section-header {
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+  }
+
+  .section-title {
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+  }
+
+  .section-rows-container {
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ZERO-OVERFLOW Monospace Chord Sheet for Phones */
+  .song-row-display {
+    padding: 2px 0;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+
+  .row-chords {
+    font-size: 1.05rem;
+    line-height: 1.35;
+    letter-spacing: 0.03em;
+    white-space: pre;
+    font-family: var(--font-mono);
+  }
+
+  .row-lyrics {
+    font-size: 0.98rem;
+    line-height: 1.45;
+    white-space: pre;
+    font-family: var(--font-sans);
+  }
+
+  .row-lead, .row-bass {
+    font-size: 0.92rem;
+    white-space: pre;
+    font-family: var(--font-mono);
+  }
+
+  .row-notes {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+
+  /* --- Song Editor on Phones --- */
+  .song-editor-form {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .editor-top-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .editor-main-title {
+    font-size: 1.2rem;
+  }
+
+  .editor-save-btn {
+    padding: 7px 12px;
+    font-size: 0.84rem;
+  }
+
+  .editor-meta-card {
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .editor-meta-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .form-input, .form-select, .form-textarea {
+    font-size: 16px !important; /* Prevents auto-zoom in mobile Safari */
+    min-height: 42px;
+    padding: 8px 12px;
+  }
+
+  .quick-language-pills {
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+
+  .btn-language-pill {
+    padding: 3px 7px;
+    font-size: 0.72rem;
+  }
+
+  .style-selector-trigger-btn {
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+
+  .style-selected-banner {
+    padding: 8px 10px;
+  }
+
+  .editor-extra-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .editor-notes-field {
+    grid-column: span 2;
+  }
+
+  .editor-sections-wrapper {
+    gap: 10px;
+  }
+
+  .editor-section-card {
+    padding: 10px 10px;
+    border-radius: var(--radius-md);
+  }
+
+  .editor-section-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .editor-section-name-input {
+    font-size: 15px !important;
+    height: 36px;
+  }
+
+  .editor-preset-btn {
+    padding: 4px 8px;
+    font-size: 0.76rem;
+  }
+
+  .editor-preset-pill-box {
+    padding: 6px;
+    gap: 4px;
+  }
+
+  .editor-preset-pill {
+    padding: 3px 8px;
+    font-size: 0.74rem;
+  }
+
+  .editor-row-item {
+    padding: 8px;
+    gap: 6px;
+    border-radius: var(--radius-sm);
+  }
+
+  .editor-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .editor-row-type-select {
+    height: 32px;
+    font-size: 0.78rem;
+    padding: 2px 6px;
+  }
+
+  .editor-helper-toggle-btn {
+    padding: 2px 7px;
+    font-size: 0.74rem;
+  }
+
+  .editor-row-input {
+    font-size: 15px !important;
+    min-height: 38px;
+  }
+
+  .editor-add-row-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .editor-add-row-toolbar .btn {
+    padding: 4px 8px;
+    font-size: 0.76rem;
+  }
+
+  .add-section-block-btn {
+    padding: 12px;
+    font-size: 0.88rem;
+  }
+
+  .editor-bottom-bar {
+    position: sticky;
+    bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+    padding: 10px 12px;
+    z-index: 45;
+    background-color: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-medium);
+    display: flex;
+    gap: 8px;
+    box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.2);
+  }
+
+  .editor-save-main-btn {
+    flex: 1;
+    min-height: 44px;
+    font-size: 0.92rem;
+  }
+
+  /* --- Import Page on Phones --- */
+  .import-song-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .import-header {
+    padding: 14px 10px;
+    margin-bottom: 12px;
+  }
+
+  .import-header-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .import-title {
+    font-size: 1.25rem;
+  }
+
+  .import-subtitle {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .import-tab-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 4px;
+    margin-bottom: 14px;
+  }
+
+  .import-tab-btn {
+    padding: 8px 6px;
+    font-size: 0.8rem;
+    justify-content: center;
+  }
+
+  .tab-disabled {
+    grid-column: span 2;
+  }
+
+  .import-card {
+    padding: 14px 12px;
+  }
+
+  .url-input-box-glow {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .url-input-field-premium {
+    width: 100%;
+    font-size: 15px !important;
+    padding: 6px 0;
+  }
+
+  .url-submit-btn-premium {
+    width: 100%;
+    height: 42px;
+    font-size: 0.9rem;
+    justify-content: center;
+  }
+
+  .url-supported-platforms-bar {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 2px;
+  }
+
+  .url-platform-chip {
+    font-size: 0.72rem;
+    padding: 2px 6px;
+  }
+
+  .url-steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .import-preset-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .import-preset-card {
+    padding: 10px 12px;
+  }
+
+  .smart-paste-textarea {
+    font-size: 15px !important;
+    min-height: 130px;
+  }
+
+  .smart-paste-meta-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* --- Performance Fullscreen Modal on Phones --- */
+  .performance-overlay {
+    padding: 0;
+  }
+
+  .performance-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: 0;
+  }
+
+  .perf-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .perf-song-title {
+    font-size: 1.05rem;
+  }
+
+  .perf-toolbar-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .perf-font-group button {
+    padding: 3px 6px !important;
+    font-size: 0.74rem !important;
+  }
+
+  .performance-content {
+    padding: 10px 12px 40px;
+  }
+
+  /* --- Style Selector Modal on Phones --- */
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-container {
+    width: 100%;
+    max-width: 100%;
+    max-height: 88vh;
+    max-height: 88dvh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 16px 14px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .style-category-nav {
+    overflow-x: auto;
+    flex-direction: row;
+    white-space: nowrap;
+    width: 100%;
+    padding: 6px 8px;
+    gap: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .style-category-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .style-category-tab {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+
+  .style-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .style-item-card {
+    padding: 10px 12px;
+  }
+
+  /* --- Settings Page on Phones --- */
+  .settings-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .settings-theme-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .settings-theme-option {
+    padding: 12px 14px;
+  }
+
+  .settings-db-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 0;
+  }
+
+  .settings-seed-box {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .settings-rules-pre {
+    font-size: 0.76rem;
+    padding: 10px;
+    overflow-x: auto;
+  }
+
+  /* --- Mobile Navigation Bottom Bar --- */
+  .bottom-nav {
+    height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .bottom-nav-item {
+    padding: 4px 6px;
+    min-width: 48px;
+    font-size: 0.68rem;
+  }
+
+  .bottom-nav-add-icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  /* --- Universal Utility for Mobile --- */
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. EXTRA SMALL SMARTPHONES (<= 380px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 380px) {
+  .dashboard-title {
+    font-size: 1.25rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .stat-card {
+    padding: 8px 8px;
+    gap: 6px;
+  }
+
+  .stat-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+
+  .stat-value {
+    font-size: 1.15rem;
+  }
+
+  .dashboard-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .hide-extra-small {
+    display: none !important;
+  }
+
+  .transposer-info .transposer-orig-badge {
+    display: none !important;
+  }
+}
