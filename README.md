@@ -158,6 +158,27 @@ npm run build
 
 ---
 
+## 🚀 Deployment Guide
+
+Chordician is configured for dual-mode deployment: **Serverless (Vercel)** and **Full-Stack Node Server (Render / Railway / Heroku)**.
+
+### Option A: Deploying on Vercel (Recommended)
+1. Push your repository to GitHub and import it into [Vercel](https://vercel.com).
+2. Vercel automatically detects the Vite frontend and the `/api` serverless backend via [`vercel.json`](./vercel.json).
+3. In your Vercel Project Settings $\to$ **Environment Variables**, add:
+   - `GEMINI_API_KEY`: *Your Google Gemini API Key*
+   - Add your Firebase `VITE_FIREBASE_*` environment variables if using custom Firebase auth.
+4. Click **Deploy**. Vercel will serve both the React frontend and the Express Serverless `/api/*` endpoints seamlessly.
+
+### Option B: Deploying on Render / Railway / Heroku
+1. Create a new **Web Service** pointing to your repository.
+2. Set the **Build Command** to: `npm run build`
+3. Set the **Start Command** to: `npm start` (or `node server/index.js`)
+4. In the Environment Variables settings, configure `GEMINI_API_KEY` and `PORT`.
+5. The Express server automatically serves the built production frontend from `dist/` and all `/api/*` routes on the assigned port.
+
+---
+
 ## 📁 Project Structure
 
 ```
