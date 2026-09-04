@@ -1,0 +1,133 @@
+import React, { useState, useMemo } from 'react';
+import { LayoutGrid, List, Heart } from 'lucide-react';
+import SongCard from '../components/SongCard/SongCard';
+import SearchBar from '../components/SearchBar/SearchBar';
+import EmptyState from '../components/UI/EmptyState';
+import { SongCardSkeleton } from '../components/UI/SkeletonLoader';
+import { getStoredViewMode, setStoredViewMode } from '../services/storage.js';
+
+export default function Favorites({
+  songs = [],
+  isLoading = false,
+  onToggleFavorite,
+  onDeleteRequest
+}) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState(() => getStoredViewMode());
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    setStoredViewMode(mode);
+  };
+
+  const favoriteSongs = useMemo(() => {
+    return songs
+      .filter((song) => song.favorite)
+      .filter((song) => {
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.toLowerCase().trim();
+        return (
+          (song.title || '').toLowerCase().includes(q) ||
+          (song.artist || '').toLowerCase().includes(q) ||
+          (song.category || '').toLowerCase().includes(q)
+        );
+      });
+  }, [songs, searchQuery]);
+
+  return (
+    <div className="favorites-page">
+      {/* Header */}
+      <div className="favorites-page-header">
+        <div className="favorites-title-group">
+          <div className="favorites-icon-badge">
+            <Heart size={20} fill="currentColor" />
+          </div>
+          <div>
+            <h1 className="favorites-title">Favorite Songs</h1>
+            <p className="favorites-subtitle">
+              {favoriteSongs.length} {favoriteSongs.length === 1 ? 'song' : 'songs'} marked as favorite
+            </p>
+          </div>
+        </div>
+
+        {/* View Toggle */}
+        <div className="view-mode-toggle-group">
+          <button
+            type="button"
+            className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => handleViewModeChange('grid')}
+            title="Grid view"
+            aria-label="Grid view"
+          >
+            <LayoutGrid size={16} />
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => handleViewModeChange('list')}
+            title="List view"
+            aria-label="List view"
+          >
+            <List size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Search within favorites */}
+      {songs.some((s) => s.favorite) && (
+        <div className="card favorites-search-card">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search favorite songs..."
+          />
+        </div>
+      )}
+
+      {/* Output */}
+      {isLoading ? (
+        <div className={viewMode === 'grid' ? 'songs-grid' : 'songs-list'}>
+          {[1, 2, 3].map((i) => (
+            <SongCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : favoriteSongs.length === 0 ? (
+        <EmptyState
+          type="favorites"
+          title={searchQuery ? 'No matching favorite songs' : 'No favorites added yet'}
+          description={
+            searchQuery
+              ? 'Try a different search term to find your favorite songs.'
+              : 'Click the heart icon on any song to quickly access your favorite piano arrangements here.'
+          }
+          actionText="Browse All Songs"
+          actionLink="/songs"
+        />
+      ) : viewMode === 'grid' ? (
+        <div className="songs-grid">
+          {favoriteSongs.map((song) => (
+            <SongCard
+              key={song.id}
+              song={song}
+              viewMode="grid"
+              onToggleFavorite={onToggleFavorite}
+              onDeleteRequest={onDeleteRequest}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="songs-list">
+          {favoriteSongs.map((song) => (
+            <SongCard
+              key={song.id}
+              song={song}
+              viewMode="list"
+              onToggleFavorite={onToggleFavorite}
+              onDeleteRequest={onDeleteRequest}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
