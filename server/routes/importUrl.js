@@ -3,6 +3,7 @@ import { validateUrl } from '../services/urlValidator.js';
 import { safeFetchHtml } from '../services/urlFetcher.js';
 import { parseHtmlToSong } from '../parsers/genericParser.js';
 import { analyzeSongTextWithChordexAI } from '../services/chordexTextAnalyzer.js';
+import { normalizeSongData } from '../services/songNormalizer.js';
 
 const router = Router();
 
@@ -129,19 +130,33 @@ router.post('/chordex/analyze-text', async (req, res) => {
 
   try {
     console.log(`[Chordex AI Text] Restructuring raw text input (${text.length} chars)...`);
-    const song = await analyzeSongTextWithChordexAI(text, {
-      title,
-      artist,
-      originalKey,
-      sourceUrl: 'Smart Paste / Clipboard'
-    });
+    let song = null;
+    let warnings = [];
+
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        song = await analyzeSongTextWithChordexAI(text, {
+          title,
+          artist,
+          originalKey,
+          sourceUrl: 'Smart Paste / Clipboard'
+        });
+      } catch (aiErr) {
+        console.warn('[Chordex AI Text] AI reconstruction fallback to rule normalizer:', aiErr.message);
+        warnings.push('Used rule-based chord reconstruction.');
+      }
+    }
+
+    if (!song) {
+      song = normalizeSongData({ title, artist, originalKey, rawText: text }, 'Smart Paste / Clipboard');
+    }
 
     console.log(`[Chordex AI Text] Successfully reconstructed "${song.title}" (${song.sections.length} sections)!`);
 
     return res.json({
       success: true,
       song,
-      warnings: []
+      warnings
     });
   } catch (err) {
     console.error('[Chordex AI Text Error]:', err.message || err);
