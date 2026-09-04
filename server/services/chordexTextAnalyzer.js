@@ -51,8 +51,8 @@ OUTPUT FORMAT: Return ONLY valid JSON matching this schema:
 }`;
 
 // Cache the fastest working model to eliminate retry overhead on subsequent imports
-let cachedFastestModel = 'gemini-3.7-flash';
-const FAST_MODELS = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
+let cachedFastestModel = null;
+const FAST_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-1.5-flash'];
 
 /**
  * Uses Google Gemini AI to intelligently analyze and reconstruct raw webpage text into clean chord sheets.
