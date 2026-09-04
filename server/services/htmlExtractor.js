@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio';
-import { isChordLine, parseInlineBracketedChords } from './chordParser.js';
+import { isChord, isChordLine, parseInlineBracketedChords } from './chordParser.js';
 
 /**
  * Extracts clean song metadata (title, artist, key) and structured raw content from webpage HTML.
@@ -14,23 +14,35 @@ export function extractSongFromHtml(html, sourceUrl = '') {
   // 1. Extract Metadata from JSON-LD, OpenGraph, Meta tags, and Headers
   const metadata = extractMetadata($, sourceUrl);
 
-  // 2. Strip noise elements
+  // 2. Format chord elements before cleaning so inline spans/tags retain chord markers
+  formatInlineChordElements($);
+
+  // 3. Convert line-break elements to newlines
+  $('br, hr').replaceWith('\n');
+
+  // 4. Strip strictly non-content noise elements
   $(
-    'script, style, noscript, iframe, nav, footer, header, aside, form, input, button, select, ' +
-    '.ad, .ads, .advertisement, .cookie, .cookie-banner, .cookie-consent, .social-share, ' +
-    '.comments, .comment-section, .sidebar, .related, .related-songs, .related-posts, .yarpp-related, ' +
-    '.jp-relatedposts, .site-header, .site-footer, .transposer, .chords-transposer, .keys-list, ' +
-    '.breadcrumb, .breadcrumbs, .menu, .navigation, svg, img, picture, audio, video'
+    'script:not([type="application/ld+json"]), style, noscript, iframe, svg, img, picture, ' +
+    'audio, video, nav, footer, form, input, button, select, dialog, ' +
+    '.ad, .ads, .advertisement, .cookie, .cookie-banner, .cookie-consent, ' +
+    '.social-share, .comments-area, #comments, .sidebar, #sidebar, ' +
+    '.breadcrumb, .breadcrumbs, .menu, .navigation, #wpadminbar'
   ).remove();
 
-  // 3. Find Song Content Container
-  let songContent = extractSongContainerText($, html);
+  // 5. Smart Song Content Container Detection with Scoring
+  let songContent = extractBestSongContainerText($, html);
 
-  // 4. Post-process to remove unrelated footer / related songs / chromatic scales
+  // 6. Post-process to remove unrelated social headers, chromatic scales, and noise
   songContent = cleanExtractedSongText(songContent);
 
+  // 7. Fallback to full body text if specific container was too empty
+  if (!songContent || songContent.trim().length < 15) {
+    const rawBody = getNodeFormattedText($('body'), $);
+    songContent = cleanExtractedSongText(rawBody);
+  }
+
   if (!songContent || songContent.trim().length === 0) {
-    throw new Error('No readable song lyrics or chord structure could be found on this webpage.');
+    throw new Error('No readable song lyrics or chord structure could be found on this webpage. Please paste the song text directly into the editor or try another URL.');
   }
 
   return {
@@ -42,6 +54,145 @@ export function extractSongFromHtml(html, sourceUrl = '') {
 }
 
 /**
+ * Converts inline HTML chord elements into standard bracketed notation [Chord]
+ * so chords inside <span>, <b>, <td> elements are preserved without losing alignment.
+ */
+function formatInlineChordElements($) {
+  const chordSelectors = [
+    'span.chord', 'span.c', 'span.chords', 'span.crd',
+    'span[data-chord]', 'span[data-name="chord"]',
+    'b.chord', 'i.chord', 'strong.chord', 'font.chord',
+    '.chord-name', '.chord-pro'
+  ];
+
+  for (const selector of chordSelectors) {
+    $(selector).each((_, el) => {
+      const $el = $(el);
+      const chordText = ($el.attr('data-chord') || $el.text() || '').trim();
+      if (chordText && chordText.length <= 12 && isChord(chordText, true)) {
+        $el.replaceWith(` [${chordText}] `);
+      }
+    });
+  }
+}
+
+/**
+ * Evaluates candidate song containers and selects the highest quality content block.
+ */
+function extractBestSongContainerText($, html) {
+  const candidateSelectors = [
+    'pre',
+    '.js-tab-content',
+    '.tab-content',
+    '.crd',
+    '.chord',
+    '.chords',
+    '.lyrics',
+    '.song-lyrics',
+    '.song-content',
+    '.song-body',
+    '#song-content',
+    '#chords-body',
+    'article.song',
+    '.entry-content',
+    '.post-content',
+    '.post_content',
+    '.post-entry',
+    '.article-content',
+    '#content',
+    '.content',
+    'main',
+    'article'
+  ];
+
+  let bestText = '';
+  let bestScore = -1;
+
+  for (const selector of candidateSelectors) {
+    const elements = $(selector);
+    if (elements.length > 0) {
+      for (let i = 0; i < elements.length; i++) {
+        const el = elements.eq(i);
+        const text = getNodeFormattedText(el, $);
+        const score = scoreSongContent(text);
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestText = text;
+        }
+      }
+    }
+  }
+
+  // If a candidate scored well (> 10), return it
+  if (bestScore >= 10 && bestText.trim().length > 30) {
+    return bestText;
+  }
+
+  // Otherwise return formatted body text
+  return getNodeFormattedText($('body'), $);
+}
+
+/**
+ * Scores a text block based on song characteristics (chord presence, line count, section headers, lyric poetry).
+ */
+function scoreSongContent(text) {
+  if (!text || typeof text !== 'string') return 0;
+  const trimmed = text.trim();
+  if (trimmed.length < 20) return 0;
+
+  let score = 0;
+  const lines = trimmed.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+  // Line count scoring (3 to 80 lines is typical song size)
+  if (lines.length >= 4 && lines.length <= 150) {
+    score += Math.min(lines.length * 2, 30);
+  } else if (lines.length > 150) {
+    score += 10; // Might contain whole page
+  }
+
+  let chordLineCount = 0;
+  let bracketedChordCount = 0;
+  let sectionHeaderCount = 0;
+  let lyricLineCount = 0;
+
+  for (const line of lines) {
+    // Check for chord line
+    if (isChordLine(line)) {
+      chordLineCount++;
+    }
+
+    // Check for bracketed chords e.g. [Dm] or (G)
+    const bracketed = parseInlineBracketedChords(line);
+    if (bracketed.chords.length > 0) {
+      bracketedChordCount += bracketed.chords.length;
+    }
+
+    // Check for section headers (English + Tamil + Hindi)
+    if (/^(?:\[?(?:Verse|Chorus|Bridge|Intro|Outro|Pre-Chorus|Tag|Ending|சரணம்|பல்லவி|அனுபல்லவி|Stanza|Refrain)\b)/i.test(line)) {
+      sectionHeaderCount++;
+    }
+
+    // Normal lyric line length
+    if (line.length >= 10 && line.length <= 90) {
+      lyricLineCount++;
+    }
+  }
+
+  score += chordLineCount * 8;
+  score += bracketedChordCount * 4;
+  score += sectionHeaderCount * 10;
+  score += Math.min(lyricLineCount, 25);
+
+  // Penalize navigation / UI heavy blocks
+  if (/^(?:Cookie|Privacy|Terms|Copyright|All rights reserved|Menu|Navigation)\b/im.test(trimmed)) {
+    score -= 15;
+  }
+
+  return score;
+}
+
+/**
  * Post-processes raw text to strip trailing related songs, chromatic note scales, and UI labels.
  */
 function cleanExtractedSongText(text) {
@@ -49,17 +200,38 @@ function cleanExtractedSongText(text) {
 
   const lines = text.split(/\r?\n/);
   const cleanLines = [];
+  let validSongLinesFound = 0;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // If we hit Related songs / comments marker, stop reading further
-    if (/^(?:Related(?:\s+Songs)?|You May Also Like|Leave a Reply|Comments|Share this:|Share on)\b/i.test(trimmed)) {
-      break;
+    // If empty line, preserve spacing
+    if (!trimmed) {
+      if (cleanLines.length > 0 && cleanLines[cleanLines.length - 1] !== '') {
+        cleanLines.push('');
+      }
+      continue;
     }
 
-    // Skip chromatic scales (e.g. "A♭AA♯B♭BCC♯D♭DD♯E♭EFF♯G♭GG♯" or "A Bb B C C# D Eb E F F# G Ab")
+    // If we have already gathered a substantial song (>= 6 lines) and hit an obvious footer/comment header, stop reading
+    if (validSongLinesFound >= 6) {
+      if (/^(?:Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation)\b/i.test(trimmed)) {
+        break;
+      }
+    }
+
+    // Skip isolated social sharing lines
+    if (/^(?:Share this:|Share on (?:Facebook|Twitter|WhatsApp|Pinterest)|Like this:|Tweet|Pin it|Email this)\b/i.test(trimmed)) {
+      continue;
+    }
+
+    // Skip breadcrumb lines (e.g. "Home > Songs > Tamil Christian Songs")
+    if (/^(?:Home|Songs|Lyrics)\s*[>»/]\s*/i.test(trimmed)) {
+      continue;
+    }
+
+    // Skip chromatic note scales (e.g. "A♭AA♯B♭BCC♯D♭DD♯E♭EFF♯G♭GG♯" or "A Bb B C C# D Eb E F F# G Ab")
     if (/^[A-G][#b♭♯\sA-G]+$/i.test(trimmed) && trimmed.length > 15 && !trimmed.includes(' ')) {
       continue;
     }
@@ -68,11 +240,12 @@ function cleanExtractedSongText(text) {
     }
 
     // Skip standalone single UI words
-    if (/^(?:Lyrics|Chords|Bible|Share|Related|Print|Transpose|Download|Guitar|Keyboard|Piano|Tamil|English)$/i.test(trimmed)) {
+    if (/^(?:Lyrics|Chords|Bible|Share|Related|Print|Transpose|Download|Guitar|Keyboard|Piano|Tamil|English|Search|Menu|Home)$/i.test(trimmed)) {
       continue;
     }
 
     cleanLines.push(line);
+    validSongLinesFound++;
   }
 
   return cleanLines.join('\n').trim();
@@ -144,9 +317,9 @@ function extractMetadata($, sourceUrl) {
     }
   }
 
-  // E. Check for Key in HTML text (e.g. "Key: G" or "Key of C")
+  // E. Check for Key in HTML text (e.g. "Key: G" or "Key of C" or "Scale: Dm")
   const pageText = $('body').text();
-  const keyMatch = pageText.match(/\bKey(?:\s*:\s*|\s+of\s+)([A-G][#b]?(?:m|maj|min)?)\b/i);
+  const keyMatch = pageText.match(/\b(?:Key|Scale)(?:\s*:\s*|\s+of\s+)([A-G][#b]?(?:m|maj|min)?)\b/i);
   if (keyMatch && keyMatch[1]) {
     originalKey = keyMatch[1].toUpperCase();
   }
@@ -216,51 +389,6 @@ function cleanTitleAndArtist(title, artist, sourceUrl) {
 }
 
 /**
- * Extracts text from the most specific song container while preserving line breaks and whitespace.
- */
-function extractSongContainerText($, html) {
-  // Convert <br> to newline inside all containers
-  $('br').replaceWith('\n');
-
-  // Candidate song containers in order of specificity
-  const candidateSelectors = [
-    'pre',
-    '.js-tab-content',
-    '.tab-content',
-    '.crd',
-    '.chord',
-    '.chords',
-    '.lyrics',
-    '.song-lyrics',
-    '.song-content',
-    '.song-body',
-    '#song-content',
-    '#chords-body',
-    'article.song',
-    '.entry-content',
-    'article',
-    'main',
-    '.content'
-  ];
-
-  for (const selector of candidateSelectors) {
-    const elements = $(selector);
-    if (elements.length > 0) {
-      for (let i = 0; i < elements.length; i++) {
-        const el = elements.eq(i);
-        const text = getNodeFormattedText(el, $);
-        if (hasChordLyricDensity(text)) {
-          return text;
-        }
-      }
-    }
-  }
-
-  // Fallback: entire body formatted text
-  return getNodeFormattedText($('body'), $);
-}
-
-/**
  * Reads text from a Cheerio node while preserving block structure and whitespace.
  */
 function getNodeFormattedText($el, $) {
@@ -271,27 +399,9 @@ function getNodeFormattedText($el, $) {
     return $el.text();
   }
 
-  // Replace/append newline to block elements cleanly
-  $el.find('p, div, li, tr').append('\n');
+  // Clone so modifications don't corrupt parent DOM
+  const $clone = $el.clone();
+  $clone.find('p, div, li, tr, blockquote, section, article, h1, h2, h3, h4, h5, h6').append('\n');
 
-  return $el.text();
-}
-
-/**
- * Checks if a text block contains recognizable chords and lyrics.
- */
-function hasChordLyricDensity(text) {
-  if (!text || text.length < 20) return false;
-
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-  if (lines.length < 2) return false;
-
-  let chordLineCount = 0;
-  for (const line of lines) {
-    if (isChordLine(line) || parseInlineBracketedChords(line).chords.length > 0) {
-      chordLineCount++;
-    }
-  }
-
-  return chordLineCount >= 1;
+  return $clone.text();
 }

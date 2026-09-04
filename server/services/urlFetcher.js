@@ -3,7 +3,7 @@ import { validateUrl } from './urlValidator.js';
 const MAX_REDIRECTS = 5;
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5 MB
 const DEFAULT_TIMEOUT_MS = 10000; // 10 seconds
-const USER_AGENT = 'Chordician/1.0 (Web Music Importer; +https://chordician.app)';
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 /**
  * Safely fetches an HTML webpage with SSRF re-validation on redirects,
@@ -32,8 +32,16 @@ export async function safeFetchHtml(initialUrl, maxRedirects = MAX_REDIRECTS) {
         method: 'GET',
         headers: {
           'User-Agent': USER_AGENT,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9,ta;q=0.8,hi;q=0.7',
+          'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1',
           'Cache-Control': 'no-cache'
         },
         redirect: 'manual', // We handle redirects manually for SSRF safety
