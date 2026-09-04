@@ -195,9 +195,12 @@ Chordician/
 
 ---
 
-## 📄 License
+## 📄 License & Ownership
 
 This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE) file for details.
+
+> [!NOTE]
+> **Notice**: This repository is solely authored and maintained by **Jeshurun Selvakumar**. External contributions, pull requests, and forking are disabled and not accepted.
 
 ---
 
