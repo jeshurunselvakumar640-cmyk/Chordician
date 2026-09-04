@@ -121,9 +121,9 @@ async function analyzeChordSheetWithGemini(imageBuffer, mimeType) {
   const genAI = new GoogleGenerativeAI(key);
 
   const modelNames = [
+    'gemini-3.6-flash',
     'gemini-3.5-flash',
-    'gemini-flash-latest',
-    'gemini-3.6-flash'
+    'gemini-flash-latest'
   ];
   let lastError = null;
 
@@ -134,7 +134,8 @@ async function analyzeChordSheetWithGemini(imageBuffer, mimeType) {
         systemInstruction: CHORDEX_SYSTEM_INSTRUCTION,
         generationConfig: {
           responseMimeType: 'application/json',
-          temperature: 0.1
+          temperature: 0.1,
+          maxOutputTokens: 8192
         }
       });
 
@@ -154,7 +155,8 @@ async function analyzeChordSheetWithGemini(imageBuffer, mimeType) {
         throw new Error('Empty response received from Gemini Vision.');
       }
 
-      return JSON.parse(responseText);
+      const cleanJson = responseText.replace(/^```json\s*|^```\s*|```$/g, '').trim();
+      return JSON.parse(cleanJson);
     } catch (err) {
       console.warn(`[Chordex AI] Model ${modelName} attempt failed:`, err.message);
       lastError = err;

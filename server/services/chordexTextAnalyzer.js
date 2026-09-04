@@ -51,8 +51,48 @@ OUTPUT FORMAT: Return ONLY valid JSON matching this schema:
 }`;
 
 // Cache the fastest working model to eliminate retry overhead on subsequent imports
-let cachedFastestModel = null;
-const FAST_MODELS = ['gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.6-flash'];
+let cachedFastestModel = 'gemini-3.6-flash';
+const FAST_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+
+/**
+ * Safely parses JSON with auto-repair for trailing brackets/quotes
+ */
+function safeJsonParse(jsonString) {
+  if (!jsonString || typeof jsonString !== 'string') return null;
+  const clean = jsonString.replace(/^```json\s*|^```\s*|```$/g, '').trim();
+
+  try {
+    return JSON.parse(clean);
+  } catch (err) {
+    let repaired = clean;
+    const openQuotes = (repaired.match(/(?<!\\)"/g) || []).length;
+    if (openQuotes % 2 !== 0) {
+      repaired += '"';
+    }
+
+    const stack = [];
+    for (let i = 0; i < repaired.length; i++) {
+      const ch = repaired[i];
+      if (ch === '{') stack.push('}');
+      else if (ch === '[') stack.push(']');
+      else if (ch === '}' || ch === ']') {
+        if (stack.length > 0 && stack[stack.length - 1] === ch) {
+          stack.pop();
+        }
+      }
+    }
+
+    while (stack.length > 0) {
+      repaired += stack.pop();
+    }
+
+    try {
+      return JSON.parse(repaired);
+    } catch {
+      throw err;
+    }
+  }
+}
 
 /**
  * Uses Google Gemini AI to intelligently analyze and reconstruct raw webpage text into clean chord sheets.
@@ -96,7 +136,7 @@ ${trimmedInput}
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.1,
-          maxOutputTokens: 4096
+          maxOutputTokens: 8192
         }
       });
 
@@ -107,7 +147,7 @@ ${trimmedInput}
         throw new Error('Empty response received from Gemini.');
       }
 
-      const chordexData = JSON.parse(responseText);
+      const chordexData = safeJsonParse(responseText);
       cachedFastestModel = modelName; // Store working model
       console.log(`[Chordex AI URL] Successfully reconstructed "${chordexData.title || 'Untitled'}" with ${chordexData.sections?.length || 0} sections!`);
 
@@ -119,6 +159,30 @@ ${trimmedInput}
   }
 
   throw lastError || new Error('Failed to reconstruct song with Chordex AI.');
+}
+
+/**
+ * Cleans any residual glued chord prefixes from lyric words
+ */
+function cleanLyricString(lyrics, chords = []) {
+  if (!lyrics) return '';
+  let clean = lyrics.trim();
+
+  // Remove bracketed notation like [Dm] from lyrics
+  clean = clean.replace(/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/g, '').trim();
+
+  // If word starts with chord name glued (e.g. "DmMaravaamal" when chord is Dm)
+  for (const c of chords) {
+    const chordName = c.chord;
+    if (chordName && clean.startsWith(chordName) && clean.length > chordName.length + 2) {
+      const remainder = clean.substring(chordName.length);
+      if (/^[A-Za-z\u0B80-\u0BFF\u0900-\u097F]/.test(remainder)) {
+        clean = remainder;
+      }
+    }
+  }
+
+  return clean;
 }
 
 /**
@@ -150,7 +214,7 @@ export function convertChordexAiToChordician(chordexData, sourceUrl = '') {
     const rows = [];
 
     (sec.lines || []).forEach((line, lIdx) => {
-      const lineLyrics = (line.lyrics || '').trim();
+      const lineLyrics = cleanLyricString(line.lyrics, line.chords || []);
       const lineChords = buildAlignedChordString(line.chords);
 
       // If line has chords, add chords row
