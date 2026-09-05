@@ -55,25 +55,48 @@ export function extractSongFromHtml(html, sourceUrl = '') {
 
 /**
  * Converts inline HTML chord elements into standard bracketed notation [Chord]
- * so chords inside <span>, <b>, <td> elements are preserved without losing alignment.
+ * so chords inside <span>, <b>, <td>, <ruby>, <sup> elements are preserved without losing alignment.
  */
 function formatInlineChordElements($) {
+  // A. Ruby tags: <ruby>word<rt>Chord</rt></ruby> -> [Chord]word
+  $('ruby').each((_, el) => {
+    const $ruby = $(el);
+    const chord = $ruby.find('rt').text().trim();
+    $ruby.find('rt, rp').remove();
+    const lyric = $ruby.text().trim();
+    if (chord && isChord(chord, true)) {
+      $ruby.replaceWith(`[${chord}]${lyric}`);
+    }
+  });
+
+  // B. Elements with chord data attributes or class names
   const chordSelectors = [
-    'span.chord', 'span.c', 'span.chords', 'span.crd',
-    'span[data-chord]', 'span[data-name="chord"]',
-    'b.chord', 'i.chord', 'strong.chord', 'font.chord',
-    '.chord-name', '.chord-pro'
+    '[data-chord]', '[data-name="chord"]', '[data-c]',
+    'span[class*="chord"]', 'span[class*="crd"]', 'span.c', 'b[class*="chord"]',
+    'i[class*="chord"]', 'strong[class*="chord"]', 'font[class*="chord"]',
+    '.chord-name', '.chord-pro', '.ug-chord', 'sup', 'rt'
   ];
 
   for (const selector of chordSelectors) {
     $(selector).each((_, el) => {
       const $el = $(el);
       const chordText = ($el.attr('data-chord') || $el.text() || '').trim();
-      if (chordText && chordText.length <= 12 && isChord(chordText, true)) {
-        $el.replaceWith(` [${chordText}] `);
+      if (chordText && chordText.length <= 14 && isChord(chordText, true)) {
+        $el.replaceWith(`[${chordText}]`);
       }
     });
   }
+
+  // C. Any standalone leaf inline element whose text is strictly a valid chord
+  $('span, b, strong, i, em, font, sup').each((_, el) => {
+    const $el = $(el);
+    if ($el.children().length === 0) {
+      const text = $el.text().trim();
+      if (text && text.length <= 12 && isChord(text, true)) {
+        $el.replaceWith(`[${text}]`);
+      }
+    }
+  });
 }
 
 /**
@@ -81,15 +104,10 @@ function formatInlineChordElements($) {
  */
 function extractBestSongContainerText($, html) {
   const candidateSelectors = [
-    'pre',
     '.js-tab-content',
     '.tab-content',
-    '.crd',
-    '.chord',
-    '.chords',
-    '.lyrics',
-    '.song-lyrics',
     '.song-content',
+    '.song-lyrics',
     '.song-body',
     '#song-content',
     '#chords-body',
@@ -102,7 +120,8 @@ function extractBestSongContainerText($, html) {
     '#content',
     '.content',
     'main',
-    'article'
+    'article',
+    'pre'
   ];
 
   let bestText = '';
@@ -144,11 +163,11 @@ function scoreSongContent(text) {
   let score = 0;
   const lines = trimmed.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
 
-  // Line count scoring (3 to 80 lines is typical song size)
+  // Line count scoring (3 to 150 lines is typical song size)
   if (lines.length >= 4 && lines.length <= 150) {
     score += Math.min(lines.length * 2, 30);
   } else if (lines.length > 150) {
-    score += 10; // Might contain whole page
+    score += 10;
   }
 
   let chordLineCount = 0;
@@ -291,8 +310,8 @@ function extractMetadata($, sourceUrl) {
 
   if (!artist) {
     artist = $('meta[property="music:musician"]').attr('content') ||
-             $('meta[property="og:music:musician"]').attr('content') ||
-             $('meta[name="author"]').attr('content') || '';
+            $('meta[property="og:music:musician"]').attr('content') ||
+            $('meta[name="author"]').attr('content') || '';
   }
 
   // C. Check <h1> or <title>
@@ -389,19 +408,17 @@ function cleanTitleAndArtist(title, artist, sourceUrl) {
 }
 
 /**
- * Reads text from a Cheerio node while preserving block structure and whitespace.
+ * Reads text from a Cheerio node while preserving block structure and newlines.
  */
 function getNodeFormattedText($el, $) {
   if (!$el || $el.length === 0) return '';
 
-  // If node is a <pre>, directly return text with full whitespace
-  if ($el.is('pre') || $el.find('pre').length > 0) {
-    return $el.text();
-  }
-
-  // Clone so modifications don't corrupt parent DOM
   const $clone = $el.clone();
-  $clone.find('p, div, li, tr, blockquote, section, article, h1, h2, h3, h4, h5, h6').append('\n');
+  $clone.find('br, hr').replaceWith('\n');
+
+  $clone.find('p, div, li, tr, blockquote, section, article, h1, h2, h3, h4, h5, h6, pre').each((_, elem) => {
+    $(elem).prepend('\n').append('\n');
+  });
 
   return $clone.text();
 }
