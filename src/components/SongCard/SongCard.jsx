@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, BookOpen, Edit2, Trash2, Music, Sliders, CalendarDays, Share2 } from 'lucide-react';
+import {
+  Heart,
+  BookOpen,
+  Edit2,
+  Trash2,
+  Music,
+  Sliders,
+  CalendarDays,
+  Share2,
+  CheckSquare,
+  Square
+} from 'lucide-react';
 import KeyBadge from '../UI/KeyBadge';
 import ShareModal from '../Modal/ShareModal';
 import { formatMainStyleHighlight } from '../../data/songStyles.js';
@@ -11,7 +22,10 @@ export default function SongCard({
   song,
   viewMode = 'grid',
   onToggleFavorite,
-  onDeleteRequest
+  onDeleteRequest,
+  isSelectionMode = false,
+  isSelected = false,
+  onToggleSelect
 }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -55,19 +69,64 @@ export default function SongCard({
       })
     : null;
 
+  const handleCardClick = () => {
+    if (isSelectionMode) {
+      if (onToggleSelect) onToggleSelect(id);
+    } else {
+      navigate(`/songs/${id}`);
+    }
+  };
+
+  const handleCheckboxClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onToggleSelect) onToggleSelect(id);
+  };
+
   if (viewMode === 'list') {
     return (
-      <div className="song-list-item" onClick={() => navigate(`/songs/${id}`)} role="button" tabIndex={0}>
+      <div
+        className={`song-list-item ${isSelectionMode ? 'selectable' : ''} ${isSelected ? 'selected' : ''}`}
+        onClick={handleCardClick}
+        role="button"
+        tabIndex={0}
+      >
         <div className="song-list-main-info">
-          <button
-            type="button"
-            className={`btn-icon-favorite song-card-fav-btn ${favorite ? 'favorited' : ''}`}
-            onClick={handleFavoriteClick}
-            title={favorite ? 'Remove from favorites' : 'Add to favorites'}
-            aria-label="Toggle favorite"
-          >
-            <Heart size={20} fill={favorite ? 'currentColor' : 'none'} />
-          </button>
+          {isSelectionMode ? (
+            <button
+              type="button"
+              className={`song-card-select-checkbox ${isSelected ? 'checked' : ''}`}
+              onClick={handleCheckboxClick}
+              title={isSelected ? 'Deselect song' : 'Select song'}
+              aria-label={isSelected ? 'Deselect song' : 'Select song'}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isSelected ? 'var(--color-primary)' : 'var(--text-muted)'
+              }}
+            >
+              {isSelected ? (
+                <CheckSquare size={20} className="text-primary" />
+              ) : (
+                <Square size={20} className="text-muted" />
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={`btn-icon-favorite song-card-fav-btn ${favorite ? 'favorited' : ''}`}
+              onClick={handleFavoriteClick}
+              title={favorite ? 'Remove from favorites' : 'Add to favorites'}
+              aria-label="Toggle favorite"
+            >
+              <Heart size={20} fill={favorite ? 'currentColor' : 'none'} />
+            </button>
+          )}
 
           <div className="song-list-text-group">
             <div className="song-list-title-row">
@@ -88,60 +147,64 @@ export default function SongCard({
             </span>
           )}
 
-          <button
-            type="button"
-            className={`btn btn-sm ${isSunday ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={handleSundayToggle}
-            title={isSunday ? 'In This Sunday setlist (click to remove)' : 'Add to This Sunday setlist'}
-            aria-label="Toggle This Sunday"
-            style={{ padding: '6px 10px' }}
-          >
-            <CalendarDays size={14} />
-            <span className="hide-extra-small">{isSunday ? 'Sunday' : '+ Sunday'}</span>
-          </button>
+          {!isSelectionMode && (
+            <>
+              <button
+                type="button"
+                className={`btn btn-sm ${isSunday ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={handleSundayToggle}
+                title={isSunday ? 'In This Sunday setlist (click to remove)' : 'Add to This Sunday setlist'}
+                aria-label="Toggle This Sunday"
+                style={{ padding: '6px 10px' }}
+              >
+                <CalendarDays size={14} />
+                <span className="hide-extra-small">{isSunday ? 'Sunday' : '+ Sunday'}</span>
+              </button>
 
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsShareOpen(true);
-            }}
-            title="Share song details, chords, or PDF"
-            aria-label="Share song"
-          >
-            <Share2 size={15} />
-          </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsShareOpen(true);
+                }}
+                title="Share song details, chords, or PDF"
+                aria-label="Share song"
+              >
+                <Share2 size={15} />
+              </button>
 
-          <Link
-            to={`/songs/${id}`}
-            className="btn btn-secondary btn-sm"
-            onClick={(e) => e.stopPropagation()}
-            title="Open songbook"
-          >
-            <BookOpen size={14} />
-            <span className="hide-extra-small">Open</span>
-          </Link>
+              <Link
+                to={`/songs/${id}`}
+                className="btn btn-secondary btn-sm"
+                onClick={(e) => e.stopPropagation()}
+                title="Open songbook"
+              >
+                <BookOpen size={14} />
+                <span className="hide-extra-small">Open</span>
+              </Link>
 
-          <Link
-            to={`/songs/${id}/edit`}
-            className="btn btn-ghost btn-sm"
-            onClick={(e) => e.stopPropagation()}
-            title="Edit song"
-            aria-label="Edit song"
-          >
-            <Edit2 size={15} />
-          </Link>
+              <Link
+                to={`/songs/${id}/edit`}
+                className="btn btn-ghost btn-sm"
+                onClick={(e) => e.stopPropagation()}
+                title="Edit song"
+                aria-label="Edit song"
+              >
+                <Edit2 size={15} />
+              </Link>
 
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm text-danger"
-            onClick={handleDeleteClick}
-            title="Delete song"
-            aria-label="Delete song"
-          >
-            <Trash2 size={15} />
-          </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm text-danger"
+                onClick={handleDeleteClick}
+                title="Delete song"
+                aria-label="Delete song"
+              >
+                <Trash2 size={15} />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Share Modal for List Mode */}
@@ -155,11 +218,47 @@ export default function SongCard({
   }
 
   return (
-    <div className="song-card" onClick={() => navigate(`/songs/${id}`)} role="button" tabIndex={0}>
+    <div
+      className={`song-card ${isSelectionMode ? 'selectable' : ''} ${isSelected ? 'selected' : ''}`}
+      onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      style={{
+        position: 'relative'
+      }}
+    >
       <div className="song-card-header">
-        <div className="song-title-group">
-          <h3 className="song-card-title">{title}</h3>
-          <p className="song-card-artist">{artist || 'Unknown Artist'}</p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1, minWidth: 0 }}>
+          {isSelectionMode && (
+            <button
+              type="button"
+              className={`song-card-select-checkbox ${isSelected ? 'checked' : ''}`}
+              onClick={handleCheckboxClick}
+              title={isSelected ? 'Deselect song' : 'Select song'}
+              aria-label={isSelected ? 'Deselect song' : 'Select song'}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '2px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isSelected ? 'var(--color-primary)' : 'var(--text-muted)'
+              }}
+            >
+              {isSelected ? (
+                <CheckSquare size={22} className="text-primary" />
+              ) : (
+                <Square size={22} className="text-muted" />
+              )}
+            </button>
+          )}
+
+          <div className="song-title-group">
+            <h3 className="song-card-title">{title}</h3>
+            <p className="song-card-artist">{artist || 'Unknown Artist'}</p>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -219,47 +318,61 @@ export default function SongCard({
         </span>
 
         <div className="song-card-action-group">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsShareOpen(true);
-            }}
-            title="Share song details, chords, or PDF"
-            aria-label="Share song"
-          >
-            <Share2 size={15} />
-          </button>
+          {isSelectionMode ? (
+            <span
+              style={{
+                fontSize: '0.82rem',
+                fontWeight: '600',
+                color: isSelected ? 'var(--color-primary)' : 'var(--text-muted)'
+              }}
+            >
+              {isSelected ? '✓ Selected' : 'Click to select'}
+            </span>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsShareOpen(true);
+                }}
+                title="Share song details, chords, or PDF"
+                aria-label="Share song"
+              >
+                <Share2 size={15} />
+              </button>
 
-          <Link
-            to={`/songs/${id}/edit`}
-            className="btn btn-ghost btn-sm"
-            onClick={(e) => e.stopPropagation()}
-            title="Edit song"
-            aria-label="Edit song"
-          >
-            <Edit2 size={15} />
-          </Link>
+              <Link
+                to={`/songs/${id}/edit`}
+                className="btn btn-ghost btn-sm"
+                onClick={(e) => e.stopPropagation()}
+                title="Edit song"
+                aria-label="Edit song"
+              >
+                <Edit2 size={15} />
+              </Link>
 
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm text-danger"
-            onClick={handleDeleteClick}
-            title="Delete song"
-            aria-label="Delete song"
-          >
-            <Trash2 size={15} />
-          </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm text-danger"
+                onClick={handleDeleteClick}
+                title="Delete song"
+                aria-label="Delete song"
+              >
+                <Trash2 size={15} />
+              </button>
 
-          <Link
-            to={`/songs/${id}`}
-            className="btn btn-primary btn-sm song-play-btn"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <BookOpen size={14} />
-            Play
-          </Link>
+              <Link
+                to={`/songs/${id}`}
+                className="btn btn-primary btn-sm song-play-btn"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <BookOpen size={14} />
+                Play
+              </Link>
+            </>
+          )}
         </div>
       </div>
 

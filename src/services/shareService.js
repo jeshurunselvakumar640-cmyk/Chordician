@@ -621,6 +621,7 @@ export async function exportSongsToPDF(songs, options = {}) {
     const pdfHeight = pdf.internal.pageSize.getHeight();
 
     const pageElements = renderRoot.querySelectorAll('.pdf-song-page');
+    let isFirstPageOfPdf = true;
 
     for (let i = 0; i < pageElements.length; i++) {
       if (options.onProgress) {
@@ -637,13 +638,63 @@ export async function exportSongsToPDF(songs, options = {}) {
         logging: false
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      // Target page height in canvas pixel coordinate system (standard A4 ratio)
+      const pageHeightInCanvas = Math.floor(canvas.width * (pdfHeight / pdfWidth));
 
-      if (i > 0) {
-        pdf.addPage('a4', 'portrait');
+      // Determine how many pages this song needs
+      const songPagesCount = Math.max(1, Math.ceil(canvas.height / pageHeightInCanvas));
+
+      for (let p = 0; p < songPagesCount; p++) {
+        if (isFirstPageOfPdf) {
+          isFirstPageOfPdf = false;
+        } else {
+          // Add a new page for every subsequent slice/song, guaranteeing next song starts on next page!
+          pdf.addPage('a4', 'portrait');
+        }
+
+        if (songPagesCount === 1) {
+          const imgData = canvas.toDataURL('image/jpeg', 0.95);
+          const renderedHeightPt = Math.min(pdfHeight, (canvas.height / canvas.width) * pdfWidth);
+          pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, renderedHeightPt, undefined, 'FAST');
+        } else {
+          // Multi-page song: slice the canvas into page-sized blocks
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = pageHeightInCanvas;
+          const ctx = sliceCanvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+
+          const srcY = p * pageHeightInCanvas;
+          const srcH = Math.min(pageHeightInCanvas, canvas.height - srcY);
+
+          ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+
+          const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.95);
+          pdf.addImage(sliceData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+        }
       }
+    }
 
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+    // Stamp clean uniform branding footer on all pages in the PDF document
+    const totalPdfPages = pdf.getNumberOfPages();
+    for (let pNum = 1; pNum <= totalPdfPages; pNum++) {
+      pdf.setPage(pNum);
+
+      // Clean footer band at bottom
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, pdfHeight - 26, pdfWidth, 26, 'F');
+
+      pdf.setDrawColor(226, 232, 240); // #e2e8f0
+      pdf.setLineWidth(0.75);
+      pdf.line(36, pdfHeight - 24, pdfWidth - 36, pdfHeight - 24);
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(100, 116, 139); // #64748b
+
+      pdf.text('© Jeshurun Selvakumar', 40, pdfHeight - 10, { align: 'left' });
+      pdf.text(`Page ${pNum} of ${totalPdfPages}`, pdfWidth - 40, pdfHeight - 10, { align: 'right' });
     }
 
     pdf.save(filename);

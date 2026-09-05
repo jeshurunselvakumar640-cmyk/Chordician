@@ -11,13 +11,19 @@ import {
   Globe,
   Layers,
   CalendarDays,
-  Play
+  Play,
+  FileDown,
+  CheckSquare,
+  Check
 } from 'lucide-react';
 import SongCard from '../components/SongCard/SongCard';
 import EmptyState from '../components/UI/EmptyState';
+import BatchExportModal from '../components/Modal/BatchExportModal';
 import { StatsSkeleton, SongCardSkeleton } from '../components/UI/SkeletonLoader';
 import { PRIMARY_LANGUAGES } from '../utils/musicConstants.js';
 import { useThisSunday } from '../context/ThisSundayContext.jsx';
+import { useToast } from '../context/ToastContext.jsx';
+import { exportSongsToPDF } from '../services/shareService.js';
 
 export default function Dashboard({
   songs = [],
@@ -25,8 +31,45 @@ export default function Dashboard({
   onToggleFavorite,
   onDeleteRequest
 }) {
+  const { showToast } = useToast();
   const [selectedLanguage, setSelectedLanguage] = useState('ALL');
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedSongIds, setSelectedSongIds] = useState([]);
+  const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [exportProgress, setExportProgress] = useState(null);
+
   const { songIds, serviceDate, formatServiceDate, getDaysUntil, getDaysUntilNumber } = useThisSunday();
+
+  const handleExportSelectedPDF = async () => {
+    if (selectedSongIds.length === 0) {
+      showToast('Please select at least 1 song to export', 'warning');
+      return;
+    }
+    const songMap = new Map(songs.map((s) => [s.id, s]));
+    const selectedSongs = selectedSongIds.map((id) => songMap.get(id)).filter(Boolean);
+
+    setIsExportingPDF(true);
+    setExportProgress('Compiling PDF...');
+
+    try {
+      await exportSongsToPDF(selectedSongs, {
+        documentSubtitle: 'Chordician Songbook',
+        onProgress: (curr, total) => {
+          setExportProgress(`Rendering song ${curr} of ${total}...`);
+        }
+      });
+      showToast(`Exported ${selectedSongs.length} songs to PDF!`, 'success');
+      setIsSelectionMode(false);
+      setSelectedSongIds([]);
+    } catch (err) {
+      console.error('Export failed:', err);
+      showToast('Failed to export PDF. Please try again.', 'error');
+    } finally {
+      setIsExportingPDF(false);
+      setExportProgress(null);
+    }
+  };
 
   const daysUntil = getDaysUntilNumber(serviceDate);
   const daysUntilText = getDaysUntil(serviceDate);
@@ -93,6 +136,15 @@ export default function Dashboard({
 
         {/* Quick Actions */}
         <div className="dashboard-actions">
+          <button
+            type="button"
+            className="btn btn-secondary dashboard-action-btn"
+            onClick={() => setIsBatchExportOpen(true)}
+            title="Export songs as branded PDF"
+          >
+            <FileDown size={16} style={{ color: 'var(--color-primary)' }} />
+            <span>Export PDF</span>
+          </button>
           <Link to="/import" className="btn btn-secondary dashboard-action-btn">
             <Sparkles size={16} style={{ color: 'var(--color-primary)' }} />
             <span>AI Import</span>
@@ -368,7 +420,7 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* Recent Songs Section with Quick Filter Pills */}
+      {/* Recent Songs Section with Quick Filter Pills & Selection Mode */}
       <div className="dashboard-recent-section">
         <div className="dashboard-section-header">
           <div>
@@ -382,38 +434,164 @@ export default function Dashboard({
             </p>
           </div>
 
-          {/* Quick Language Filter Pills on Dashboard */}
-          <div className="dashboard-filter-pills">
-            <button
-              type="button"
-              className={`dashboard-filter-pill ${selectedLanguage === 'ALL' ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage('ALL')}
-            >
-              All ({songs.length})
-            </button>
-            <button
-              type="button"
-              className={`dashboard-filter-pill ${selectedLanguage === 'Tamil' ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage('Tamil')}
-            >
-              🇮🇳 Tamil ({stats.tamilCount})
-            </button>
-            <button
-              type="button"
-              className={`dashboard-filter-pill ${selectedLanguage === 'Hindi' ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage('Hindi')}
-            >
-              🇮🇳 Hindi ({stats.hindiCount})
-            </button>
-            <button
-              type="button"
-              className={`dashboard-filter-pill ${selectedLanguage === 'English' ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage('English')}
-            >
-              🌐 English ({stats.englishCount})
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Quick Language Filter Pills on Dashboard */}
+            <div className="dashboard-filter-pills">
+              <button
+                type="button"
+                className={`dashboard-filter-pill ${selectedLanguage === 'ALL' ? 'active' : ''}`}
+                onClick={() => setSelectedLanguage('ALL')}
+              >
+                All ({songs.length})
+              </button>
+              <button
+                type="button"
+                className={`dashboard-filter-pill ${selectedLanguage === 'Tamil' ? 'active' : ''}`}
+                onClick={() => setSelectedLanguage('Tamil')}
+              >
+                🇮🇳 Tamil ({stats.tamilCount})
+              </button>
+              <button
+                type="button"
+                className={`dashboard-filter-pill ${selectedLanguage === 'Hindi' ? 'active' : ''}`}
+                onClick={() => setSelectedLanguage('Hindi')}
+              >
+                🇮🇳 Hindi ({stats.hindiCount})
+              </button>
+              <button
+                type="button"
+                className={`dashboard-filter-pill ${selectedLanguage === 'English' ? 'active' : ''}`}
+                onClick={() => setSelectedLanguage('English')}
+              >
+                🌐 English ({stats.englishCount})
+              </button>
+            </div>
+
+            {/* Selection & Export Action Buttons */}
+            {displayedSongs.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${isSelectionMode ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => {
+                    if (!isSelectionMode) {
+                      setIsSelectionMode(true);
+                      setSelectedSongIds([]);
+                    } else {
+                      setIsSelectionMode(false);
+                      setSelectedSongIds([]);
+                    }
+                  }}
+                  title="Toggle checkbox selection mode on song cards"
+                  style={{ padding: '6px 12px', fontSize: '0.84rem' }}
+                >
+                  <CheckSquare size={15} />
+                  <span>{isSelectionMode ? 'Exit Select' : 'Select'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setIsBatchExportOpen(true)}
+                  title="Open batch PDF export dialog"
+                  style={{ padding: '6px 12px', fontSize: '0.84rem' }}
+                >
+                  <FileDown size={15} />
+                  <span className="hide-mobile">Export PDF</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Selection Active Banner */}
+        {isSelectionMode && (
+          <div
+            className="card"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              padding: '12px 18px',
+              marginBottom: '16px',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%)',
+              border: '1.5px solid var(--color-primary)',
+              borderRadius: 'var(--radius-lg)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CheckSquare size={16} color="var(--color-primary)" />
+                <span>{selectedSongIds.length} of {displayedSongs.length} selected</span>
+              </span>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setSelectedSongIds(displayedSongs.map((s) => s.id))}
+                  style={{ fontSize: '0.8rem', padding: '3px 8px' }}
+                >
+                  Select All Shown
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setSelectedSongIds([])}
+                  style={{ fontSize: '0.8rem', padding: '3px 8px' }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setIsBatchExportOpen(true)}
+                style={{ fontSize: '0.82rem', padding: '4px 10px' }}
+              >
+                <Sparkles size={14} />
+                <span>Browse Full Library ({songs.length})</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleExportSelectedPDF}
+                disabled={selectedSongIds.length === 0 || isExportingPDF}
+                style={{ minWidth: '150px' }}
+              >
+                {isExportingPDF ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm" />
+                    <span>{exportProgress || 'Exporting...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <FileDown size={15} />
+                    <span>Export PDF ({selectedSongIds.length})</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setIsSelectionMode(false);
+                  setSelectedSongIds([]);
+                }}
+                style={{ fontSize: '0.82rem' }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="songs-grid">
@@ -442,11 +620,28 @@ export default function Dashboard({
                 viewMode="grid"
                 onToggleFavorite={onToggleFavorite}
                 onDeleteRequest={onDeleteRequest}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedSongIds.includes(song.id)}
+                onToggleSelect={(id) => {
+                  setSelectedSongIds((prev) =>
+                    prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                  );
+                }}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Batch Export PDF Modal */}
+      <BatchExportModal
+        isOpen={isBatchExportOpen}
+        onClose={() => setIsBatchExportOpen(false)}
+        songs={songs}
+        defaultSelectedIds={selectedSongIds.length > 0 ? selectedSongIds : songs.map((s) => s.id)}
+        title="Export Songs to PDF"
+        subtitle="Chordician Songbook"
+      />
     </div>
   );
 }

@@ -922,6 +922,37 @@ button:disabled {
   margin-top: 2px;
 }
 
+.song-card.selectable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.song-card.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 2px var(--color-primary), 0 6px 20px rgba(99, 102, 241, 0.18);
+  transform: translateY(-2px);
+}
+
+.song-card-select-checkbox {
+  transition: transform var(--transition-fast);
+}
+
+.song-card-select-checkbox:hover {
+  transform: scale(1.15);
+}
+
+.song-list-item.selectable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.song-list-item.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 1.5px var(--color-primary);
+}
+
 .song-list-actions {
   display: flex;
   align-items: center;
