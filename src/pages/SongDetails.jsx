@@ -59,6 +59,72 @@ export default function SongDetails({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Zoom Level state for songbook view mode (persisted to localStorage)
+  const [zoomLevel, setZoomLevel] = useState(() => {
+    try {
+      const saved = localStorage.getItem('chordician_songbook_zoom');
+      if (saved) {
+        const parsed = Number(saved);
+        if (!isNaN(parsed) && parsed >= 60 && parsed <= 200) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return 100;
+  });
+
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => {
+      const next = Math.min(160, prev + 10);
+      try {
+        localStorage.setItem('chordician_songbook_zoom', String(next));
+      } catch (e) {}
+      showToast(`Zoom: ${next}%`, 'info', 1000);
+      return next;
+    });
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => {
+      const next = Math.max(70, prev - 10);
+      try {
+        localStorage.setItem('chordician_songbook_zoom', String(next));
+      } catch (e) {}
+      showToast(`Zoom: ${next}%`, 'info', 1000);
+      return next;
+    });
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(100);
+    try {
+      localStorage.setItem('chordician_songbook_zoom', '100');
+    } catch (e) {}
+    showToast('Zoom reset to 100%', 'info', 1000);
+  };
+
+  // Keyboard zoom shortcuts (+ to zoom in, - to zoom out, 0 to reset)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName)) {
+        return;
+      }
+      if ((e.key === '=' || e.key === '+') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleZoomIn();
+      } else if ((e.key === '-' || e.key === '_') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleZoomOut();
+      } else if (e.key === '0' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleResetZoom();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Immediately hydrate from cachedSongs when id or cachedSongs changes
   useEffect(() => {
     if (!id) return;
@@ -461,18 +527,25 @@ export default function SongDetails({
         </div>
       </div>
 
-      {/* Interactive Transposition Toolbar */}
+      {/* Interactive Transposition & Zoom Toolbar */}
       <div className="song-details-transposer-wrapper">
         <TransposeBar
           originalKey={originalKey || 'C'}
           activeKey={activeKey}
           semitoneDelta={transposedSong?.semitoneDelta || 0}
           onChangeKey={setActiveKey}
+          zoomLevel={zoomLevel}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onResetZoom={handleResetZoom}
         />
       </div>
 
-      {/* Structured Song Content (Piano Friendly Reading) */}
-      <SongViewer transposedSong={transposedSong} />
+      {/* Structured Song Content (Piano Friendly Reading with Zoom Support) */}
+      <SongViewer
+        transposedSong={transposedSong}
+        zoomLevel={zoomLevel}
+      />
 
       {/* Performance Mode Modal (Supports Portrait & Landscape) */}
       <PerformanceModal

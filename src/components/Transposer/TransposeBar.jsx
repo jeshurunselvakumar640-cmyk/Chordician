@@ -1,5 +1,5 @@
 import React from 'react';
-import { Minus, Plus, RotateCcw, Sliders } from 'lucide-react';
+import { Minus, Plus, RotateCcw, Sliders, ZoomIn, ZoomOut } from 'lucide-react';
 import { ALL_KEYS } from '../../utils/musicConstants.js';
 import { stepKey } from '../../services/transposer.js';
 
@@ -9,7 +9,11 @@ export default function TransposeBar({
   semitoneDelta = 0,
   onChangeKey,
   compact = false,
-  sticky = false
+  sticky = false,
+  zoomLevel = null,
+  onZoomIn = null,
+  onZoomOut = null,
+  onResetZoom = null
 }) {
   const isTransposed = (semitoneDelta % 12) !== 0 || originalKey !== activeKey;
 
@@ -93,6 +97,49 @@ export default function TransposeBar({
           </button>
         )}
       </div>
+
+      {typeof zoomLevel === 'number' && (
+        <div className="song-zoom-control-group">
+          <div className="song-zoom-info">
+            <ZoomIn size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+            <span className="transposer-label hide-mobile">Zoom</span>
+          </div>
+
+          <div className="song-zoom-buttons">
+            <button
+              type="button"
+              className="transposer-btn song-zoom-btn"
+              onClick={onZoomOut}
+              disabled={zoomLevel <= 70}
+              title="Zoom Out (Hotkey: -)"
+              aria-label="Zoom out"
+            >
+              <ZoomOut size={16} />
+            </button>
+
+            <button
+              type="button"
+              className={`btn btn-sm song-zoom-level-btn ${zoomLevel !== 100 ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={onResetZoom}
+              title={zoomLevel !== 100 ? 'Click to reset zoom to 100% (Hotkey: 0)' : 'Current zoom 100%'}
+              aria-label="Reset zoom to 100%"
+            >
+              <span>{zoomLevel}%</span>
+            </button>
+
+            <button
+              type="button"
+              className="transposer-btn song-zoom-btn"
+              onClick={onZoomIn}
+              disabled={zoomLevel >= 160}
+              title="Zoom In (Hotkey: +)"
+              aria-label="Zoom in"
+            >
+              <ZoomIn size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
