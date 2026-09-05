@@ -4,11 +4,13 @@ import { ThemeProvider } from './context/ThemeContext';
 import { PWAProvider } from './context/PWAContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { ThisSundayProvider } from './context/ThisSundayContext';
+import { CommunionProvider } from './context/CommunionContext';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout/Layout';
 import ReloadPrompt from './components/UI/ReloadPrompt';
 import Dashboard from './pages/Dashboard';
 import ThisSunday from './pages/ThisSunday';
+import CommunionSongs from './pages/CommunionSongs';
 import Songs from './pages/Songs';
 import Favorites from './pages/Favorites';
 import Recent from './pages/Recent';
@@ -143,6 +145,15 @@ function AppContent() {
             }
           />
           <Route
+            path="/communion"
+            element={
+              <CommunionSongs
+                songs={songs}
+                isLoading={isLoading}
+              />
+            }
+          />
+          <Route
             path="/songs"
             element={
               <Songs
@@ -244,9 +255,11 @@ export default function App() {
         <ToastProvider>
           <AuthProvider>
             <ThisSundayProvider>
-              <BrowserRouter>
-                <AppContent />
-              </BrowserRouter>
+              <CommunionProvider>
+                <BrowserRouter>
+                  <AppContent />
+                </BrowserRouter>
+              </CommunionProvider>
             </ThisSundayProvider>
           </AuthProvider>
         </ToastProvider>

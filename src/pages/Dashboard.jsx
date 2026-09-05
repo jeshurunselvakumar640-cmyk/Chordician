@@ -14,7 +14,8 @@ import {
   Play,
   FileDown,
   CheckSquare,
-  Check
+  Check,
+  Wine
 } from 'lucide-react';
 import SongCard from '../components/SongCard/SongCard';
 import EmptyState from '../components/UI/EmptyState';
@@ -22,6 +23,7 @@ import BatchExportModal from '../components/Modal/BatchExportModal';
 import { StatsSkeleton, SongCardSkeleton } from '../components/UI/SkeletonLoader';
 import { PRIMARY_LANGUAGES } from '../utils/musicConstants.js';
 import { useThisSunday } from '../context/ThisSundayContext.jsx';
+import { useCommunion } from '../context/CommunionContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { exportSongsToPDF } from '../services/shareService.js';
 
@@ -40,6 +42,8 @@ export default function Dashboard({
   const [exportProgress, setExportProgress] = useState(null);
 
   const { songIds, serviceDate, formatServiceDate, getDaysUntil, getDaysUntilNumber } = useThisSunday();
+  const { songIds: communionSongIds } = useCommunion();
+  const communionCount = communionSongIds ? communionSongIds.length : 0;
 
   const handleExportSelectedPDF = async () => {
     if (selectedSongIds.length === 0) {
@@ -352,6 +356,32 @@ export default function Dashboard({
             </div>
             <span className="lang-card-count-badge">
               {stats.englishCount} {stats.englishCount === 1 ? 'song' : 'songs'}
+            </span>
+          </Link>
+
+          <Link
+            to="/communion"
+            className="dashboard-lang-card lang-card-communion"
+            style={{
+              borderColor: 'rgba(225, 29, 72, 0.25)',
+              background: 'linear-gradient(135deg, rgba(225, 29, 72, 0.06) 0%, rgba(159, 18, 57, 0.08) 100%)'
+            }}
+          >
+            <div className="lang-card-left">
+              <span className="lang-card-flag">🍷</span>
+              <div>
+                <strong className="lang-card-title">Communion</strong>
+                <span className="lang-card-sub">திருவிருந்து பாடல்கள்</span>
+              </div>
+            </div>
+            <span
+              className="lang-card-count-badge"
+              style={{
+                backgroundColor: 'rgba(225, 29, 72, 0.15)',
+                color: '#e11d48'
+              }}
+            >
+              {communionCount} {communionCount === 1 ? 'song' : 'songs'}
             </span>
           </Link>
 

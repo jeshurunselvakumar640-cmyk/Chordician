@@ -19,13 +19,15 @@ import {
   Check,
   Share2,
   Eye,
-  Crown
+  Crown,
+  Wine
 } from 'lucide-react';
 import { getSongById } from '../firebase/songs.js';
 import { transposeSong } from '../services/transposer.js';
 import { formatStyleCode, formatMainStyleHighlight } from '../data/songStyles.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useThisSunday } from '../context/ThisSundayContext.jsx';
+import { useCommunion } from '../context/CommunionContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import KeyBadge from '../components/UI/KeyBadge';
 import TransposeBar from '../components/Transposer/TransposeBar';
@@ -121,7 +123,13 @@ export default function SongDetails({
     formatServiceDate 
   } = useThisSunday();
 
+  const {
+    isInCommunion,
+    toggleSong: toggleCommunionSong
+  } = useCommunion();
+
   const isSelectedForSunday = song ? isInThisSunday(song.id) : false;
+  const isSelectedForCommunion = song ? isInCommunion(song.id) : false;
   const adjacentInfo = song ? getAdjacentSongs(song.id, cachedSongs) : null;
   const inSundaySetlist = Boolean(adjacentInfo && adjacentInfo.currentIndex !== -1);
 
@@ -214,12 +222,33 @@ export default function SongDetails({
                 );
               }
             }}
-            title={isSelectedForSunday ? 'In This Sunday setlist' : 'Add to This Sunday setlist'}
+            title={isSelectedForSunday ? 'In This Sunday setlist (click to remove)' : 'Add to This Sunday setlist'}
             aria-label="Toggle This Sunday"
             style={{ minWidth: '40px', minHeight: '40px', padding: '8px 12px' }}
           >
             <CalendarDays size={16} />
             <span className="hide-mobile">{isSelectedForSunday ? 'In This Sunday' : '+ This Sunday'}</span>
+          </button>
+
+          {/* Communion Songs Quick Toggle */}
+          <button
+            type="button"
+            className={`btn ${isSelectedForCommunion ? 'btn-communion-active' : 'btn-secondary'}`}
+            onClick={() => {
+              if (song) {
+                const added = toggleCommunionSong(song.id);
+                showToast(
+                  added ? `Added "${song.title}" to Communion Songs` : `Removed "${song.title}" from Communion Songs`,
+                  added ? 'success' : 'info'
+                );
+              }
+            }}
+            title={isSelectedForCommunion ? 'In Communion Songs (click to remove)' : 'Add to Communion Songs'}
+            aria-label="Toggle Communion"
+            style={{ minWidth: '40px', minHeight: '40px', padding: '8px 12px' }}
+          >
+            <Wine size={16} />
+            <span className="hide-mobile">{isSelectedForCommunion ? 'In Communion' : '+ Communion'}</span>
           </button>
 
           {/* Performance Mode (Highlighted for Pianist) */}

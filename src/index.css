@@ -6623,3 +6623,28 @@ button:disabled {
   -webkit-backdrop-filter: blur(16px);
 }
 
+/* Communion Songs Styling */
+.btn-communion-active {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
+  color: #ffffff !important;
+  border-color: #e11d48 !important;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.35);
+}
+
+.btn-communion-active:hover {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.communion-badge {
+  background-color: rgba(225, 29, 72, 0.15);
+  color: #f43f5e;
+  border: 1px solid rgba(225, 29, 72, 0.3);
+}
+
+.communion-hero {
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+

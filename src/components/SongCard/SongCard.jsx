@@ -10,12 +10,14 @@ import {
   CalendarDays,
   Share2,
   CheckSquare,
-  Square
+  Square,
+  Wine
 } from 'lucide-react';
 import KeyBadge from '../UI/KeyBadge';
 import ShareModal from '../Modal/ShareModal';
 import { formatMainStyleHighlight } from '../../data/songStyles.js';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
+import { useCommunion } from '../../context/CommunionContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
@@ -31,11 +33,13 @@ export default function SongCard({
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { isInThisSunday, toggleSong } = useThisSunday();
+  const { isInCommunion, toggleSong: toggleCommunionSong } = useCommunion();
   const { canEdit } = useAuth();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const { id, title, artist, originalKey, category, style, favorite, sections = [], updatedAt } = song;
 
   const isSunday = isInThisSunday(id);
+  const isCommunion = isInCommunion(id);
 
   const handleSundayToggle = (e) => {
     e.preventDefault();
@@ -43,6 +47,16 @@ export default function SongCard({
     const added = toggleSong(id);
     showToast(
       added ? `Added "${title}" to This Sunday` : `Removed "${title}" from This Sunday`,
+      added ? 'success' : 'info'
+    );
+  };
+
+  const handleCommunionToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const added = toggleCommunionSong(id);
+    showToast(
+      added ? `Added "${title}" to Communion Songs` : `Removed "${title}" from Communion Songs`,
       added ? 'success' : 'info'
     );
   };
@@ -169,6 +183,18 @@ export default function SongCard({
 
               <button
                 type="button"
+                className={`btn btn-sm ${isCommunion ? 'btn-communion-active' : 'btn-ghost'}`}
+                onClick={handleCommunionToggle}
+                title={isCommunion ? 'In Communion songs (click to remove)' : 'Add to Communion songs'}
+                aria-label="Toggle Communion"
+                style={{ padding: '6px 10px' }}
+              >
+                <Wine size={14} />
+                <span className="hide-extra-small">{isCommunion ? 'Communion' : '+ Communion'}</span>
+              </button>
+
+              <button
+                type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -289,6 +315,17 @@ export default function SongCard({
             style={{ width: '32px', height: '32px', padding: 0 }}
           >
             <CalendarDays size={16} />
+          </button>
+
+          <button
+            type="button"
+            className={`btn btn-icon-sm ${isCommunion ? 'btn-communion-active' : 'btn-ghost'}`}
+            onClick={handleCommunionToggle}
+            title={isCommunion ? 'In Communion songs (click to remove)' : 'Add to Communion songs'}
+            aria-label="Toggle Communion"
+            style={{ width: '32px', height: '32px', padding: 0 }}
+          >
+            <Wine size={16} />
           </button>
 
           <button

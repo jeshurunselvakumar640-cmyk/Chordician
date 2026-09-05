@@ -10,11 +10,13 @@ import {
   Sparkles,
   Piano,
   CalendarDays,
+  Wine,
   Download,
   Crown,
   X
 } from 'lucide-react';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
+import { useCommunion } from '../../context/CommunionContext.jsx';
 import { usePWA } from '../../context/PWAContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
@@ -27,6 +29,8 @@ export default function Sidebar({
   const location = useLocation();
   const { songIds } = useThisSunday();
   const thisSundayCount = songIds ? songIds.length : 0;
+  const { songIds: communionSongIds } = useCommunion();
+  const communionCount = communionSongIds ? communionSongIds.length : 0;
   const { canInstall, installApp } = usePWA();
   const { canEdit, openAuthModal } = useAuth();
 
@@ -52,6 +56,7 @@ export default function Sidebar({
   const navItems = [
     { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={19} /> },
     { to: '/this-sunday', label: 'This Sunday', icon: <CalendarDays size={19} />, badge: thisSundayCount > 0 ? thisSundayCount : null },
+    { to: '/communion', label: 'Communion', icon: <Wine size={19} />, badge: communionCount > 0 ? communionCount : null },
     { to: '/songs', label: 'My Songs', icon: <Music size={19} />, badge: totalSongs > 0 ? totalSongs : null },
     { to: '/favorites', label: 'Favorites', icon: <Heart size={19} />, badge: favoriteCount > 0 ? favoriteCount : null },
     { to: '/recent', label: 'Recently Added', icon: <Clock size={19} /> },
