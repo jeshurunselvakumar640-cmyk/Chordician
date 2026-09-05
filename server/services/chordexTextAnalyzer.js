@@ -141,6 +141,33 @@ CRITICAL RULES:
      Line 2: Chords: [{ chord: 'Bb', position: 0 }, { chord: 'F', position: 12 }, { chord: 'C', position: 23 }], Lyrics: 'கிருபையால் இரட்சித்தீரே'
      Line 3: Chords: [], Lyrics: '... எத்தனை'
 
+      Example Input 3:
+      F                C           C7     F Bb             F             C F    C      F F7
+      மகிமை உமக்கன்றோ மாட்சிமை உமக்கன்றோ துதியும் புகழும் ஸ்தோத்திரமும் தூயவர் உமக்கன்றோ
+      Bb      F       C C7 A F   C         Bb F
+      ஆராதனை ஆராதனை என் அன்பர் இயேசுவுக்கே
+      Verse 1
+      F                               A7                  Bb Gm           C7     Dm        C              Bb F
+      விலையேறப் பெற்ற உம் இரத்தத்தால் விடுதலை கொடுத்தீர் இராஜாக்களாக லேவியராக உமக்கென தெரிந்து கொண்டீர்
+
+      Expected Output Structure:
+      [Section: Chorus]
+      Line 1: Chords: [{ chord: 'F', position: 0 }], Lyrics: 'மகிமை உமக்கன்றோ'
+      Line 2: Chords: [{ chord: 'C', position: 0 }, { chord: 'C7', position: 12 }, { chord: 'F', position: 19 }], Lyrics: 'மாட்சிமை உமக்கன்றோ'
+      Line 3: Chords: [{ chord: 'Bb', position: 0 }, { chord: 'F', position: 15 }, { chord: 'C', position: 29 }], Lyrics: 'துதியும் புகழும் ஸ்தோத்திரமும்'
+      Line 4: Chords: [{ chord: 'F', position: 0 }, { chord: 'C', position: 5 }, { chord: 'F', position: 12 }, { chord: 'F7', position: 14 }], Lyrics: 'தூயவர் உமக்கன்றோ'
+
+      [Section: Refrain]
+      Line 1: Chords: [{ chord: 'Bb', position: 0 }, { chord: 'F', position: 8 }, { chord: 'C', position: 16 }, { chord: 'C7', position: 18 }, { chord: 'A', position: 21 }], Lyrics: 'ஆராதனை ஆராதனை என்'
+      Line 2: Chords: [{ chord: 'F', position: 0 }, { chord: 'C', position: 4 }, { chord: 'Bb', position: 14 }, { chord: 'F', position: 17 }], Lyrics: 'அன்பர் இயேசுவுக்கே'
+
+      [Section: Verse 1]
+      Line 1: Chords: [{ chord: 'F', position: 0 }], Lyrics: 'விலையேறப் பெற்ற உம் இரத்தத்தால்'
+      Line 2: Chords: [{ chord: 'A7', position: 0 }, { chord: 'Bb', position: 20 }], Lyrics: 'விடுதலை கொடுத்தீர்'
+      Line 3: Chords: [{ chord: 'Gm', position: 0 }, { chord: 'C7', position: 13 }], Lyrics: 'இராஜாக்களாக லேவியராக'
+      Line 4: Chords: [{ chord: 'Dm', position: 0 }, { chord: 'C', position: 10 }, { chord: 'Bb', position: 25 }, { chord: 'F', position: 28 }], Lyrics: 'உமக்கென தெரிந்து கொண்டீர்'
+      Line 5: Chords: [], Lyrics: '...மகிமை'
+
 5. INLINE BRACKETED CHORDS:
    - "[C]Amazing grace, how [F]sweet the [C]sound" => Extract bracketed chords with character offsets and strip brackets from lyrics.
    - Preserve non-chord parentheses like "(x2)", "(2)", "(ஆ.....ஆ)" in lyrics.

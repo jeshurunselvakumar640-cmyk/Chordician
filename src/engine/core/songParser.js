@@ -5,7 +5,7 @@
 
 import { analyzeLines } from './lineAnalyzer.js';
 import { tokenizeLine } from './tokenizer.js';
-import { pairChordLineWithLyric } from './positionMapper.js';
+import { pairChordLineWithLyric, splitHorizontallyConcatenatedLine } from './positionMapper.js';
 
 /**
  * Parses raw chord and lyric text into a structured ParsedSong object.
@@ -31,6 +31,7 @@ export function parseSong(rawText, options = {}) {
   };
 
   let pendingChordLine = null;
+  let lastWasHorizontallyConcatenated = false;
   let totalChordsFound = 0;
   let totalLyricsFound = 0;
 
@@ -93,6 +94,7 @@ export function parseSong(rawText, options = {}) {
           };
         }
       }
+      lastWasHorizontallyConcatenated = false;
       continue;
     }
 
@@ -119,6 +121,7 @@ export function parseSong(rawText, options = {}) {
         name: item.sectionName || `Section ${sections.length + 1}`,
         lines: []
       };
+      lastWasHorizontallyConcatenated = false;
       continue;
     }
 
@@ -135,15 +138,25 @@ export function parseSong(rawText, options = {}) {
         totalChordsFound += paired.chords.length;
         pendingChordLine = item.raw;
       } else {
-        const paired = pairChordLineWithLyric(pendingChordLine, item.raw);
-        currentSection.lines.push({
-          lyrics: paired.lyrics,
-          chords: paired.chords,
-          rawChordLine: pendingChordLine,
-          type: 'lyric_with_chords'
-        });
-        totalChordsFound += paired.chords.length;
-        if (paired.lyrics) totalLyricsFound++;
+        const segments = splitHorizontallyConcatenatedLine(pendingChordLine, item.raw);
+
+        // If previous line was a multi-phrase concatenated stanza, start a new section for this separate phrase
+        if (lastWasHorizontallyConcatenated && currentSection.lines.length >= 2) {
+          sections.push(currentSection);
+          const nextIdx = sections.length + 1;
+          currentSection = {
+            id: `sec_${nextIdx}`,
+            name: `Section ${nextIdx}`,
+            lines: []
+          };
+        }
+
+        for (const seg of segments) {
+          currentSection.lines.push(seg);
+          totalChordsFound += seg.chords.length;
+          if (seg.lyrics) totalLyricsFound++;
+        }
+        lastWasHorizontallyConcatenated = segments.length > 2;
         pendingChordLine = null;
       }
       continue;

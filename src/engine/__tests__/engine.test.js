@@ -389,9 +389,49 @@ const explicitRes = parseSmartPaste(explicitRaw, { title: 'Amazing Grace (Custom
 assertEqual(explicitRes.song.title, 'Amazing Grace (Custom)', 'Explicit custom title preserved without alteration');
 assertEqual(explicitRes.song.originalKey, 'C', 'Key auto-detected as C');
 
+// Test 18: Horizontally Concatenated Two-Line Phrases & Stanza Splitting (Magimai Umakkanro)
+console.log('\n--- Test 18: Horizontally Concatenated Phrases & Sections (Magimai Umakkanro) ---');
+
+const magimaiRaw = `F                C           C7     F Bb             F             C F    C      F F7
+மகிமை உமக்கன்றோ மாட்சிமை உமக்கன்றோ துதியும் புகழும் ஸ்தோத்திரமும் தூயவர் உமக்கன்றோ
+Bb      F       C C7 A F   C         Bb F
+ஆராதனை ஆராதனை என் அன்பர் இயேசுவுக்கே
+Verse 1
+F                               A7                  Bb Gm           C7     Dm        C              Bb F
+விலையேறப் பெற்ற உம் இரத்தத்தால் விடுதலை கொடுத்தீர் இராஜாக்களாக லேவியராக உமக்கென தெரிந்து கொண்டீர்`;
+
+const magimaiRes = parseSmartPaste(magimaiRaw);
+assert(magimaiRes.success, 'Magimai Umakkanro parsed successfully');
+assert(magimaiRes.song.title.toLowerCase().includes('magimai umakkanro'), `Title auto-detected as Tanglish: "${magimaiRes.song.title}"`);
+assertEqual(magimaiRes.song.originalKey, 'F', 'Root key auto-detected as F');
+assertEqual(magimaiRes.song.sections.length, 3, 'Split into 3 distinct musical sections');
+
+// Section 1 has 4 lines (8 rows)
+const mSec1 = magimaiRes.song.sections[0];
+assertEqual(mSec1.rows.length, 8, 'Section 1 has 8 rows (4 chord + 4 lyric rows)');
+assertEqual(mSec1.rows[1].content, 'மகிமை உமக்கன்றோ', 'Sec 1 lyric line 1');
+assertEqual(mSec1.rows[3].content, 'மாட்சிமை உமக்கன்றோ', 'Sec 1 lyric line 2');
+assertEqual(mSec1.rows[5].content, 'துதியும் புகழும் ஸ்தோத்திரமும்', 'Sec 1 lyric line 3');
+assertEqual(mSec1.rows[7].content, 'தூயவர் உமக்கன்றோ', 'Sec 1 lyric line 4');
+
+// Section 2 has 2 lines (4 rows)
+const mSec2 = magimaiRes.song.sections[1];
+assertEqual(mSec2.rows.length, 4, 'Section 2 has 4 rows (2 chord + 2 lyric rows)');
+assertEqual(mSec2.rows[1].content, 'ஆராதனை ஆராதனை என்', 'Sec 2 lyric line 1');
+assertEqual(mSec2.rows[3].content, 'அன்பர் இயேசுவுக்கே', 'Sec 2 lyric line 2');
+
+// Section 3 (Verse 1) has 4 lines (8 rows)
+const mSec3 = magimaiRes.song.sections[2];
+assertEqual(mSec3.rows.length, 8, 'Section 3 has 8 rows (4 chord + 4 lyric rows)');
+assertEqual(mSec3.rows[1].content, 'விலையேறப் பெற்ற உம் இரத்தத்தால்', 'Sec 3 lyric line 1');
+assertEqual(mSec3.rows[3].content, 'விடுதலை கொடுத்தீர்', 'Sec 3 lyric line 2');
+assertEqual(mSec3.rows[5].content, 'இராஜாக்களாக லேவியராக', 'Sec 3 lyric line 3');
+assertEqual(mSec3.rows[7].content, 'உமக்கென தெரிந்து கொண்டீர்', 'Sec 3 lyric line 4');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
 }
+
 
 
