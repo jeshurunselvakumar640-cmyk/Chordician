@@ -44,7 +44,7 @@ export function preprocessContinuousChordStream(rawLines) {
     line = line.replace(/([A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add\d|\d)?(?:\/[A-G][#b]?)?[\u0B80-\u0BFF\u0900-\u097F]{1,8}|[\u0B80-\u0BFF\u0900-\u097F]{3,})\s*([A-G][#b]?m?(?:நானே|ஜீவனும்|உன்\s+பெயர்|ஒரு\s+போதும்|கைவிடமாட்டேன்\s+வழியும்))/g, '$1\n$2');
 
     // 4. Ellipsis echoes e.g. "...வழியும்" (exclude repeat multipliers like "...X2" or "...(2)")
-    line = line.replace(/([^\n\s])\s*(\.{2,}(?!X\d|x\d|\d|\(X\d|\(x\d)[\u0B80-\u0BFF\u0900-\u097F\w]{3,})/g, '$1\n$2');
+    line = line.replace(/([^\n\s\.])\s*(\.{2,}(?!X\d|x\d|\d|\(X\d|\(x\d)[\u0B80-\u0BFF\u0900-\u097F\w]{3,})/g, '$1\n$2');
 
     const split = line.split(/\r?\n/);
     result.push(...split);

@@ -61,20 +61,58 @@ CRITICAL RULES:
      2. Restore natural word spacing so words are never jammed together (e.g. "பயப்படாதே நானே", "சத்தியமும் ஜீவனும்", "மகனே(ளே) உன்", "அழைத்தேனே ஒரு", "கைவிடமாட்டேன் கைவிடமாட்டேன்").
      3. Keep chords that appear inside words (e.g. "பயப்பEbடாதே" -> chord "Eb" over "பயப்படாதே", "சத்தியமுEbம்" -> chord "Eb" over "சத்தியமும்", "கைவிEbடமாட்டேன்" -> chord "Eb" over "கைவிடமாட்டேன்") intact over that word, while cleanly healing the word.
 
-4. INLINE BRACKETED CHORDS:
+4. HORIZONTALLY CONCATENATED MULTI-PHRASE TWO-LINE INPUT:
+   - When a chord line and lyric line contain multiple poetic phrases concatenated into a single long horizontal line without line breaks:
+     Example Input:
+     Verse 1
+     G                C                  D   D7                       G
+     உதவி வரும் கன்மலைநோக்கிப் பார்க்கின்றேன்வானமும் வையமும் படைத்தவரைநான் பார்க்கின்றேன்
+     Verse 2
+     G                   C     Am            D7 G          D                 D7 G
+     கால்கள் தள்ளாட விடமாட்டார்காக்கும் தேவன் உறங்கமாட்டார்இஸ்ரவேலைக் காக்கிறவர்
+     D        B7             G
+     எந்நாளும் தூங்க மாட்டார்
+     ...உதவி வரும்
+     Verse 3
+     G                    C       Am            D7  G       D                  D7 G
+     கர்த்தர் என்னைக் காக்கின்றார்எனது நிழலாய் இருக்கின்றார்பகலினிலும் இரவினிலும்பாதுகாக்கின்றார்
+     ...உதவி வரும்
+
+     Expected Output Structure:
+     [Section: Verse 1]
+     Line 1: Chords: [{ chord: 'G', position: 0 }], Lyrics: 'உதவி வரும் கன்மலை'
+     Line 2: Chords: [{ chord: 'C', position: 0 }, { chord: 'D', position: 18 }], Lyrics: 'நோக்கிப் பார்க்கின்றேன்'
+     Line 3: Chords: [{ chord: 'D7', position: 0 }], Lyrics: 'வானமும் வையமும் படைத்தவரை'
+     Line 4: Chords: [{ chord: 'G', position: 0 }], Lyrics: 'நான் பார்க்கின்றேன்'
+
+     [Section: Verse 2]
+     Line 1: Chords: [{ chord: 'G', position: 0 }, { chord: 'C', position: 22 }], Lyrics: 'கால்கள் தள்ளாட விடமாட்டார்'
+     Line 2: Chords: [{ chord: 'Am', position: 0 }, { chord: 'D7', position: 16 }, { chord: 'G', position: 19 }], Lyrics: 'காக்கும் தேவன் உறங்கமாட்டார்'
+     Line 3: Chords: [{ chord: 'D', position: 0 }, { chord: 'D7', position: 19 }, { chord: 'G', position: 22 }], Lyrics: 'இஸ்ரவேலைக் காக்கிறவர்'
+     Line 4: Chords: [{ chord: 'D', position: 0 }, { chord: 'B7', position: 9 }, { chord: 'G', position: 24 }], Lyrics: 'எந்நாளும் தூங்க மாட்டார்'
+     Line 5: Chords: [], Lyrics: '...உதவி வரும்'
+
+     [Section: Verse 3]
+     Line 1: Chords: [{ chord: 'G', position: 0 }, { chord: 'C', position: 23 }], Lyrics: 'கர்த்தர் என்னைக் காக்கின்றார்'
+     Line 2: Chords: [{ chord: 'Am', position: 0 }, { chord: 'D7', position: 16 }, { chord: 'G', position: 19 }], Lyrics: 'எனது நிழலாய் இருக்கின்றார்'
+     Line 3: Chords: [{ chord: 'D', position: 0 }, { chord: 'D7', position: 18 }, { chord: 'G', position: 21 }], Lyrics: 'பகலினிலும் இரவினிலும்'
+     Line 4: Chords: [{ chord: 'G', position: 0 }], Lyrics: 'பாதுகாக்கின்றார்'
+     Line 5: Chords: [], Lyrics: '...உதவி வரும்'
+
+5. INLINE BRACKETED CHORDS:
    - "[C]Amazing grace, how [F]sweet the [C]sound" => Extract bracketed chords with character offsets and strip brackets from lyrics.
    - Preserve non-chord parentheses like "(x2)", "(2)", "(ஆ.....ஆ)" in lyrics.
-5. SECTION STRUCTURE & HEADERS:
+6. SECTION STRUCTURE & HEADERS:
    - Respect and preserve section headers like "[Chorus]", "[Verse 1]", "[Verse 2]", "[Bridge]", "[Intro]", "[Outro]", "[Pre-Chorus]", "[Ending]".
    - Keep sections in sequential order. If the same section is repeated (e.g. multiple "[Chorus]" blocks), output each section block in order.
-6. PRESERVE ORIGINAL LYRICS & MULTI-LANGUAGE TRANSLITERATIONS:
+7. PRESERVE ORIGINAL LYRICS & MULTI-LANGUAGE TRANSLITERATIONS:
    - Do NOT translate, summarize, or rewrite lyric words.
    - Preserve Hindi, Tamil, Telugu, and English transliterated words, punctuation, and repetition markers (e.g. "Pani Pe Chalta Hai", "Krus Ko Uthaya Hai", "...X2", "(2)", "-2").
-7. MUSICAL KEY:
+8. MUSICAL KEY:
    - Detect the root musical key (e.g. "E", "D", "Dm", "C", "G", "F", "A", "Em", "Cm", "Eb", "Bb").
-8. STYLE IDENTIFICATION:
+9. STYLE IDENTIFICATION:
    - If a distinct style (e.g. "Indian -> Dandiya", "Indian -> Bhajan", "Pop & Rock -> 8Beat", "Ballad -> PianoBallad", "Worship -> Contemporary") is recognizable, provide it.
-9. DEEP NOISE, EMOJI & CLUTTER PURGE:
+10. DEEP NOISE, EMOJI & CLUTTER PURGE:
    - Completely strip all emoji icons (e.g. 🏠, 🎵, 🎶, ✝️, 🎸, 👍, ❤️, 🙏, 🔔, ⭐, etc.).
    - Completely strip empty anchor brackets (e.g. "[]", "[ ]", "()"). Never output "[]" inside lyrics.
    - Completely strip website navigation, breadcrumbs, search bars, UI labels ("Lyrics", "Chords", "Home", "Share"), social media promotions ("Join WhatsApp group", "Subscribe to YouTube channel", "Follow on Instagram"), advertisement text, chord finger/tab diagrams, author credits, related songs lists, account menus, interactive chord editors, and page footers.
