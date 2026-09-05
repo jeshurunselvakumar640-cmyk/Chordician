@@ -324,7 +324,7 @@ export default function AuthModal() {
                 <input
                   type="email"
                   className="form-input"
-                  placeholder="e.g. jeshurunselvakumar@gmail.com"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -409,7 +409,7 @@ export default function AuthModal() {
                 <input
                   type="text"
                   className="form-input"
-                  placeholder={isOwnerEmail ? 'Jeshurun Selvakumar (Owner)' : 'e.g. John Doe'}
+                  placeholder="Enter your name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                 />
@@ -422,7 +422,7 @@ export default function AuthModal() {
                 <input
                   type="email"
                   className="form-input"
-                  placeholder="name@example.com"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -488,7 +488,7 @@ export default function AuthModal() {
                 <input
                   type="email"
                   className="form-input"
-                  placeholder="e.g. jeshurunselvakumar@gmail.com"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
