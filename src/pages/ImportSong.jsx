@@ -345,14 +345,12 @@ export default function ImportSong() {
           <button
             type="button"
             role="tab"
-            aria-selected={false}
-            className="import-tab-btn tab-disabled"
-            disabled={true}
-            title="Chordex AI Vision (screenshot analysis) will be enabled in a future update"
-            style={{ opacity: 0.5, cursor: 'not-allowed' }}
+            aria-selected={activeTab === 'image'}
+            className={`import-tab-btn ${activeTab === 'image' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('image'); setAnalysisResult(null); }}
           >
-            <Sparkles size={16} />
-            <span>AI Vision <span className="tab-coming-soon-pill">Future Update</span></span>
+            <Sparkles size={18} />
+            <span>AI Vision (Screenshot)</span>
           </button>
         </div>
       )}

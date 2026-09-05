@@ -10,6 +10,8 @@ import importUrlRouter from './routes/importUrl.js';
 
 dotenv.config();
 
+console.log('[Chordex AI] Gemini API configured:', Boolean(process.env.GEMINI_API_KEY));
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -20,9 +22,13 @@ app.use(cors());
 app.use(express.json({ limit: '30mb' }));
 app.use(express.urlencoded({ extended: true, limit: '30mb' }));
 
-// Request logger
+// Vercel Serverless & Express route normalizer middleware
 app.use((req, res, next) => {
-  if (req.url.startsWith('/api')) {
+  const matchedPath = req.headers['x-vercel-matched-path'] || req.headers['x-matched-path'] || req.headers['x-forwarded-uri'];
+  if (matchedPath && (req.url === '/api' || req.url === '/' || req.url === '')) {
+    req.url = matchedPath;
+  }
+  if (req.url.startsWith('/api') || req.url.startsWith('/chordex') || req.url.startsWith('/import-url')) {
     console.log(`[HTTP API] ${req.method} ${req.url}`);
   }
   next();
@@ -112,12 +118,55 @@ Return valid JSON adhering to this exact schema:
   "overallConfidence": 0.95
 }`;
 
+/**
+ * Safely parses JSON with auto-repair for trailing brackets/quotes
+ */
+function safeJsonParse(jsonString) {
+  if (!jsonString || typeof jsonString !== 'string') return null;
+  const clean = jsonString.replace(/^```json\s*|^```\s*|```$/g, '').trim();
+
+  try {
+    return JSON.parse(clean);
+  } catch (err) {
+    let repaired = clean;
+    const openQuotes = (repaired.match(/(?<!\\)"/g) || []).length;
+    if (openQuotes % 2 !== 0) {
+      repaired += '"';
+    }
+
+    const stack = [];
+    for (let i = 0; i < repaired.length; i++) {
+      const ch = repaired[i];
+      if (ch === '{') stack.push('}');
+      else if (ch === '[') stack.push(']');
+      else if (ch === '}' || ch === ']') {
+        if (stack.length > 0 && stack[stack.length - 1] === ch) {
+          stack.pop();
+        }
+      }
+    }
+
+    while (stack.length > 0) {
+      repaired += stack.pop();
+    }
+
+    try {
+      return JSON.parse(repaired);
+    } catch {
+      throw err;
+    }
+  }
+}
+
 async function analyzeChordSheetWithGemini(imageBuffer, mimeType) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) {
-    throw new Error('GEMINI_API_KEY is not configured on the server.');
+    const err = new Error('GEMINI_API_KEY is not configured on the server.');
+    err.stage = 'GEMINI_CONFIG';
+    throw err;
   }
 
+  console.log('[Chordex AI Diagnostic] Gemini configured: YES');
   const genAI = new GoogleGenerativeAI(key);
 
   const modelNames = [
@@ -129,6 +178,7 @@ async function analyzeChordSheetWithGemini(imageBuffer, mimeType) {
 
   for (const modelName of modelNames) {
     try {
+      console.log(`[Chordex AI Diagnostic] Calling Gemini model: ${modelName}`);
       const model = genAI.getGenerativeModel({
         model: modelName,
         systemInstruction: CHORDEX_SYSTEM_INSTRUCTION,
@@ -155,18 +205,26 @@ async function analyzeChordSheetWithGemini(imageBuffer, mimeType) {
         throw new Error('Empty response received from Gemini Vision.');
       }
 
-      const cleanJson = responseText.replace(/^```json\s*|^```\s*|```$/g, '').trim();
-      return JSON.parse(cleanJson);
+      console.log('[Chordex AI Diagnostic] Gemini response received: YES');
+      const parsed = safeJsonParse(responseText);
+      console.log('[Chordex AI Diagnostic] JSON parsing success: YES');
+      return parsed;
     } catch (err) {
       console.warn(`[Chordex AI] Model ${modelName} attempt failed:`, err.message);
       lastError = err;
     }
   }
 
+  if (lastError) {
+    lastError.stage = 'GEMINI_REQUEST';
+  }
   throw lastError || new Error('Failed to analyze chord sheet with all available Gemini models.');
 }
 
 app.post(['/api/chordex/analyze', '/chordex/analyze'], upload.single('image'), async (req, res) => {
+  console.log('[Chordex AI Diagnostic] Chordex request received');
+  let stage = 'IMAGE_PROCESSING';
+
   try {
     let imageBuffer = null;
     let mimeType = 'image/jpeg';
@@ -185,19 +243,28 @@ app.post(['/api/chordex/analyze', '/chordex/analyze'], upload.single('image'), a
       }
     }
 
-    if (!imageBuffer || imageBuffer.length === 0) {
+    const hasImage = Boolean(imageBuffer && imageBuffer.length > 0);
+    console.log(`[Chordex AI Diagnostic] Image present: ${hasImage ? 'YES' : 'NO'}${hasImage ? `, size: ${imageBuffer.length} bytes, type: ${mimeType}` : ''}`);
+
+    if (!hasImage) {
       return res.status(400).json({
         success: false,
+        stage: 'IMAGE_PROCESSING',
+        code: 'NO_IMAGE',
         error: 'No image provided. Please upload a valid chord sheet screenshot (PNG, JPG, WEBP).'
       });
     }
 
+    stage = 'GEMINI_REQUEST';
     console.log(`[Chordex AI] Processing image (${mimeType}, ${imageBuffer.length} bytes)...`);
     const parsedSong = await analyzeChordSheetWithGemini(imageBuffer, mimeType);
 
+    stage = 'VALIDATION';
     if (!parsedSong || !Array.isArray(parsedSong.sections)) {
       return res.status(422).json({
         success: false,
+        stage: 'VALIDATION',
+        code: 'INVALID_SONG_STRUCTURE',
         error: 'Chordex could not structure this image into musical sections. Please ensure the image is clear and contains visible chords.'
       });
     }
@@ -208,9 +275,11 @@ app.post(['/api/chordex/analyze', '/chordex/analyze'], upload.single('image'), a
       data: parsedSong
     });
   } catch (err) {
-    console.error('[Chordex AI Error]:', err);
+    const failStage = err.stage || stage;
+    console.error(`[Chordex AI Error at stage ${failStage}]:`, err);
+
     let userMessage = 'Chordex was unable to analyze this chord sheet. Please check your image clarity or try another screenshot.';
-    if (err.message && err.message.includes('API key')) {
+    if (err.message && (err.message.includes('API key') || err.stage === 'GEMINI_CONFIG')) {
       userMessage = 'Gemini API authentication failed. Please verify your GEMINI_API_KEY in the server configuration.';
     } else if (err.message && (err.message.includes('quota') || err.message.includes('rate limit'))) {
       userMessage = 'Gemini API rate limit exceeded. Please wait a moment and try again.';
@@ -218,6 +287,7 @@ app.post(['/api/chordex/analyze', '/chordex/analyze'], upload.single('image'), a
 
     return res.status(500).json({
       success: false,
+      stage: failStage,
       error: userMessage,
       technicalDetails: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
@@ -239,7 +309,7 @@ const distPath = path.join(__dirname, '../dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   app.get('*', (req, res, next) => {
-    if (req.url.startsWith('/api')) {
+    if (req.url.startsWith('/api') || req.url.startsWith('/chordex') || req.url.startsWith('/import-url')) {
       return next();
     }
     res.sendFile(path.join(distPath, 'index.html'));
