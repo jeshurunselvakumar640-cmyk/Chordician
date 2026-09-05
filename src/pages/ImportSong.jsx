@@ -66,18 +66,16 @@ export default function ImportSong() {
 
   // --- Handlers for URL Import ---
   const handleAnalyzeUrl = async (targetUrlParam = null) => {
-    const targetUrl = typeof targetUrlParam === 'string' ? targetUrlParam : urlInput;
-    if (!targetUrl.trim() && !selectedUrlPreset) {
+    const targetUrl = (typeof targetUrlParam === 'string' ? targetUrlParam : urlInput).trim();
+    if (!targetUrl) {
       showToast('Please enter a webpage URL or pick a sample.', 'warning');
       return;
     }
 
-    if (!selectedUrlPreset) {
-      const validation = validateClientUrl(targetUrl);
-      if (!validation.valid) {
-        showToast(validation.error, 'warning');
-        return;
-      }
+    const validation = validateClientUrl(targetUrl);
+    if (!validation.valid) {
+      showToast(validation.error, 'warning');
+      return;
     }
 
     setIsAnalyzingUrl(true);
@@ -90,7 +88,7 @@ export default function ImportSong() {
     const t3 = setTimeout(() => setUrlLoadingStep(4), 6000);
 
     try {
-      const res = await importSongFromUrl(targetUrl, selectedUrlPreset);
+      const res = await importSongFromUrl(targetUrl);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);

@@ -254,6 +254,23 @@ assertEqual(rowsWithEmojis.length, 0, 'Zero emojis present in all generated rows
 const junkPresent = t12AllRows.some(r => /Interactive chord editor|Leave a Reply|Recent Posts|You May Also Like/i.test(r.content));
 assert(!junkPresent, 'Website footer junk properly stopped and stripped');
 
+// Test 13: Header Prefix Splitting and Attached Section Markers
+console.log('\n--- Test 13: Section Header Prefix Splitting ---');
+const t13Raw = `#intro: [Dm-C-Bdim-Em](X3) [Dm-C-Em]
+#hook[Am]Enthan Nambikkai [Em]Neere[Dm]Enthan [Em]Nangooram [Am]Neere (2)
+#pre-Chorus[Am]Enthan Maraividam [Dm]Neere[G]Enthan Kedagam [C]Neere
+#chorus[Am]Yegovaayeere Neer [Em]Paarththuk Kolveer[Dm]Thevaigal Ellaam [Em]Neer [Am]Sandhippeer
+#verse 1[Am]Illaadhavaigalai [Dm]Iruppadhu Pol[G]Azhaiththidum [C]Deivam Neer Allavo (2)`;
+
+const t13Result = parseSmartPaste(t13Raw);
+assert(t13Result.success, 'Test 13 smart paste succeeded');
+assertEqual(t13Result.song.sections.length, 5, 'Found 5 distinct sections from prefix headers');
+assertEqual(t13Result.song.sections[0].name, 'Intro', 'Section 1 is Intro');
+assertEqual(t13Result.song.sections[1].name, 'Chorus (Hook)', 'Section 2 is Chorus (Hook)');
+assertEqual(t13Result.song.sections[2].name, 'Pre-Chorus', 'Section 3 is Pre-Chorus');
+assertEqual(t13Result.song.sections[3].name, 'Chorus', 'Section 4 is Chorus');
+assertEqual(t13Result.song.sections[4].name, 'Verse 1', 'Section 5 is Verse 1');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);

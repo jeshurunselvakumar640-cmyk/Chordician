@@ -4,7 +4,7 @@
 
 // Section header regex supporting English, Tamil, Hindi, and Indian transliterated terms
 export const SECTION_HEADER_REGEX =
-  /^(?:\[|\()?\s*(?:Verse(?:\s*\d+)?|Chorus(?:\s*\d+)?|Bridge(?:\s*\d+)?|Intro(?:\s*\d+)?|Outro(?:\s*\d+)?|Pre-Chorus(?:\s*\d+)?|Interlude(?:\s*\d+)?|Tag(?:\s*\d+)?|Ending|Stanza(?:\s*\d+)?|Refrain|Pallavi|Charanam(?:\s*\d+)?|Anupallavi|சரணம்(?:\s*\d+)?|பல்லவி|அனுபல்லவி|முன்னுரை|स्थायी|अंतरा|मुखड़ा)\s*(?:\]|\)|\:|\-)?$/i;
+  /^(?:\[|\(|\#)?\s*(?:Verse(?:\s*\d+)?|Chorus(?:\s*\d+)?|Bridge(?:\s*\d+)?|Intro(?:\s*\d+)?|Outro(?:\s*\d+)?|Pre-Chorus(?:\s*\d+)?|Hook(?:\s*\d+)?|Interlude(?:\s*\d+)?|Tag(?:\s*\d+)?|Ending|Stanza(?:\s*\d+)?|Refrain|Pallavi|Charanam(?:\s*\d+)?|Anupallavi|சரணம்(?:\s*\d+)?|பல்லவி|அனுபல்லவி|முன்னுரை|स्थायी|अंतरा|मुखड़ा)\s*(?:\]|\)|\:|\-)?$/i;
 
 // Repetition markers (e.g. -2, x2, X2, ...X2, (2), (x2))
 export const REPEAT_MARKER_REGEX =
@@ -42,8 +42,11 @@ export function isSectionHeader(text) {
  */
 export function formatSectionName(text) {
   if (!text) return 'Verse 1';
-  let clean = text.replace(/^[\[\(\{<]+|[\]\)\}>:—\-]+$/g, '').trim();
+  let clean = text.replace(/^[\[\(\{<#]+|[\]\)\}>:—\-]+$/g, '').trim();
 
+  if (/^(?:hook)$/i.test(clean)) {
+    return 'Chorus (Hook)';
+  }
   if (/^(?:pallavi|பல்லவி|स्थायी|मुखड़ा)$/i.test(clean)) {
     return 'Chorus (Pallavi)';
   }

@@ -15,6 +15,9 @@ const INSTRUMENT_TAB_HEADER_REGEX =
 const FOOTER_UI_STOP_REGEX =
   /^(?:Your Account|Your Favourites|Your favorites|Interactive chord editor|Click a word|ChordPro source|Edit chords|Version history|Restricted \(copyright\)|Top Artists|Chords Z|Top Songs|Popular Songs|All Artists|Browse by|A B C D E F G|HIJKLMNOPQRSTUVWXYZ|Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:|Copyright\s*©|All rights reserved)\b/i;
 
+const HEADER_PREFIX_REGEX =
+  /^(?:#|\[|\()?\s*(Verse(?:\s*\d+)?|Chorus(?:\s*\d+)?|Bridge(?:\s*\d+)?|Intro(?:\s*\d+)?|Outro(?:\s*\d+)?|Pre-Chorus(?:\s*\d+)?|Hook(?:\s*\d+)?|Interlude(?:\s*\d+)?|Tag(?:\s*\d+)?|Ending|Stanza(?:\s*\d+)?|Refrain|Pallavi|Charanam(?:\s*\d+)?|Anupallavi|சரணம்(?:\s*\d+)?|பல்லவி|அனுபல்லவி)(?:\]|\)|\:|\-)?\s*(.+)$/i;
+
 /**
  * Classifies an array of raw text lines into structured line types,
  * while detecting and filtering transpose ladders, isolated metadata lines, and trailing UI footers.
@@ -30,10 +33,11 @@ const FOOTER_UI_STOP_REGEX =
  */
 export function analyzeLines(rawLines) {
   const result = [];
+  const linesToProcess = [...(rawLines || [])];
 
   // Pass 1: Initial classification and emoji cleaning
-  for (let i = 0; i < rawLines.length; i++) {
-    const raw = rawLines[i];
+  for (let i = 0; i < linesToProcess.length; i++) {
+    const raw = linesToProcess[i];
     const noEmoji = removeEmojis(raw);
     const trimmed = noEmoji.trim();
 
@@ -49,6 +53,21 @@ export function analyzeLines(rawLines) {
         type: 'SECTION_HEADER',
         sectionName: formatSectionName(trimmed)
       });
+      continue;
+    }
+
+    const headerPrefixMatch = trimmed.match(HEADER_PREFIX_REGEX);
+    if (headerPrefixMatch) {
+      result.push({
+        raw: headerPrefixMatch[1],
+        trimmed: headerPrefixMatch[1],
+        type: 'SECTION_HEADER',
+        sectionName: formatSectionName(headerPrefixMatch[1])
+      });
+      const rest = headerPrefixMatch[2].trim();
+      if (rest) {
+        linesToProcess.splice(i + 1, 0, rest);
+      }
       continue;
     }
 

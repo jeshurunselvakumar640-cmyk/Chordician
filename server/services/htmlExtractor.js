@@ -20,20 +20,22 @@ export function extractSongFromHtml(html, sourceUrl = '') {
   // 3. Convert line-break elements to newlines
   $('br, hr').replaceWith('\n');
 
-  // 4. Strip strictly non-content noise elements, sidebars, and widgets
+  // 4. Strip strictly non-content noise elements, sidebars, diagrams, and widgets
   $(
     'script:not([type="application/ld+json"]), style, noscript, iframe, svg, img, picture, ' +
     'audio, video, nav, footer, form, input, button, select, dialog, aside, [role="complementary"], ' +
     '.ad, .ads, .advertisement, .cookie, .cookie-banner, .cookie-consent, ' +
     '.social-share, .comments-area, #comments, .sidebar, #sidebar, .drawer, ' +
     '.breadcrumb, .breadcrumbs, .menu, .navigation, #wpadminbar, ' +
+    '#chord-diagrams, .guitar-chord, .ukulele-chord, .piano-chord, ' +
     '.transpose, .transpose-keys, .key-selector, .keys-list, .pitch-list, #transpose, ' +
     '.transpose-controls, .chord-switcher, .scale-list, .c-transpose, .transpose-bar, ' +
     '.key-changer, .chords-controls, .song-meta-box, .song-toolbar, .key-buttons, .scale-selector, ' +
     '.related-posts, .related-songs, .related-articles, .related_posts, .yarpp-related, ' +
     '.interactive-editor, .chordpro-editor, .account-menu, .user-favorites, .user-profile, ' +
     '.widget, .widget-area, .author-bio, .post-author, .post-navigation, .entry-meta, .meta-info, ' +
-    '.popular-posts, .popular-songs, .recent-posts, .recent-songs, .song-sidebar, .songs-list'
+    '.popular-posts, .popular-songs, .recent-posts, .recent-songs, .song-sidebar, .songs-list, ' +
+    'ol.list-decimal, ul.songs-list, .songs-grid'
   ).remove();
 
   // 5. Smart Song Content Container Detection with Scoring
@@ -78,39 +80,36 @@ function formatInlineChordElements($) {
     }
   });
 
-  // B. Elements with chord data attributes or class names
-  const chordSelectors = [
+  // B. Elements with chord data attributes or explicit chord class names
+  const specificChordSelectors = [
     '[data-chord]', '[data-name="chord"]', '[data-c]',
-    'span[class*="chord"]', 'span[class*="crd"]', 'span.c', 'b[class*="chord"]',
-    'i[class*="chord"]', 'strong[class*="chord"]', 'font[class*="chord"]',
-    '.chord-name', '.chord-pro', '.ug-chord', 'sup', 'rt'
+    '.chord-name', '.chord-pro', '.ug-chord', '.chord-mark', '.c-name', 'sup.chord', 'rt'
   ];
 
-  for (const selector of chordSelectors) {
+  for (const selector of specificChordSelectors) {
     $(selector).each((_, el) => {
       const $el = $(el);
       const chordText = ($el.attr('data-chord') || $el.text() || '').trim();
       if (chordText && chordText.length <= 14 && isChord(chordText, true)) {
-        $el.replaceWith(`[${chordText}]`);
-      } else {
-        // Remove empty marker spans so they don't produce []
+        $el.replaceWith(`[${chordText.replace(/^[\[\(]+|[\]\)]+$/g, '')}]`);
+      } else if (!chordText) {
         $el.remove();
       }
     });
   }
 
-  // Unwrap chord helper wrappers
-  $('.chord-anchor, .chord-stack').each((_, el) => {
+  // C. Unwrap chord helper wrappers
+  $('.chord-anchor, .chord-stack, .chord-wrap').each((_, el) => {
     $(el).replaceWith($(el).html() || '');
   });
 
-  // C. Any standalone leaf inline element whose text is strictly a valid chord
+  // D. Any standalone leaf inline element whose text is strictly a valid chord
   $('span, b, strong, i, em, font, sup').each((_, el) => {
     const $el = $(el);
     if ($el.children().length === 0) {
       const text = $el.text().trim();
       if (text && text.length <= 12 && isChord(text, true)) {
-        $el.replaceWith(`[${text}]`);
+        $el.replaceWith(`[${text.replace(/^[\[\(]+|[\]\)]+$/g, '')}]`);
       } else if (!text || text.length === 0) {
         $el.remove();
       }

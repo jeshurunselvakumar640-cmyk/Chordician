@@ -7,131 +7,40 @@ import { parseSmartPaste } from '../engine/index.js';
 
 export const SAMPLE_URL_PRESETS = [
   {
-    id: 'maravaamal_sample',
-    title: 'Maravaamal Ninaiththeeraiyaa (Worship Chart)',
-    url: 'https://worshipleader.com/chords/maravaamal-ninaiththeeraiyaa',
-    description: 'Chords positioned above Tamil transliterated worship lyrics with two sections',
-    mockData: {
-      title: 'Maravaamal Ninaiththeeraiyaa',
-      artist: 'Gersson Edinbaro',
-      originalKey: 'D',
-      category: 'Worship',
-      style: {
-        category: 'Indian',
-        name: 'Dandiya',
-        churchStyleNumber: '096',
-        keyboardStyleNumber: '200'
-      },
-      tempo: 108,
-      timeSignature: '4/4',
-      notes: 'Imported from URL: https://worshipleader.com/chords/maravaamal-ninaiththeeraiyaa',
-      sections: [
-        {
-          id: 'sec_1',
-          name: 'Verse 1',
-          rows: [
-            { id: 'r_1_1', type: 'chords', content: 'Dm          Am    A#' },
-            { id: 'r_1_2', type: 'lyrics', content: 'Maravaamal Ninaiththeeraiyaa' },
-            { id: 'r_1_3', type: 'chords', content: 'C                     Dm' },
-            { id: 'r_1_4', type: 'lyrics', content: 'Manathaara Nanri Solvaen' },
-            { id: 'r_1_5', type: 'chords', content: 'Dm          A#        Gm' },
-            { id: 'r_1_6', type: 'lyrics', content: 'Iravum Pakalum Ennai Ninainthu' },
-            { id: 'r_1_7', type: 'chords', content: 'C                     Dm' },
-            { id: 'r_1_8', type: 'lyrics', content: 'Ithuvarai Nadaththineerae' }
-          ]
-        },
-        {
-          id: 'sec_2',
-          name: 'Chorus',
-          rows: [
-            { id: 'r_2_1', type: 'chords', content: 'F           C' },
-            { id: 'r_2_2', type: 'lyrics', content: 'Nanti Nanti Aiyaa' },
-            { id: 'r_2_3', type: 'chords', content: 'A#          C      Dm' },
-            { id: 'r_2_4', type: 'lyrics', content: 'Koti Koti Nanti Aiyaa' }
-          ]
-        }
-      ]
-    }
+    id: 'aaraathippaen_sample',
+    title: 'Aaraathippaen Naan Aaraathippaen',
+    url: 'https://tamilchristiansongs.in/chords/aaraathippaen-naan-aaraathippaen/',
+    description: 'Fr. S.J. Berchmans classic with 7 verses and aligned chords from TamilChristianSongs.in'
   },
   {
-    id: 'aaraathippaen_sample',
-    title: 'Aaraathippaen Naan Aaraathippaen (TamilChristianSongs.in)',
-    url: 'https://tamilchristiansongs.in/chords/aaraathippaen-naan-aaraathippaen/',
-    description: 'Fr. S.J. Berchmans classic in F Major with complete 7 verses and accurate chords',
-    mockData: {
-      title: 'Aaraathippaen Naan Aaraathippaen',
-      artist: 'Fr. S.J. Berchmans',
-      originalKey: 'F',
-      category: 'Worship',
-      style: {
-        category: 'Indian',
-        name: 'Dandiya',
-        churchStyleNumber: '096',
-        keyboardStyleNumber: '200'
-      },
-      tempo: 105,
-      timeSignature: '4/4',
-      notes: 'Imported from URL: https://tamilchristiansongs.in/chords/aaraathippaen-naan-aaraathippaen/',
-      sections: [
-        {
-          id: 'sec_1',
-          name: 'Verse 1',
-          rows: [
-            { id: 'r_1_1', type: 'chords', content: 'F       A         C7        F   C             C7           F' },
-            { id: 'r_1_2', type: 'lyrics', content: 'AaraathiPpaen Naan AaraathipPaen Aanndavar YesuVai AaraathipPaen' },
-            { id: 'r_1_3', type: 'chords', content: 'F                             C7 Bb                    F' },
-            { id: 'r_1_4', type: 'lyrics', content: 'Vallavarae Ummai Aaraathippaen Nallavarae Ummai AaraathiPpaen...aaraathippaen' },
-            { id: 'r_1_5', type: 'chords', content: 'F                               C7   C             C7           F' },
-            { id: 'r_1_6', type: 'lyrics', content: 'Parisuththa Ullaththodu AaraathiPpaen Panninthu KuniNthu AaraathiPpaen...aaraathippaen' },
-            { id: 'r_1_7', type: 'chords', content: 'F                            C7 C          C7           F' },
-            { id: 'r_1_8', type: 'lyrics', content: 'Aaviyilae Ummai Aaraathippaen Unnmaiyilae UmMai AaraathipPaen...aaraathippaen' },
-            { id: 'r_1_9', type: 'chords', content: 'F                           C7 C            C7           F' },
-            { id: 'r_1_10', type: 'lyrics', content: 'Thootharkalodu Aaraathippaen Sthoththira PaliYodu AaraathiPpaen...aaraathippaen' },
-            { id: 'r_1_11', type: 'chords', content: 'F                              C7 C            C7          F' },
-            { id: 'r_1_12', type: 'lyrics', content: 'Kaannpavarai Naan Aaraathippaen Kaappavarai Naan AaraathippaeN...aaraathippaen' },
-            { id: 'r_1_13', type: 'chords', content: 'F                             C7  C              C7           F' },
-            { id: 'r_1_14', type: 'lyrics', content: 'Vennnnaatai Anninthu AaraathipPaen Kuruththolai AeNthi AaraathiPpaen...aaraathippaen' }
-          ]
-        }
-      ]
-    }
+    id: 'enthan_nambikkai_sample',
+    title: 'Enthan Nambikkai Neere',
+    url: 'https://tamilchristiansongs.in/chords/enthan-nambikkai-neere/',
+    description: 'Popular Tamil Christian worship song from TamilChristianSongs.in'
+  },
+  {
+    id: 'settaigalai_sample',
+    title: 'Settaigalai Virikkum Kaalam',
+    url: 'https://tamilchristiansongs.in/chords/settaigalai-virikkum-kaalam/',
+    description: 'Pastor Gersson Edinbaro worship anthem from TamilChristianSongs.in'
+  },
+  {
+    id: 'ebinesarae_sample',
+    title: 'Ebinesarae Aaradhanai',
+    url: 'https://tamilchristiansongs.in/chords/ebinesarae-aaradhanai/',
+    description: 'Traditional devotion and worship chord chart from TamilChristianSongs.in'
+  },
+  {
+    id: 'maravaamal_sample',
+    title: 'Maravaamal Ninaiththeeraiyaa',
+    url: 'https://tamilchristiansongs.in/chords/maravaamal-ninaiththeeraiyaa/',
+    description: 'Tamil transliterated worship chord chart'
   },
   {
     id: 'amazing_grace_url',
     title: 'Amazing Grace (Classic Hymn)',
     url: 'https://hymnary.org/text/amazing_grace_how_sweet_the_sound',
-    description: 'Traditional standard chord sheet with 4/4 meter and Verse / Chorus structure',
-    mockData: {
-      title: 'Amazing Grace',
-      artist: 'John Newton',
-      originalKey: 'C',
-      category: 'Hymn',
-      style: {
-        category: 'Ballad',
-        name: 'PianoBallad',
-        churchStyleNumber: '022',
-        keyboardStyleNumber: '116'
-      },
-      tempo: 76,
-      timeSignature: '3/4',
-      notes: 'Imported from URL: https://hymnary.org/text/amazing_grace_how_sweet_the_sound',
-      sections: [
-        {
-          id: 'sec_1',
-          name: 'Verse 1',
-          rows: [
-            { id: 'r_1_1', type: 'chords', content: 'C        F        C        G' },
-            { id: 'r_1_2', type: 'lyrics', content: 'Amazing grace, how sweet the sound' },
-            { id: 'r_1_3', type: 'chords', content: 'C                 G7' },
-            { id: 'r_1_4', type: 'lyrics', content: 'That saved a wretch like me' },
-            { id: 'r_1_5', type: 'chords', content: 'C        C7       F        C' },
-            { id: 'r_1_6', type: 'lyrics', content: 'I once was lost, but now am found' },
-            { id: 'r_1_7', type: 'chords', content: 'Am       G7       C' },
-            { id: 'r_1_8', type: 'lyrics', content: 'Was blind, but now I see.' }
-          ]
-        }
-      ]
-    }
+    description: 'Traditional standard chord sheet with 4/4 meter and Verse / Chorus structure'
   }
 ];
 
@@ -165,22 +74,9 @@ export function validateClientUrl(urlString) {
 }
 
 /**
- * Sends URL to the backend to fetch and parse chords & lyrics
+ * Sends URL to the backend to dynamically fetch and parse chords & lyrics with Chordex AI
  */
-export async function importSongFromUrl(urlString, selectedPresetId = null) {
-  if (selectedPresetId) {
-    const preset = SAMPLE_URL_PRESETS.find(p => p.id === selectedPresetId);
-    if (preset) {
-      await new Promise(r => setTimeout(r, 600));
-      return {
-        success: true,
-        sourceUrl: preset.url,
-        song: preset.mockData,
-        warnings: []
-      };
-    }
-  }
-
+export async function importSongFromUrl(urlString) {
   const validation = validateClientUrl(urlString);
   if (!validation.valid) {
     return {
