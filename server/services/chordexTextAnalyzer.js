@@ -20,12 +20,19 @@ CRITICAL RULES:
      - Calculate the exact 0-based character horizontal offset where each chord begins above the lyrics (e.g. 'E' at 0, 'A' at 19 above 'Rajao').
      - Handle slash chords and composite/alternative chords (e.g. "C7/Am", "G/Em", "E/G#", "C/E", "G/B", "D/F#", "F#/A#") as single chord units in the chords line (do NOT split them or push either chord into lyrics).
      - Handle trailing/leading chords (e.g. "                 E  E/G#  A  B" above "Toh Karo Jai Jai Kar").
-2. ATTACHED / TOUCHING CHORDS:
-   - When chords are glued directly to words without spaces due to bad formatting:
-     - "DmMaravaamal" => Chord: "Dm" at position 0, Lyrics: "Maravaamal"
-     - "AmA#Manathaara" => Chords: "Am" at position 0, "A#" at position 3, Lyrics: "Manathaara"
+2. ATTACHED / TOUCHING CHORDS (ENGLISH, TAMIL, HINDI & INDIC SCRIPTS):
+   - When Latin chord letters (A-G, Am, Dm, Em, F, G, C, Bb, etc.) are embedded or glued directly inside or in front of words without spaces:
+     - Example: "Amஎல் ஷDmத்தை என் தேவமேGஎல் ரCோய் என் தகப்பனேFயேசுDmஎன் ராஜனே (x2)"
+       => Chords line: "Am" (pos 0), "Dm", "G", "C", "F", "Dm" positioned over their respective words
+       => Lyrics line: "எல் ஷத்தை என் தேவமேஎல் ரோய் என் தகப்பனேயேசுஎன் ராஜனே (x2)"
+     - Example: "AmயேசுEmஎந்நாளும் எழுந்தருளிDmசத்துEmறு வைத்திய வெற்றி தந்தீர் (x2)"
+       => Chords line: "Am" (pos 0), "Em", "Dm", "Em"
+       => Lyrics line: "யேசுஎந்நாளும் எழுந்தருளிசத்துறு வைத்திய வெற்றி தந்தீர் (x2)"
+     - Example: "DmMaravaamal" => Chord: "Dm" at position 0, Lyrics: "Maravaamal"
+     - Example: "AmA#Manathaara" => Chords: "Am" at position 0, "A#" at position 3, Lyrics: "Manathaara"
 3. INLINE BRACKETED CHORDS:
    - "[C]Amazing grace, how [F]sweet the [C]sound" => Extract bracketed chords with character offsets and strip brackets from lyrics.
+   - Preserve non-chord parentheses like "(x2)", "(2)", "(ஆ.....ஆ)" in lyrics.
 4. SECTION STRUCTURE & HEADERS:
    - Respect and preserve section headers like "[Chorus]", "[Verse 1]", "[Verse 2]", "[Bridge]", "[Intro]", "[Outro]", "[Pre-Chorus]", "[Ending]".
    - Keep sections in sequential order. If the same section is repeated (e.g. multiple "[Chorus]" blocks), output each section block in order.

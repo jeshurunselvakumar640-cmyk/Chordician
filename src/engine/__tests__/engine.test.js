@@ -290,7 +290,39 @@ const t14Lyrics = t14Rows.filter(r => r.type === 'lyrics').map(r => r.content);
 assert(t14Lyrics.includes('en iyEsu rajavukkE'), 'Preserved exact transliterated line without false trailing chord E');
 assert(t14Lyrics.includes('ennOtu vazhpavarkkE'), 'Preserved exact transliterated line without false chord E');
 
+// Test 15: Attached Chords Glued to Tamil Unicode Lyrics
+console.log('\n--- Test 15: Attached Chords in Tamil Unicode Lyrics ---');
+const t15Raw = `Am                              Em
+என் பெலணாக கிரிஸ்து இருப்பதினால்எந்த பயமும் எனக்கில்லை
+என் பலப்பாக்கத்தில்அவர் துணை நின்றால்
+Dm   Em  Am
+நான் ஜெய்யம் பெற்றுத் எழும்பிடுவேன்
+Chorus
+Amஎல் ஷDmத்தை என் தேவமேGஎல் ரCோய் என் தகப்பனேFயேசுDmஎன் ராஜனே (x2)
+Verse
+AmயேசுEmஎந்நாளும் எழுந்தருளிDmசத்துEmறு வைத்திய வெற்றி தந்தீர் (x2)
+Amஎன் கDmண்ணிரின் பல்லட்டாகில்Gகொண்டCாட்டு வேலை ஆக்கினீர் (x2)`;
+
+const t15Result = parseSmartPaste(t15Raw);
+assert(t15Result.success, 'Test 15 smart paste succeeded');
+assertEqual(t15Result.song.sections.length, 3, 'Detected 3 sections: Verse 1, Chorus, Verse');
+
+const chorusSec = t15Result.song.sections.find(s => s.name === 'Chorus');
+assert(chorusSec, 'Chorus section exists');
+const chorusChords = chorusSec.rows.find(r => r.type === 'chords');
+assert(chorusChords && chorusChords.content.includes('Am') && chorusChords.content.includes('Dm') && chorusChords.content.includes('G') && chorusChords.content.includes('C') && chorusChords.content.includes('F'), 'Chorus contains all attached chords Am, Dm, G, C, F');
+const chorusLyric = chorusSec.rows.find(r => r.type === 'lyrics');
+assert(chorusLyric && chorusLyric.content.includes('(x2)') && !chorusLyric.content.includes('Am') && !chorusLyric.content.includes('Dm'), 'Chorus lyrics cleanly separated without chord pollution and with (x2) preserved');
+
+const verseSec = t15Result.song.sections.find(s => s.name === 'Verse');
+assert(verseSec, 'Verse section exists');
+const verseChords = verseSec.rows.filter(r => r.type === 'chords');
+assert(verseChords.length >= 2, 'Verse contains at least 2 chord rows');
+const verse1Chords = verseChords[0].content;
+assert(verse1Chords.includes('Am') && verse1Chords.includes('Em') && verse1Chords.includes('Dm'), 'Verse row 1 contains Am, Em, Dm');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
 }
+

@@ -32,12 +32,6 @@ export function tokenizeLine(rawLine) {
     };
   }
 
-  // 1. Check for Inline Bracketed Chords e.g. [Dm]Amazing Grace [Am]How sweet or empty brackets []
-  if (/\[.*?\]|\(.*?\)/.test(line)) {
-    return parseInlineBracketedLine(line);
-  }
-
-  // 2. Character-by-character scan for attached / glued chords (e.g. DmMaravaamal, AmA#Manathaara)
   let reconstructedLyrics = '';
   const chords = [];
   let lastChordEnd = -1;
@@ -46,13 +40,46 @@ export function tokenizeLine(rawLine) {
   while (i < line.length) {
     const char = line[i];
 
-    // Handle whitespace
+    // 1. Handle whitespace
     if (/\s/.test(char)) {
       reconstructedLyrics += char;
       i++;
       continue;
     }
 
+    // 2. Check for bracketed expressions e.g. [Dm], (Am), [], [ ], or [Verse 1], (x2)
+    if (char === '[' || char === '(') {
+      const closeBracket = char === '[' ? ']' : ')';
+      const closeIdx = line.indexOf(closeBracket, i + 1);
+
+      if (closeIdx !== -1 && closeIdx - i <= 14) {
+        const candidate = line.substring(i + 1, closeIdx).trim();
+
+        // Check if inside bracket is a valid chord
+        if (isChord(candidate, true)) {
+          const chordValue = normalizeChordString(candidate);
+          chords.push({
+            chord: chordValue,
+            position: reconstructedLyrics.length,
+            confidence: 0.99
+          });
+          i = closeIdx + 1;
+          lastChordEnd = i;
+          // Skip any whitespace immediately following bracketed chord
+          while (i < line.length && line[i] === ' ') {
+            i++;
+          }
+          continue;
+        } else if (candidate.length === 0) {
+          // Empty bracket marker like [] or [ ] - strip from lyrics
+          i = closeIdx + 1;
+          continue;
+        }
+      }
+      // If not a chord bracket, fall through to process char as lyric (preserves "(x2)", "(2)", etc.)
+    }
+
+    // 3. Scan for attached / glued chords (e.g. Amஎல், DmMaravaamal, AmA#Manathaara)
     const canBeChordStart =
       i === 0 ||
       i === lastChordEnd ||
@@ -81,7 +108,7 @@ export function tokenizeLine(rawLine) {
       continue;
     }
 
-    // Otherwise consume character as lyric
+    // 4. Otherwise consume character as lyric
     reconstructedLyrics += char;
     i++;
   }
@@ -94,52 +121,5 @@ export function tokenizeLine(rawLine) {
     chords,
     isSectionHeader: false,
     isChordOnly: cleanLyrics.length === 0 && chords.length > 0
-  };
-}
-
-/**
- * Parses inline bracketed notations like "[Dm]Amazing [Am]Grace" into lyrics and positioned chords.
- * @param {string} line
- */
-function parseInlineBracketedLine(line) {
-  let reconstructedLyrics = '';
-  const chords = [];
-
-  let i = 0;
-  while (i < line.length) {
-    const ch = line[i];
-
-    if (ch === '[' || ch === '(') {
-      const closeBracket = ch === '[' ? ']' : ')';
-      const closeIdx = line.indexOf(closeBracket, i + 1);
-
-      if (closeIdx !== -1 && closeIdx - i <= 14) {
-        const candidate = line.substring(i + 1, closeIdx).trim();
-        if (isChord(candidate, true)) {
-          chords.push({
-            chord: normalizeChordString(candidate),
-            position: reconstructedLyrics.length,
-            confidence: 0.99
-          });
-          i = closeIdx + 1;
-          continue;
-        } else if (candidate.length === 0) {
-          // Empty bracket marker like [] or [ ] or ()
-          i = closeIdx + 1;
-          continue;
-        }
-      }
-    }
-
-    reconstructedLyrics += ch;
-    i++;
-  }
-
-  return {
-    originalLine: line,
-    lyrics: reconstructedLyrics.trimEnd(),
-    chords,
-    isSectionHeader: false,
-    isChordOnly: reconstructedLyrics.trim().length === 0 && chords.length > 0
   };
 }
