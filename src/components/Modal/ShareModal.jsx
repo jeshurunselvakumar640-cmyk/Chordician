@@ -25,6 +25,7 @@ import {
 import { useToast } from '../../context/ToastContext.jsx';
 import { transposeSong } from '../../services/transposer.js';
 import { ALL_KEYS } from '../../utils/musicConstants.js';
+import { getSongById } from '../../firebase/songs.js';
 
 export default function ShareModal({
   isOpen,
@@ -38,11 +39,32 @@ export default function ShareModal({
   const [isCopied, setIsCopied] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [pdfProgress, setPdfProgress] = useState(null);
+  const [fullSong, setFullSong] = useState(song);
+  const [isLoadingSong, setIsLoadingSong] = useState(false);
 
   useEffect(() => {
-    if (song) {
-      setSelectedKey(initialKey || song.originalKey || 'C');
+    let isMounted = true;
+    if (!song) return;
+
+    setSelectedKey(initialKey || song.originalKey || 'C');
+
+    if (!song.sections || song.sections.length === 0) {
+      setIsLoadingSong(true);
+      getSongById(song.id).then((res) => {
+        if (isMounted && res?.data) {
+          setFullSong({ ...song, ...res.data });
+        }
+        if (isMounted) setIsLoadingSong(false);
+      }).catch(() => {
+        if (isMounted) setIsLoadingSong(false);
+      });
+    } else {
+      setFullSong(song);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [song, initialKey]);
 
   useEffect(() => {
@@ -51,22 +73,25 @@ export default function ShareModal({
 
   // Transposed song instance if selectedKey differs
   const currentSong = useMemo(() => {
-    if (!song) return null;
-    if (selectedKey && selectedKey !== song.originalKey) {
-      return transposeSong(song, selectedKey);
+    const targetSong = fullSong || song;
+    if (!targetSong) return null;
+    if (selectedKey && selectedKey !== targetSong.originalKey) {
+      return transposeSong(targetSong, selectedKey);
     }
-    return song;
-  }, [song, selectedKey]);
+    return targetSong;
+  }, [fullSong, song, selectedKey]);
 
   const detailsText = useMemo(() => {
-    if (!song) return '';
-    return formatSongDetailsText(song, selectedKey);
-  }, [song, selectedKey]);
+    const targetSong = fullSong || song;
+    if (!targetSong) return '';
+    return formatSongDetailsText(targetSong, selectedKey);
+  }, [fullSong, song, selectedKey]);
 
   const fullNotesText = useMemo(() => {
-    if (!song) return '';
-    return formatFullNotesText(song, selectedKey);
-  }, [song, selectedKey]);
+    const targetSong = fullSong || song;
+    if (!targetSong) return '';
+    return formatFullNotesText(targetSong, selectedKey);
+  }, [fullSong, song, selectedKey]);
 
   if (!isOpen || !song) return null;
 

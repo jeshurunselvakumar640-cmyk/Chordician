@@ -10,7 +10,7 @@ import {
   orderBy,
   serverTimestamp
 } from 'firebase/firestore';
-import { db, auth, ensureAuthReady, firebaseConfig } from './config';
+import { db, auth, ensureAuthReady, firebaseConfig } from './config.js';
 
 const SONGS_COLLECTION = 'songs';
 

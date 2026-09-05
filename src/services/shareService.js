@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { formatMainStyleHighlight } from '../data/songStyles.js';
 import { transposeSong } from './transposer.js';
+import { getSongById } from '../firebase/songs.js';
 
 /**
  * Formats only the song details into text:
@@ -40,39 +41,57 @@ export function formatSongDetailsText(song, activeKey) {
 }
 
 /**
- * Aligns chords above a lyric line for plain text representation.
- * @param {Array<{ chord: string, position: number }>} chords
- * @param {string} lyrics
- * @returns {string} Two lines: chords line then lyrics line
+ * Formats a single row into text representation according to its row type
+ * (supporting standard typed rows, strings, and composite chord/lyric objects).
+ *
+ * @param {Object|string} row
+ * @returns {string}
  */
-export function formatRowAsText(chords = [], lyrics = '') {
-  const cleanLyrics = (lyrics || '').trimEnd();
-  if (!chords || chords.length === 0) {
-    return cleanLyrics;
+export function formatRowAsText(row) {
+  if (!row) return '';
+
+  if (typeof row === 'string') {
+    return row;
   }
 
-  // Sort chords by position
-  const sortedChords = [...chords].sort((a, b) => a.position - b.position);
+  // Composite object with chords array: { chords: [{ chord, position }], lyrics: "..." }
+  if (row.chords && Array.isArray(row.chords) && row.chords.length > 0) {
+    const sortedChords = [...row.chords].sort((a, b) => (a.position || 0) - (b.position || 0));
+    let chordLine = '';
+    for (const item of sortedChords) {
+      const chordStr = item.chord || '';
+      const pos = Math.max(0, item.position || 0);
 
-  // Build chord line buffer
-  let chordLine = '';
-  for (const item of sortedChords) {
-    const chordStr = item.chord || '';
-    const pos = Math.max(0, item.position || 0);
-
-    if (chordLine.length < pos) {
-      chordLine += ' '.repeat(pos - chordLine.length);
-    } else if (chordLine.length > pos && chordLine.length > 0) {
-      chordLine += ' ';
+      if (chordLine.length < pos) {
+        chordLine += ' '.repeat(pos - chordLine.length);
+      } else if (chordLine.length > pos && chordLine.length > 0) {
+        chordLine += ' ';
+      }
+      chordLine += chordStr;
     }
-    chordLine += chordStr;
+
+    const cleanLyrics = (row.lyrics || '').trimEnd();
+    return cleanLyrics ? `${chordLine}\n${cleanLyrics}` : chordLine;
   }
 
-  if (!cleanLyrics) {
-    return chordLine;
-  }
+  const { type = 'chords', displayContent, content } = row;
+  const rawText = displayContent !== undefined ? displayContent : (content !== undefined ? content : row.lyrics);
+  const text = Array.isArray(rawText) ? rawText.join('   ') : String(rawText || '').trimEnd();
 
-  return `${chordLine}\n${cleanLyrics}`;
+  switch (type) {
+    case 'chords':
+      return text;
+    case 'lyrics':
+      return text;
+    case 'lead':
+      return text ? `[LEAD: ${text}]` : '';
+    case 'bass':
+      return text ? `[BASS: ${text}]` : '';
+    case 'notes':
+      return text ? `[NOTE: ${text}]` : '';
+    default:
+      return text;
+  }
 }
 
 /**
@@ -97,9 +116,12 @@ export function formatFullNotesText(song, activeKey) {
   }
 
   const formattedSections = sections.map((sec) => {
-    const secTitle = sec.name ? `[${sec.name}]` : '';
-    const rows = (sec.rows || []).map(row => formatRowAsText(row.chords, row.lyrics)).join('\n');
-    return secTitle ? `${secTitle}\n${rows}` : rows;
+    const secTitle = sec.name || 'Section';
+    const rowLines = (sec.rows || [])
+      .map(row => formatRowAsText(row))
+      .filter(line => line !== null && line !== undefined && line !== '');
+    
+    return `${secTitle}\n${rowLines.join('\n')}`;
   }).join('\n\n');
 
   return `${header}\n\n${formattedSections}`;
@@ -113,7 +135,6 @@ export function formatFullNotesText(song, activeKey) {
 export async function copyTextToClipboard(text) {
   if (!text) return false;
 
-  // Try modern navigator.clipboard
   if (navigator?.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);
@@ -123,7 +144,6 @@ export async function copyTextToClipboard(text) {
     }
   }
 
-  // Fallback using textarea + execCommand
   try {
     const textarea = document.createElement('textarea');
     textarea.value = text;
@@ -143,9 +163,7 @@ export async function copyTextToClipboard(text) {
 }
 
 /**
- * Triggers native Web Share API on supported devices (e.g. mobile WhatsApp/Telegram/Messages),
- * falls back to clipboard copy if share API is unavailable or rejected.
- *
+ * Triggers native Web Share API on supported devices, falls back to copy.
  * @param {string} title
  * @param {string} text
  * @returns {Promise<{ shared: boolean, copied: boolean }>}
@@ -159,7 +177,6 @@ export async function shareViaWebAPI(title, text) {
       });
       return { shared: true, copied: false };
     } catch (err) {
-      // User cancelled or share failed
       if (err.name !== 'AbortError') {
         console.warn('Web Share failed, copying to clipboard instead:', err);
         const copied = await copyTextToClipboard(text);
@@ -169,7 +186,6 @@ export async function shareViaWebAPI(title, text) {
     }
   }
 
-  // Fallback to copy
   const copied = await copyTextToClipboard(text);
   return { shared: false, copied };
 }
@@ -197,7 +213,6 @@ export function downloadTextFile(filename, text) {
  *
  * @param {Array<Object>} songList List of song objects
  * @param {Object} [options]
- * @param {string} [options.documentTitle]
  * @returns {HTMLDivElement}
  */
 function createPDFRenderElement(songList = [], options = {}) {
@@ -247,7 +262,7 @@ function createPDFRenderElement(songList = [], options = {}) {
     header.style.justifyContent = 'space-between';
     header.style.borderBottom = '2px solid #6366f1';
     header.style.paddingBottom = '10px';
-    header.style.marginBottom = '20px';
+    header.style.marginBottom = '18px';
 
     const brandLeft = document.createElement('div');
     brandLeft.style.display = 'flex';
@@ -374,39 +389,39 @@ function createPDFRenderElement(songList = [], options = {}) {
 
     (currentSong.sections || []).forEach((section) => {
       const secBox = document.createElement('div');
-      secBox.style.marginBottom = '6px';
+      secBox.style.marginBottom = '8px';
 
       if (section.name) {
         const secHeader = document.createElement('div');
         secHeader.style.fontSize = '12px';
         secHeader.style.fontWeight = '800';
-        secHeader.style.color = '#6366f1';
+        secHeader.style.color = '#4338ca';
         secHeader.style.textTransform = 'uppercase';
         secHeader.style.letterSpacing = '0.06em';
-        secHeader.style.marginBottom = '6px';
-        secHeader.style.paddingBottom = '2px';
-        secHeader.style.borderBottom = '1px dashed #e2e8f0';
+        secHeader.style.marginBottom = '8px';
+        secHeader.style.paddingBottom = '4px';
+        secHeader.style.borderBottom = '1px dashed #cbd5e1';
         secHeader.innerText = section.name;
         secBox.appendChild(secHeader);
       }
 
       (section.rows || []).forEach((row) => {
         const rowEl = document.createElement('div');
-        rowEl.style.marginBottom = '8px';
+        rowEl.style.marginBottom = '4px';
         rowEl.style.lineHeight = '1.45';
 
-        // Chords line
-        if (row.chords && row.chords.length > 0) {
+        // Check if composite row format
+        if (row.chords && Array.isArray(row.chords) && row.chords.length > 0) {
           const chordLine = document.createElement('div');
           chordLine.style.fontFamily = '"JetBrains Mono", Consolas, Menlo, monospace';
-          chordLine.style.fontSize = '12.5px';
+          chordLine.style.fontSize = '13px';
           chordLine.style.fontWeight = '800';
           chordLine.style.color = '#4f46e5';
-          chordLine.style.whiteSpace = 'pre';
-          chordLine.style.minHeight = '16px';
+          chordLine.style.whiteSpace = 'pre-wrap';
+          chordLine.style.minHeight = '18px';
+          chordLine.style.lineHeight = '1.3';
 
-          // Build chord string preserving positions
-          const sorted = [...row.chords].sort((a, b) => a.position - b.position);
+          const sorted = [...row.chords].sort((a, b) => (a.position || 0) - (b.position || 0));
           let str = '';
           for (const item of sorted) {
             const ch = item.chord || '';
@@ -420,18 +435,91 @@ function createPDFRenderElement(songList = [], options = {}) {
           }
           chordLine.innerText = str;
           rowEl.appendChild(chordLine);
+
+          if (row.lyrics) {
+            const lyricLine = document.createElement('div');
+            lyricLine.style.fontSize = '14px';
+            lyricLine.style.fontWeight = '500';
+            lyricLine.style.color = '#1e293b';
+            lyricLine.style.whiteSpace = 'pre-wrap';
+            lyricLine.style.wordBreak = 'break-word';
+            lyricLine.style.marginBottom = '8px';
+            lyricLine.innerText = row.lyrics;
+            rowEl.appendChild(lyricLine);
+          }
+
+          secBox.appendChild(rowEl);
+          return;
         }
 
-        // Lyrics line
-        if (row.lyrics) {
+        // Standard typed row
+        const { type = 'chords', displayContent, content } = row;
+        const rawText = displayContent !== undefined ? displayContent : (content !== undefined ? content : row.lyrics);
+        const text = Array.isArray(rawText) ? rawText.join('   ') : String(rawText || '');
+
+        if (!text.trim() && type !== 'lyrics') {
+          return;
+        }
+
+        if (type === 'chords') {
+          const chordLine = document.createElement('div');
+          chordLine.style.fontFamily = '"JetBrains Mono", Consolas, Menlo, monospace';
+          chordLine.style.fontSize = '13px';
+          chordLine.style.fontWeight = '800';
+          chordLine.style.color = '#4f46e5';
+          chordLine.style.whiteSpace = 'pre-wrap';
+          chordLine.style.minHeight = '18px';
+          chordLine.style.lineHeight = '1.3';
+          chordLine.innerText = text;
+          rowEl.appendChild(chordLine);
+        } else if (type === 'lyrics') {
           const lyricLine = document.createElement('div');
-          lyricLine.style.fontSize = '13.5px';
+          lyricLine.style.fontSize = '14px';
           lyricLine.style.fontWeight = '500';
           lyricLine.style.color = '#1e293b';
           lyricLine.style.whiteSpace = 'pre-wrap';
           lyricLine.style.wordBreak = 'break-word';
-          lyricLine.innerText = row.lyrics;
+          lyricLine.style.lineHeight = '1.45';
+          lyricLine.style.marginBottom = '8px';
+          lyricLine.innerText = text || '\u00A0';
           rowEl.appendChild(lyricLine);
+        } else if (type === 'lead') {
+          const leadWrap = document.createElement('div');
+          leadWrap.style.display = 'flex';
+          leadWrap.style.alignItems = 'center';
+          leadWrap.style.gap = '8px';
+          leadWrap.style.marginBottom = '6px';
+          leadWrap.innerHTML = `
+            <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #b45309;">LEAD</span>
+            <span style="font-family: monospace; font-size: 12.5px; font-weight: 700; color: #b45309;">${text}</span>
+          `;
+          rowEl.appendChild(leadWrap);
+        } else if (type === 'bass') {
+          const bassWrap = document.createElement('div');
+          bassWrap.style.display = 'flex';
+          bassWrap.style.alignItems = 'center';
+          bassWrap.style.gap = '8px';
+          bassWrap.style.marginBottom = '6px';
+          bassWrap.innerHTML = `
+            <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: #e0f2fe; color: #0369a1;">BASS</span>
+            <span style="font-family: monospace; font-size: 12.5px; font-weight: 700; color: #0369a1;">${text}</span>
+          `;
+          rowEl.appendChild(bassWrap);
+        } else if (type === 'notes') {
+          const notesLine = document.createElement('div');
+          notesLine.style.fontSize = '12px';
+          notesLine.style.fontStyle = 'italic';
+          notesLine.style.color = '#64748b';
+          notesLine.style.marginBottom = '6px';
+          notesLine.innerText = text;
+          rowEl.appendChild(notesLine);
+        } else {
+          const customLine = document.createElement('div');
+          customLine.style.fontSize = '13px';
+          customLine.style.color = '#334155';
+          customLine.style.marginBottom = '6px';
+          customLine.innerText = text;
+          rowEl.appendChild(customLine);
         }
 
         secBox.appendChild(rowEl);
@@ -476,6 +564,8 @@ function createPDFRenderElement(songList = [], options = {}) {
  * Generates a high-quality PDF containing one or more songs with Chordician branding header,
  * (c) Jeshurun Selvakumar footer, and page numbers.
  *
+ * Automatically fetches full song data with sections from Firestore if sections are missing!
+ *
  * @param {Array<Object>|Object} songs Single song or Array of songs
  * @param {Object} [options]
  * @param {string} [options.filename]
@@ -484,9 +574,31 @@ function createPDFRenderElement(songList = [], options = {}) {
  * @returns {Promise<jsPDF>}
  */
 export async function exportSongsToPDF(songs, options = {}) {
-  const songList = Array.isArray(songs) ? songs.filter(Boolean) : [songs].filter(Boolean);
-  if (songList.length === 0) {
+  const rawList = Array.isArray(songs) ? songs.filter(Boolean) : [songs].filter(Boolean);
+  if (rawList.length === 0) {
     throw new Error('No songs provided for PDF export');
+  }
+
+  // Ensure full sections are loaded for every song
+  const songList = [];
+  for (let i = 0; i < rawList.length; i++) {
+    const s = rawList[i];
+    if (s.sections && s.sections.length > 0) {
+      songList.push(s);
+    } else if (s.id) {
+      try {
+        const res = await getSongById(s.id);
+        if (res?.data) {
+          songList.push({ ...s, ...res.data });
+        } else {
+          songList.push(s);
+        }
+      } catch {
+        songList.push(s);
+      }
+    } else {
+      songList.push(s);
+    }
   }
 
   const filename = options.filename || (
