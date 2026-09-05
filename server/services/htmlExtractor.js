@@ -237,11 +237,10 @@ export function removeEmojis(str) {
 
 const SINGLE_NOTE_REGEX = /^[A-G][#b♭♯]?(?:m|maj|min|dim|aug|sus[24]?|add9|7)?$/i;
 const TIME_SIG_REGEX = /^(?:[1-9]|1[0-2])\/(?:2|4|8|16)$/;
-const TITLE_HEADER_REGEX = /^(.+?)\s+(?:Chords|Lyrics|Tabs|Song|Chord Chart|Sheet Music|Guitar Chords|Piano Chords)$/i;
+const INSTRUMENT_TAB_HEADER_REGEX =
+  /^(?:.+?\s+)?(?:Chords|Lyrics|Tabs|Song|Chord Chart|Sheet Music)(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i;
 const FOOTER_UI_STOP_REGEX =
-  /^(?:Your Account|Your Favourites|Your favorites|Interactive chord editor|Click a word|ChordPro source|Edit chords|Version history|Restricted \(copyright\)|Top Artists|Chords Z|Top Songs|Popular Songs|All Artists|Browse by|A B C D E F G|HIJKLMNOPQRSTUVWXYZ|Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:)\b/i;
-const DUPLICATE_INSTRUMENT_BLOCK_REGEX =
-  /^.+?\s+Chords\s+(?:Guitar|Keyboard|Piano|for Keyboard|Ukulele|for Guitar)/i;
+  /^(?:Your Account|Your Favourites|Your favorites|Interactive chord editor|Click a word|ChordPro source|Edit chords|Version history|Restricted \(copyright\)|Top Artists|Chords Z|Top Songs|Popular Songs|All Artists|Browse by|A B C D E F G|HIJKLMNOPQRSTUVWXYZ|Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:|Copyright\s*©|All rights reserved)\b/i;
 
 /**
  * Post-processes raw text to strip trailing related songs, chromatic note scales, emojis, transpose ladders, and UI labels.
@@ -309,10 +308,22 @@ export function cleanExtractedSongText(text, metadata = {}) {
       continue;
     }
 
-    if (validSongLinesFound >= 4) {
-      if (FOOTER_UI_STOP_REGEX.test(trimmed) || DUPLICATE_INSTRUMENT_BLOCK_REGEX.test(trimmed)) {
+    if (validSongLinesFound >= 8) {
+      if (/^(?:Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:|Copyright\s*©|All rights reserved)\b/i.test(trimmed)) {
         break;
       }
+    }
+
+    if (FOOTER_UI_STOP_REGEX.test(trimmed)) {
+      continue;
+    }
+
+    if (INSTRUMENT_TAB_HEADER_REGEX.test(trimmed)) {
+      const cleanTitle = trimmed.replace(/\s*(?:[-–—|:]\s*)?(?:Chords|Lyrics|Tabs|Song|Chord Chart|Sheet Music)(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i, '').trim();
+      if ((!metadata.title || metadata.title === 'Imported Song') && cleanTitle) {
+        metadata.title = cleanTitle;
+      }
+      continue;
     }
 
     if (/^(?:Share this:|Share on|Like this:|Tweet|Pin it|Email this|Follow us on|Join our (?:WhatsApp|Telegram) group|Subscribe to our (?:YouTube|channel)|Join (?:WhatsApp|Telegram)|Click here for|Download (?:PDF|Chords|Audio)|Listen on (?:Spotify|Apple Music|Amazon))\b/i.test(trimmed)) {
@@ -342,18 +353,9 @@ export function cleanExtractedSongText(text, metadata = {}) {
       continue;
     }
 
-    if (validSongLinesFound === 0) {
-      if (SINGLE_NOTE_REGEX.test(trimmed)) {
-        if (!metadata.originalKey) metadata.originalKey = trimmed.toUpperCase();
-        continue;
-      }
-      const titleMatch = trimmed.match(TITLE_HEADER_REGEX);
-      if (titleMatch) {
-        if (!metadata.title || metadata.title === 'Imported Song') {
-          metadata.title = titleMatch[1].trim();
-        }
-        continue;
-      }
+    if (validSongLinesFound === 0 && SINGLE_NOTE_REGEX.test(trimmed)) {
+      if (!metadata.originalKey) metadata.originalKey = trimmed.toUpperCase();
+      continue;
     }
 
     if (/^(?:Lyrics|Chords|Bible|Share|Related|Print|Transpose|Download|Guitar|Keyboard|Piano|Tamil|English|Hindi|Search|Menu|Home|About|Contact|Privacy|Terms|DMCA)$/i.test(trimmed)) {
