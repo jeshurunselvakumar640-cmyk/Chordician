@@ -39,7 +39,43 @@ export function levenshteinDistance(a, b) {
 }
 
 /**
- * Calculates similarity ratio between 0.0 and 1.0.
+ * Calculates letter similarity between two single words (0.0 to 1.0).
+ * @param {string} w1
+ * @param {string} w2
+ * @returns {number}
+ */
+export function wordLetterSimilarity(w1, w2) {
+  const a = String(w1 || '').toLowerCase().trim();
+  const b = String(w2 || '').toLowerCase().trim();
+
+  if (!a || !b) return 0;
+  if (a === b) return 1.0;
+
+  const minLen = Math.min(a.length, b.length);
+  const maxLen = Math.max(a.length, b.length);
+
+  // If one is very short and the other is long, ratio must reflect true length
+  if (minLen <= 2 && maxLen >= 4) {
+    const dist = levenshteinDistance(a, b);
+    return Math.max(0, 1 - dist / maxLen);
+  }
+
+  // If one contains the other as prefix or substring (e.g. 'yesh' in 'yeshu')
+  if (b.includes(a) || a.includes(b)) {
+    const lenRatio = minLen / maxLen;
+    if (lenRatio >= 0.6) {
+      return Math.max(0.80, lenRatio);
+    }
+  }
+
+  const dist = levenshteinDistance(a, b);
+  return Math.max(0, 1 - dist / maxLen);
+}
+
+/**
+ * Calculates similarity ratio between 0.0 and 1.0 comparing user query against target text.
+ * Measures character/letter match across full string, word sequences, and individual tokens.
+ *
  * @param {string} query
  * @param {string} target
  * @returns {number}
@@ -50,54 +86,68 @@ export function calculateSimilarity(query, target) {
 
   if (!q || !t) return 0;
   if (q === t) return 1.0;
+  if (t.includes(q)) return 1.0;
 
-  // Exact substring match bonus
-  if (t.includes(q)) {
-    return Math.max(0.85, q.length / t.length);
+  const qClean = q.replace(/[^a-z0-9\s]/gi, '');
+  const tClean = t.replace(/[^a-z0-9\s]/gi, '');
+  if (tClean.includes(qClean) && qClean.length >= 3) return 1.0;
+
+  const qWords = qClean.split(/\s+/).filter(Boolean);
+  const tWords = tClean.split(/\s+/).filter(Boolean);
+  if (qWords.length === 0 || tWords.length === 0) return 0;
+
+  // 1. Direct full string letter similarity
+  const fullScore = 1 - (levenshteinDistance(qClean, tClean) / Math.max(qClean.length, tClean.length));
+
+  // 2. Token-level best match alignment (compares each query word to target words)
+  let tokenScoreSum = 0;
+  let matchedWordCount = 0;
+  for (const qw of qWords) {
+    let bestWordScore = 0;
+    for (const tw of tWords) {
+      const score = wordLetterSimilarity(qw, tw);
+      if (score > bestWordScore) {
+        bestWordScore = score;
+      }
+    }
+    if (bestWordScore >= 0.5) {
+      tokenScoreSum += bestWordScore;
+      matchedWordCount++;
+    }
   }
 
-  // Token / word level matching (e.g. query "uthavi kanmalai" matches "Uthavi Varum Kanmalai")
-  const qWords = q.split(/\s+/).filter(Boolean);
-  const tWords = t.split(/\s+/).filter(Boolean);
+  const tokenScore = (matchedWordCount / qWords.length >= 0.5)
+    ? tokenScoreSum / qWords.length
+    : 0;
 
-  let wordMatchCount = 0;
-  for (const qw of qWords) {
-    for (const tw of tWords) {
-      if (tw === qw || tw.startsWith(qw) || (qw.length >= 3 && tw.includes(qw))) {
-        wordMatchCount++;
-        break;
-      } else {
-        const dist = levenshteinDistance(qw, tw);
-        if (dist <= 2 && dist < Math.max(qw.length, tw.length) / 2) {
-          wordMatchCount += 0.8;
-          break;
-        }
+  // 3. Exact phrase window slice match (for multi-word queries like 'mere jevan' vs 'Mere Jeevan')
+  let phraseScore = 0;
+  if (qWords.length > 1 && tWords.length >= qWords.length) {
+    for (let i = 0; i <= tWords.length - qWords.length; i++) {
+      const slice = tWords.slice(i, i + qWords.length).join(' ');
+      const dist = levenshteinDistance(qClean, slice);
+      const sc = 1 - (dist / Math.max(qClean.length, slice.length));
+      if (sc >= 0.5 && sc > phraseScore) {
+        phraseScore = sc;
       }
     }
   }
 
-  if (qWords.length > 0 && wordMatchCount > 0) {
-    const wordScore = wordMatchCount / qWords.length;
-    if (wordScore >= 0.7) {
-      return Math.min(0.95, 0.7 + (wordScore * 0.25));
+  // 4. Compact string match (e.g. 'uthavivarum' vs 'uthavivarumkanmalai')
+  let compactScore = 0;
+  if (qWords.length === 1 && tWords.length > 1) {
+    const compactTarget = tWords.join('');
+    if (compactTarget.includes(qClean)) {
+      compactScore = 1.0;
     }
   }
 
-  // Character-level normalized distance
-  const maxLen = Math.max(q.length, t.length);
-  const dist = levenshteinDistance(q, t);
-  const rawScore = 1 - (dist / maxLen);
-
-  // Substring prefix/acronym boost
-  if (t.startsWith(q.slice(0, Math.min(4, q.length)))) {
-    return Math.min(1.0, rawScore + 0.15);
-  }
-
-  return Math.max(0, rawScore);
+  return Math.max(fullScore, tokenScore, phraseScore, compactScore);
 }
 
 /**
  * Searches a list of songs with exact matching and intelligent fuzzy spell fallback.
+ * If > 50% letters match the title or song content, returns the song card.
  *
  * @param {Array<Object>} songs
  * @param {string} query
@@ -147,7 +197,7 @@ export function searchSongsWithFuzzy(songs = [], query = '') {
     };
   }
 
-  // 2. Fuzzy Spell Correction & Similarity Matching
+  // 2. Fuzzy Spell Correction & Similarity Matching (>= 50% letter match)
   const scored = [];
 
   for (const song of songs) {
@@ -168,9 +218,10 @@ export function searchSongsWithFuzzy(songs = [], query = '') {
       }
     }
 
-    const maxScore = Math.max(titleScore, artistScore * 0.9, bestLyricScore * 0.85);
+    const maxScore = Math.max(titleScore, artistScore * 0.95, bestLyricScore * 0.9);
 
-    if (maxScore >= 0.42) {
+    // If more than 50% match (>= 0.50), include the song card
+    if (maxScore >= 0.50) {
       scored.push({
         song,
         score: maxScore,
