@@ -34,17 +34,23 @@ export function preprocessContinuousChordStream(rawLines) {
 
     let line = rawLine;
 
-    // 1. Multi-chord transitions between words (e.g. "அழைத்தேனேCmGmஒரு" => "அழைத்தேனேCm\nGmஒரு", "கைவிடமாட்டேன்BbCmகைவிடமாட்டேன்" => "கைவிடமாட்டேன்Bb\nCmகைவிடமாட்டேன்")
+    // 1. Multi-chord transitions between words (e.g. "செEய்பவரேAAஎங்கள்" => "செEய்பவரேA\nAஎங்கள்", "அமைத்திடBmEஉம்மைத்" => "அமைத்திடBm\nEஉம்மைத்")
     line = line.replace(/([A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add\d|\d)?(?:\/[A-G][#b]?)?)\s*([A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add\d|\d)?(?:\/[A-G][#b]?)?)([\u0B80-\u0BFF\u0900-\u097F])/g, '$1\n$2$3');
 
-    // 2. Turnaround chords e.g. "Cm(ளே)Bb CmBbஉன்" => "Cm(ளே)Bb Cm\nBbஉன்"
+    // 2. Repetition markers followed by chord + word (e.g. "...(2)Dஎங்களோடென்றும்" => "...(2)\nDஎங்களோடென்றும்")
+    line = line.replace(/(\.{2,}\s*(?:\(\d+\)|X\d|x\d|\d|\(X\d\)|\(x\d\)))\s*([A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add\d|\d)?(?:\/[A-G][#b]?)?[\u0B80-\u0BFF\u0900-\u097Fa-zA-Z])/g, '$1\n$2');
+
+    // 3. Clause/phrase boundary with infinitive/associative endings before a chord + word (e.g. "வசித்DbmதிடDவிரும்பிடும்" => "வசித்Dbmதிட\nDவிரும்பிடும்", "அலங்காரத்துBmடனேEஉம்மைத்" => "அலங்காரத்துBmடனே\nEஉம்மைத்")
+    line = line.replace(/([\u0B80-\u0BFF]*(?:திட|த்திட|டனே|த்துடனே|கையில்|போது|பொழுது|தினால்|தால்|வண்ணம்))\s*([A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add\d|\d)?(?:\/[A-G][#b]?)?[\u0B80-\u0BFF])/g, '$1\n$2');
+
+    // 4. Turnaround chords e.g. "Cm(ளே)Bb CmBbஉன்" => "Cm(ளே)Bb Cm\nBbஉன்"
     line = line.replace(/(\([^\)]+\)[A-G][#b]?m?(?:\s+[A-G][#b]?m?)*)\s*([A-G][#b]?m?[\u0B80-\u0BFF\u0900-\u097F])/g, '$1\n$2');
 
-    // 3. Major clause starters with chords (e.g. "பயப்பEbடாதேBbநானே" => "பயப்பEbடாதே\nBbநானே", "சத்தியமுEbம்Bbஜீவனும்" => "சத்தியமுEbம்\nBbஜீவனும்")
+    // 5. Major clause starters with chords (e.g. "பயப்பEbடாதேBbநானே" => "பயப்பEbடாதே\nBbநானே", "சத்தியமுEbம்Bbஜீவனும்" => "சத்தியமுEbம்\nBbஜீவனும்")
     line = line.replace(/([A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add\d|\d)?(?:\/[A-G][#b]?)?[\u0B80-\u0BFF\u0900-\u097F]{1,8}|[\u0B80-\u0BFF\u0900-\u097F]{3,})\s*([A-G][#b]?m?(?:நானே|ஜீவனும்|உன்\s+பெயர்|ஒரு\s+போதும்|கைவிடமாட்டேன்\s+வழியும்))/g, '$1\n$2');
 
-    // 4. Ellipsis echoes e.g. "...வழியும்" (exclude repeat multipliers like "...X2" or "...(2)")
-    line = line.replace(/([^\n\s\.])\s*(\.{2,}(?!X\d|x\d|\d|\(X\d|\(x\d)[\u0B80-\u0BFF\u0900-\u097F\w]{3,})/g, '$1\n$2');
+    // 6. Ellipsis echoes e.g. "...வழியும்" (exclude repeat multipliers or reprise cues like "A...இதோ")
+    line = line.replace(/([^\n\s\.\,\;A-G])\s*(\.{2,}(?!X\d|x\d|\d|\(X\d|\(x\d)[\u0B80-\u0BFF\u0900-\u097F\w]{3,})/g, '$1\n$2');
 
     const split = line.split(/\r?\n/);
     result.push(...split);

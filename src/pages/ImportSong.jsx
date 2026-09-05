@@ -19,7 +19,9 @@ import {
   RotateCcw,
   ExternalLink,
   Sliders,
-  ClipboardPaste
+  ClipboardPaste,
+  Edit3,
+  Eye
 } from 'lucide-react';
 import { parseSongFromImage, DEMO_PRESETS } from '../services/aiSongParser.js';
 import {
@@ -31,6 +33,7 @@ import {
 } from '../services/urlSongParser.js';
 import { useToast } from '../context/ToastContext.jsx';
 import SectionViewer from '../components/SongView/SectionViewer';
+import LinkedChordPreviewEditor from '../components/SongView/LinkedChordPreviewEditor';
 import KeyBadge from '../components/UI/KeyBadge';
 
 export default function ImportSong() {
@@ -65,6 +68,7 @@ export default function ImportSong() {
   // Universal Analysis Result & Preview State
   const [analysisResult, setAnalysisResult] = useState(null);
   const [showReview, setShowReview] = useState(true); // Default preview expanded
+  const [previewMode, setPreviewMode] = useState('interactive'); // 'interactive' | 'clean'
 
   // --- Handlers for URL Import ---
   const handleAnalyzeUrl = async (targetUrlParam = null) => {
@@ -1041,18 +1045,51 @@ export default function ImportSong() {
             </button>
           </div>
 
-          {/* Live Section Viewer Preview */}
+          {/* Live Section Viewer / Interactive Linked Editor Preview */}
           {showReview && (
             <div className="import-sheet-preview">
-              <div className="import-sheet-preview-title">
-                <Music size={16} style={{ color: 'var(--color-primary)' }} />
-                <span>Reconstructed Chord Sheet Preview</span>
+              <div className="import-sheet-preview-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Music size={16} style={{ color: 'var(--color-primary)' }} />
+                  <span>Reconstructed Chord Sheet Preview</span>
+                </div>
+
+                <div className="view-mode-toggle-group">
+                  <button
+                    type="button"
+                    className={`btn btn-xs ${previewMode === 'interactive' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setPreviewMode('interactive')}
+                    title="Interactive linked lyrics and chords editor (Press Enter to split lines)"
+                  >
+                    <Edit3 size={12} />
+                    <span>Interactive Editor</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-xs ${previewMode === 'clean' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setPreviewMode('clean')}
+                    title="Clean formatted songbook view"
+                  >
+                    <Eye size={12} />
+                    <span>Clean View</span>
+                  </button>
+                </div>
               </div>
-              <div className="import-sections-list">
-                {analysisResult.song.sections.map((section, idx) => (
-                  <SectionViewer key={section.id || idx} section={section} />
-                ))}
-              </div>
+
+              {previewMode === 'interactive' ? (
+                <LinkedChordPreviewEditor
+                  song={analysisResult.song}
+                  onSongChange={(updatedSong) =>
+                    setAnalysisResult((prev) => ({ ...prev, song: updatedSong }))
+                  }
+                />
+              ) : (
+                <div className="import-sections-list">
+                  {analysisResult.song.sections.map((section, idx) => (
+                    <SectionViewer key={section.id || idx} section={section} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

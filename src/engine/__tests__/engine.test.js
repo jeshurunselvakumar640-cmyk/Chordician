@@ -428,6 +428,40 @@ assertEqual(mSec3.rows[3].content, 'விடுதலை கொடுத்த�
 assertEqual(mSec3.rows[5].content, 'இராஜாக்களாக லேவியராக', 'Sec 3 lyric line 3');
 assertEqual(mSec3.rows[7].content, 'உமக்கென தெரிந்து கொண்டீர்', 'Sec 3 lyric line 4');
 
+// --- Test 19: Attached Chords in Continuous Tamil Stream (Idho Manidhargal) ---
+console.log('\n--- Test 19: Attached Chords in Continuous Tamil Stream (Idho Manidhargal) ---');
+const idhoRaw = `Aஇதோ மனிதர்கள் மத்திDbmயில்Dவாசம் செEய்பவரேAAஎங்கள் நடுவிலே வசித்DbmதிடDவிரும்பிடும் Eதெய்வமே(தேAவனே)
+
+Aஉமக்கு சிங்காசனம் அமைத்திடBmEஉம்மைத் துதிக்கின்றோம் இயேசுவேAAபரிசுத்த அலங்காரத்துBmடனேEஉம்மைத் தொழுகின்றோம் இயேசுவே A
+
+Aஎங்கள் மத்தியில் உலாBmவிடும்...(2)Dஎங்களோடென்றும் வாசம்E செய்யும் A...இதோ மனிதர்கள்`;
+
+const idhoRes = parseSmartPaste(idhoRaw);
+assert(idhoRes.success, 'Idho Manidhargal parsed successfully');
+assertEqual(idhoRes.song.originalKey, 'A', 'Root key detected as A');
+assertEqual(idhoRes.song.sections.length, 3, 'Split into 3 distinct sections');
+
+// Section 1 checks
+const idhoSec1 = idhoRes.song.sections[0];
+assertEqual(idhoSec1.rows.length, 6, 'Section 1 has 6 rows (3 chord + 3 lyric rows)');
+assert(idhoSec1.rows[1].content.includes('இதோ மனிதர்கள் மத்தியில்') && idhoSec1.rows[1].content.includes('செய்பவரே'), 'Sec 1 line 1 lyrics');
+assert(idhoSec1.rows[3].content.includes('எங்கள் நடுவிலே வசித்திட'), 'Sec 1 line 2 lyrics');
+assert(idhoSec1.rows[5].content.includes('விரும்பிடும் தெய்வமே(தேவனே)'), 'Sec 1 line 3 lyrics');
+
+// Section 2 checks
+const idhoSec2 = idhoRes.song.sections[1];
+assertEqual(idhoSec2.rows.length, 8, 'Section 2 has 8 rows (4 chord + 4 lyric rows)');
+assert(idhoSec2.rows[1].content.includes('உமக்கு சிங்காசனம் அமைத்திட'), 'Sec 2 line 1 lyrics');
+assert(idhoSec2.rows[3].content.includes('உம்மைத் துதிக்கின்றோம் இயேசுவே'), 'Sec 2 line 2 lyrics');
+assert(idhoSec2.rows[5].content.includes('பரிசுத்த அலங்காரத்துடனே'), 'Sec 2 line 3 lyrics');
+assert(idhoSec2.rows[7].content.includes('உம்மைத் தொழுகின்றோம் இயேசுவே'), 'Sec 2 line 4 lyrics');
+
+// Section 3 checks
+const idhoSec3 = idhoRes.song.sections[2];
+assertEqual(idhoSec3.rows.length, 4, 'Section 3 has 4 rows (2 chord + 2 lyric rows)');
+assert(idhoSec3.rows[1].content.includes('எங்கள் மத்தியில் உலாவிடும்...(2)'), 'Sec 3 line 1 lyrics');
+assert(idhoSec3.rows[3].content.includes('எங்களோடென்றும் வாசம் செய்யும்'), 'Sec 3 line 2 lyrics');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
