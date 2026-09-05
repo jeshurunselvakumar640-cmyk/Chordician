@@ -99,6 +99,47 @@ CRITICAL RULES:
      Line 4: Chords: [{ chord: 'G', position: 0 }], Lyrics: 'பாதுகாக்கின்றார்'
      Line 5: Chords: [], Lyrics: '...உதவி வரும்'
 
+     Example Input 2:
+     Verse 1
+     C              F                C                     Bb  C       G7           C
+     எத்தனை நன்மைகள்எனக்குச் செய்தீர்எப்படி நன்றி சொல்வேன் நான்எப்படி நன்றி சொல்வேன்
+     C                         Gsus44
+     நன்றி ராஜா... நன்றி ராஜா..
+     Verse 2
+     F         C                F        C Bb              F      C
+     தாழ்மையில் இருந்தேன் தயவாய் நினைத்தீர்தேவனே உம்மை துதிப்பேன் ... எத்தனை
+     Verse 3
+     F        C             F    C
+     பெலவீனன் என்று தள்ளி விடாமல்
+     Bb              F         C
+     பெலத்தால் இடைக் கட்டினீர் ... எத்தனை
+     Verse 4
+     F        C            F         C   Bb          F          C
+     பாவத்தினாலே மரித்துப் போய் இருந்தேன்கிருபையால் இரட்சித்தீரே... எத்தனை
+
+     Expected Output Structure:
+     [Section: Verse 1]
+     Line 1: Chords: [{ chord: 'C', position: 0 }], Lyrics: 'எத்தனை நன்மைகள்'
+     Line 2: Chords: [{ chord: 'F', position: 0 }], Lyrics: 'எனக்குச் செய்தீர்'
+     Line 3: Chords: [{ chord: 'C', position: 0 }, { chord: 'Bb', position: 24 }], Lyrics: 'எப்படி நன்றி சொல்வேன் நான்'
+     Line 4: Chords: [{ chord: 'C', position: 0 }, { chord: 'G7', position: 9 }, { chord: 'C', position: 24 }], Lyrics: 'எப்படி நன்றி சொல்வேன்'
+     Line 5: Chords: [{ chord: 'C', position: 0 }, { chord: 'Gsus4', position: 25 }], Lyrics: 'நன்றி ராஜா... நன்றி ராஜா..(4)'
+
+     [Section: Verse 2]
+     Line 1: Chords: [{ chord: 'F', position: 0 }, { chord: 'C', position: 10 }, { chord: 'F', position: 27 }, { chord: 'C', position: 36 }], Lyrics: 'தாழ்மையில் இருந்தேன் தயவாய் நினைத்தீர்'
+     Line 2: Chords: [{ chord: 'Bb', position: 0 }, { chord: 'F', position: 16 }, { chord: 'C', position: 23 }], Lyrics: 'தேவனே உம்மை துதிப்பேன்'
+     Line 3: Chords: [], Lyrics: '... எத்தனை'
+
+     [Section: Verse 3]
+     Line 1: Chords: [{ chord: 'F', position: 0 }, { chord: 'C', position: 11 }, { chord: 'F', position: 25 }, { chord: 'C', position: 30 }], Lyrics: 'பெலவீனன் என்று தள்ளி விடாமல்'
+     Line 2: Chords: [{ chord: 'Bb', position: 0 }, { chord: 'F', position: 16 }, { chord: 'C', position: 23 }], Lyrics: 'பெலத்தால் இடைக் கட்டினீர்'
+     Line 3: Chords: [], Lyrics: '... எத்தனை'
+
+     [Section: Verse 4]
+     Line 1: Chords: [{ chord: 'F', position: 0 }, { chord: 'C', position: 9 }, { chord: 'F', position: 23 }, { chord: 'C', position: 33 }], Lyrics: 'பாவத்தினாலே மரித்துப் போய் இருந்தேன்'
+     Line 2: Chords: [{ chord: 'Bb', position: 0 }, { chord: 'F', position: 12 }, { chord: 'C', position: 23 }], Lyrics: 'கிருபையால் இரட்சித்தீரே'
+     Line 3: Chords: [], Lyrics: '... எத்தனை'
+
 5. INLINE BRACKETED CHORDS:
    - "[C]Amazing grace, how [F]sweet the [C]sound" => Extract bracketed chords with character offsets and strip brackets from lyrics.
    - Preserve non-chord parentheses like "(x2)", "(2)", "(ஆ.....ஆ)" in lyrics.
