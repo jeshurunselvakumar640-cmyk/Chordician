@@ -2,7 +2,7 @@
  * Line Structure Analyzer for classifying line types and extracting metadata/sections.
  */
 
-import { isChordLine } from './chordDetector.js';
+import { isChordLine, isLeadLine } from './chordDetector.js';
 import { isSectionHeader, formatSectionName, removeEmojis } from './lyricDetector.js';
 
 const SINGLE_NOTE_REGEX = /^[A-G][#b♭♯]?(?:m|maj|min|dim|aug|sus[24]?|add9|7)?$/i;
@@ -172,6 +172,11 @@ export function analyzeLines(rawLines) {
 
     if (isChordLine(noEmoji)) {
       result.push({ raw: noEmoji, trimmed, type: 'CHORD_LINE' });
+      continue;
+    }
+
+    if (isLeadLine(noEmoji)) {
+      result.push({ raw: noEmoji, trimmed, type: 'LEAD_LINE' });
       continue;
     }
 

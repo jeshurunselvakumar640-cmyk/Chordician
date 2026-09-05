@@ -6347,6 +6347,56 @@ button:disabled {
   line-height: 1.5;
 }
 
+.linked-lead-line-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px dashed rgba(245, 158, 11, 0.28);
+  border-radius: var(--radius-sm, 6px);
+  margin-top: 2px;
+}
+
+.linked-lead-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.linked-lead-input {
+  flex: 1;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fde68a;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  letter-spacing: 0.03em;
+}
+
+:root[data-theme='light'] .linked-lead-line-wrapper {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+:root[data-theme='light'] .linked-lead-badge {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+:root[data-theme='light'] .linked-lead-input {
+  color: #92400e;
+}
+
 .linked-pair-delete-btn {
   display: flex;
   align-items: center;

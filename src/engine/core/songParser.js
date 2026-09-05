@@ -162,6 +162,37 @@ export function parseSong(rawText, options = {}) {
       continue;
     }
 
+    // Handle Lead / Melody Notes Line
+    if (item.type === 'LEAD_LINE') {
+      if (pendingChordLine !== null) {
+        const paired = pairChordLineWithLyric(pendingChordLine, '');
+        currentSection.lines.push({
+          lyrics: '',
+          chords: paired.chords,
+          rawChordLine: pendingChordLine,
+          type: 'chords_only'
+        });
+        totalChordsFound += paired.chords.length;
+        pendingChordLine = null;
+      }
+
+      if (currentSection.lines.length > 0) {
+        const lastLine = currentSection.lines[currentSection.lines.length - 1];
+        if (lastLine && !lastLine.lead) {
+          lastLine.lead = item.raw;
+          continue;
+        }
+      }
+
+      currentSection.lines.push({
+        lyrics: '',
+        chords: [],
+        lead: item.raw,
+        type: 'lead_only'
+      });
+      continue;
+    }
+
     // Check if current line is a standalone chord line
     if (item.type === 'CHORD_LINE') {
       pendingChordLine = item.raw;

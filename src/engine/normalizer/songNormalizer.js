@@ -124,6 +124,14 @@ export function normalizeToChordicianSong(parsed, sourceUrl = '') {
           content: line.lyrics
         });
       }
+
+      if (line.lead) {
+        rows.push({
+          id: `r_${sIdx + 1}_${rowIdx++}`,
+          type: 'lead',
+          content: line.lead
+        });
+      }
     });
 
     if (rows.length === 0) {

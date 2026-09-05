@@ -137,7 +137,11 @@ export function matchChordPrefix(text) {
  */
 export function extractChordsFromLine(line) {
   if (!line || typeof line !== 'string') return [];
-  const normalized = normalizeChordString(line);
+  const normalized = line.replace(/\u266F|\uD834\uDD2A|\u266D/g, (match) => {
+    if (match === '\u266F' || match === '\uD834\uDD2A') return '#';
+    if (match === '\u266D') return 'b';
+    return match;
+  });
   const chords = [];
 
   const tokenRegex = /\S+/g;
@@ -190,3 +194,66 @@ export function isChordLine(line) {
 
   return chordCount / tokens.length >= 0.7;
 }
+
+/**
+ * Detects if a text line represents instrumental/melody lead notes
+ * (e.g. "EE      AAA     AC#         BA BG       C# C#BAGA",
+ *       "C# D   EEE     EF#ED    DC#B     BBBDDC#BA",
+ *       "C#C#C#DEEF#F#F#EDEDC#   DDDDDBGGC#BA",
+ *       "C4 Eb4 G4", "E4 G4 C5 G4 E4").
+ * @param {string} line
+ * @returns {boolean}
+ */
+export function isLeadLine(line) {
+  if (!line || typeof line !== 'string') return false;
+  const trimmed = line.trim();
+  if (trimmed.length === 0) return false;
+
+  // If line contains Indic characters (Tamil/Hindi) or bracketed chords, it's not lead
+  if (/[\u0B80-\u0BFF\u0900-\u097F]/.test(trimmed)) return false;
+  if (/\[[A-G][#b]?/.test(trimmed)) return false;
+
+  // Section headers or metadata
+  if (/^\[?(?:Verse|Chorus|Bridge|Intro|Outro|Pre-Chorus|Tag|Ending|சரணம்|பல்லவி|அனுபல்லவி|Stanza|Refrain|Key|Tempo|Scale)\b/i.test(trimmed)) {
+    return false;
+  }
+
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return false;
+
+  // Lead indicators:
+  // 1. Run of 2+ capital note letters run together (e.g. EE, AAA, AC#, BA, BG, C#BAGA, EF#ED, DC#B, BBBDDC#BA, GAABC#, C#C#C#DEEF#F#F#EDEDC#, DDDDDBGGC#BA, EEA, AAAB)
+  const multiNoteRunRegex = /^(?:[A-G][#b♯♭]?){2,}$/;
+  // 2. Note with octave (e.g. C4, Eb4, G4, C#5)
+  const octaveNoteRegex = /^[A-G][#b♯♭]?[1-8]$/;
+  // 3. Single note (e.g. C, C#, Db, E, F#)
+  const singleNoteRegex = /^[A-G][#b♯♭]?$/;
+
+  let leadRunCount = 0;
+  let octaveCount = 0;
+  let nonNoteWordCount = 0;
+
+  for (const token of tokens) {
+    const clean = token.replace(/^[\[\(\{<"'`]+|[\]\)\}>"'`,.!?:;~-]+$/g, '');
+    if (!clean) continue;
+
+    if (multiNoteRunRegex.test(clean)) {
+      leadRunCount++;
+    } else if (octaveNoteRegex.test(clean)) {
+      octaveCount++;
+    } else if (singleNoteRegex.test(clean)) {
+      // single note
+    } else if (isChord(clean, true)) {
+      // standard chord
+    } else {
+      if (/^(?:[A-G][#b♯♭]?[1-8]?[\-\/\.\,\s]*)+$/.test(clean)) {
+        leadRunCount++;
+      } else {
+        nonNoteWordCount++;
+      }
+    }
+  }
+
+  return (leadRunCount > 0 || octaveCount >= 2) && nonNoteWordCount < tokens.length * 0.25;
+}
+

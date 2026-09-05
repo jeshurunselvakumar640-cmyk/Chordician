@@ -462,6 +462,54 @@ assertEqual(idhoSec3.rows.length, 4, 'Section 3 has 4 rows (2 chord + 2 lyric ro
 assert(idhoSec3.rows[1].content.includes('எங்கள் மத்தியில் உலாவிடும்...(2)'), 'Sec 3 line 1 lyrics');
 assert(idhoSec3.rows[3].content.includes('எங்களோடென்றும் வாசம் செய்யும்'), 'Sec 3 line 2 lyrics');
 
+// --- Test 20: Lead / Melody Notes Lines (Mere Jeevan Mai) ---
+console.log('\n--- Test 20: Lead / Melody Notes Lines (Mere Jeevan Mai) ---');
+const mereJeevanRaw = `A               G               D               A
+Mere Jeevan mai Yeshu tera naam jalal pata rahe
+EE      AAA     AC#         BA BG       C# C#BAGA
+ 
+A               G       D               G  D  A
+Mera uthna baithna, chalna tujhe bhata rahe..
+C# D   EEE     EF#ED    DC#B     BBBDDC#BA
+ 
+Verse 1
+A               G               A               G               A
+Baimisal hai tu bamisal banu, tu hai kamal mai bhi kamal banu
+C# C# C# BA AB AG GAABC#         C# C# C# BA AB AG GAAB C#
+A               D               A               D               A
+Baimisal hai tu bamisal banu, tu hai kamal mai bhi kamal banu
+C#C#C#DEEF#F#F#EDEDC#   DDDDDBGGC#BA
+A               G                 D             A
+Duniya ka noor hai yeshu meri rahe sajata rahe.
+EEA    AAAB B A G       GG C#C# C#C#BAGA
+Mera uthna …
+Mere jivan mai..`;
+
+const mereJeevanRes = parseSmartPaste(mereJeevanRaw);
+assert(mereJeevanRes.success, 'Mere Jeevan Mai parsed successfully');
+assertEqual(mereJeevanRes.song.originalKey, 'A', 'Root key detected as A');
+assertEqual(mereJeevanRes.song.sections.length, 2, 'Parsed 2 sections');
+
+// Section 1 verification
+const sec1Rows = mereJeevanRes.song.sections[0].rows;
+assertEqual(sec1Rows.length, 6, 'Section 1 has 6 rows (chords, lyrics, lead triplets)');
+assertEqual(sec1Rows[0].type, 'chords', 'Row 1 is chords');
+assertEqual(sec1Rows[1].type, 'lyrics', 'Row 2 is lyrics');
+assertEqual(sec1Rows[2].type, 'lead', 'Row 3 is lead');
+assert(sec1Rows[2].content.includes('EE') && sec1Rows[2].content.includes('C#BAGA'), 'Row 3 contains lead notes');
+assertEqual(sec1Rows[3].type, 'chords', 'Row 4 is chords');
+assertEqual(sec1Rows[4].type, 'lyrics', 'Row 5 is lyrics');
+assertEqual(sec1Rows[5].type, 'lead', 'Row 6 is lead');
+assert(sec1Rows[5].content.includes('EF#ED') && sec1Rows[5].content.includes('BBBDDC#BA'), 'Row 6 contains lead notes');
+
+// Section 2 verification
+const sec2Rows = mereJeevanRes.song.sections[1].rows;
+const leadRowsInSec2 = sec2Rows.filter(r => r.type === 'lead');
+assertEqual(leadRowsInSec2.length, 3, 'Section 2 contains 3 lead rows');
+assert(leadRowsInSec2[0].content.includes('GAABC#'), 'Sec 2 lead 1 contains GAABC#');
+assert(leadRowsInSec2[1].content.includes('C#C#C#DEEF#F#F#EDEDC#'), 'Sec 2 lead 2 contains long note run');
+assert(leadRowsInSec2[2].content.includes('EEA') && leadRowsInSec2[2].content.includes('C#C#BAGA'), 'Sec 2 lead 3 contains notes');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
