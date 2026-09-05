@@ -40,20 +40,42 @@ export function buildAlignedChordString(chords) {
 }
 
 /**
- * Maps a standalone chord line to horizontal positions above a corresponding lyric line.
+ * Maps a standalone chord line to horizontal positions above a corresponding lyric line,
+ * automatically handling and shifting around any empty anchor bracket markers like [].
  * @param {string} chordLine
  * @param {string} lyricLine
  * @returns {{ lyrics: string, chords: Array<{ chord: string, position: number, confidence: number }> }}
  */
 export function pairChordLineWithLyric(chordLine, lyricLine) {
   const extracted = extractChordsFromLine(chordLine);
-  const cleanLyrics = lyricLine ? lyricLine.trimEnd() : '';
+  let cleanLyrics = lyricLine ? lyricLine.trimEnd() : '';
 
-  const mappedChords = extracted.map(item => ({
-    chord: item.chord,
-    position: item.position,
-    confidence: 0.99
-  }));
+  // Check if lyricLine contains empty bracket markers like [] or [ ]
+  const bracketRegex = /\[\s*\]|\(\s*\)/g;
+  const brackets = [];
+  let bMatch;
+  while ((bMatch = bracketRegex.exec(cleanLyrics)) !== null) {
+    brackets.push({ index: bMatch.index, length: bMatch[0].length });
+  }
+
+  const mappedChords = extracted.map(item => {
+    let finalPos = item.position;
+    if (brackets.length > 0) {
+      const shift = brackets
+        .filter(b => b.index < item.position)
+        .reduce((sum, b) => sum + b.length, 0);
+      finalPos = Math.max(0, item.position - shift);
+    }
+    return {
+      chord: item.chord,
+      position: finalPos,
+      confidence: 0.99
+    };
+  });
+
+  if (brackets.length > 0) {
+    cleanLyrics = cleanLyrics.replace(bracketRegex, '').trimEnd();
+  }
 
   return {
     lyrics: cleanLyrics,

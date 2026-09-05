@@ -11,9 +11,15 @@ const KEY_MARKER_REGEX = /^(?:Key|Scale|Pitch)\s*[:|-]?\s*([A-G][#b♭♯]?(?:m|
 const TEMPO_REGEX = /^(?:Tempo|BPM)\s*[:|-]?\s*(\d{2,3})\s*(?:bpm)?$/i;
 const TITLE_HEADER_REGEX = /^(.+?)\s+(?:Chords|Lyrics|Tabs|Song|Chord Chart|Sheet Music|Guitar Chords|Piano Chords)$/i;
 
+const FOOTER_UI_STOP_REGEX =
+  /^(?:Your Account|Your Favourites|Your favorites|Interactive chord editor|Click a word|ChordPro source|Edit chords|Version history|Restricted \(copyright\)|Top Artists|Chords Z|Top Songs|Popular Songs|All Artists|Browse by|A B C D E F G|HIJKLMNOPQRSTUVWXYZ|Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:)\b/i;
+
+const DUPLICATE_INSTRUMENT_BLOCK_REGEX =
+  /^.+?\s+Chords\s+(?:Guitar|Keyboard|Piano|for Keyboard|Ukulele|for Guitar)/i;
+
 /**
  * Classifies an array of raw text lines into structured line types,
- * while detecting and filtering transpose ladders and isolated metadata lines.
+ * while detecting and filtering transpose ladders, isolated metadata lines, and trailing UI footers.
  * @param {string[]} rawLines
  * @returns {Array<{
  *   raw: string,
@@ -127,9 +133,20 @@ export function analyzeLines(rawLines) {
 
   // Pass 3: Check for isolated single-note key marker or duplicate title header before the first song line
   let songStarted = false;
+  let songLinesCount = 0;
+  let stopIndex = -1;
+
   for (let i = 0; i < result.length; i++) {
     const item = result[i];
     if (item.type === 'EMPTY' || item.type === 'TRANSPOSE_LADDER') continue;
+
+    // Check for footer / UI / duplicate instrument block stop conditions after song has started
+    if (songLinesCount >= 4) {
+      if (FOOTER_UI_STOP_REGEX.test(item.trimmed) || DUPLICATE_INSTRUMENT_BLOCK_REGEX.test(item.trimmed)) {
+        stopIndex = i;
+        break;
+      }
+    }
 
     // Metadata lines don't trigger song start
     if (item.type === 'METADATA_KEY' || item.type === 'METADATA_TIME' || item.type === 'METADATA_TEMPO') {
@@ -158,7 +175,14 @@ export function analyzeLines(rawLines) {
       }
 
       songStarted = true;
+      songLinesCount++;
+    } else {
+      songLinesCount++;
     }
+  }
+
+  if (stopIndex !== -1) {
+    return result.slice(0, stopIndex);
   }
 
   return result;

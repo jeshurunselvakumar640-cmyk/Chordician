@@ -183,6 +183,46 @@ const t10Parsed = parseSong(t10Raw);
 assertEqual(t10Parsed.sections[0].lines[0].chords[0].chord, 'C7/Am', 'C7/Am parsed as single chord unit');
 assertEqual(t10Parsed.sections[0].lines[0].chords[1].chord, 'G/B', 'G/B parsed as single chord unit');
 
+// Test 11: Real-World Import with Empty Bracket Markers [] and Trailing Website Junk
+console.log('\n--- Test 11: Real-World Tamil/Transliterated Import with [] Anchors ---');
+const t11Raw = `   F
+4/4
+Aaraathippaen Naan Aaraathippaen Chords
+ F         A           C7          F     C               C7             F
+[]Aaraathi[]Ppaen Naan[] Aaraathip[]Paen[]Aanndavar Yesu[]Vai Aaraathip[]Paen
+ F                               C7 Bb                        F
+[]Vallavarae Ummai Aaraathippaen[][]Nallavarae Ummai Aaraathi[]Ppaen...aaraathippaen
+ F                                 C7     C               C7             F
+[]Parisuththa Ullaththodu Aaraathi[]Ppaen[]Panninthu Kuni[]Nthu Aaraathi[]Ppaen...aaraathippaen
+ F                              C7 C              C7             F
+[]Aaviyilae Ummai Aaraathippaen[][]Unnmaiyilae Um[]Mai Aaraathip[]Paen...aaraathippaen
+ F                             C7 C                C7             F
+[]Thootharkalodu Aaraathippaen[][]Sthoththira Pali[]Yodu Aaraathi[]Ppaen...aaraathippaen
+ F                                C7 C                C7             F
+[]Kaannpavarai Naan Aaraathippaen[][]Kaappavarai Naan[] Aaraathippae[]N...aaraathippaen
+ F                               C7    C                C7             F
+[]Vennnnaatai Anninthu Aaraathip[]Paen[]Kuruththolai Ae[]Nthi Aaraathi[]Ppaen...aaraathippaen
+Aaraathippaen Naan Aaraathippaen Chords Guitar
+Aaraathippaen Naan Aaraathippaen Chords for Keyboard, Guitar and Piano
+Your Account
+Your Favourites
+Interactive chord editor`;
+
+const t11Result = parseSmartPaste(t11Raw);
+assert(t11Result.success, 'Test 11 smart paste succeeded');
+assertEqual(t11Result.song.title, 'Aaraathippaen Naan Aaraathippaen', 'Title extracted cleanly');
+assertEqual(t11Result.song.originalKey, 'F', 'Key extracted as F');
+
+// Verify all rows have zero brackets and clean content
+const allRows = t11Result.song.sections.flatMap(s => s.rows);
+const rowsWithBrackets = allRows.filter(r => r.content.includes('[]') || r.content.includes('[ ]'));
+assertEqual(rowsWithBrackets.length, 0, 'Zero empty brackets [] in all generated rows');
+
+// Verify first lyric row is clean
+const firstLyricRow = allRows.find(r => r.type === 'lyrics');
+assert(firstLyricRow && !firstLyricRow.content.includes('[]'), 'First lyric row has no empty brackets');
+assert(firstLyricRow.content.includes('AaraathiPpaen Naan'), 'First lyric contains correct words');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);

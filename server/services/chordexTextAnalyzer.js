@@ -38,7 +38,9 @@ CRITICAL RULES:
    - If a distinct style (e.g. "Indian -> Dandiya", "Indian -> Bhajan", "Pop & Rock -> 8Beat", "Ballad -> PianoBallad", "Worship -> Contemporary") is recognizable, provide it.
 8. DEEP NOISE, EMOJI & CLUTTER PURGE:
    - Completely strip all emoji icons (e.g. 🏠, 🎵, 🎶, ✝️, 🎸, 👍, ❤️, 🙏, 🔔, ⭐, etc.).
-   - Completely strip website navigation, breadcrumbs, search bars, UI labels ("Lyrics", "Chords", "Home", "Share"), social media promotions ("Join WhatsApp group", "Subscribe to YouTube channel", "Follow on Instagram"), advertisement text, chord finger/tab diagrams, author credits, and page footers.
+   - Completely strip empty anchor brackets (e.g. "[]", "[ ]", "()"). Never output "[]" inside lyrics.
+   - Completely strip website navigation, breadcrumbs, search bars, UI labels ("Lyrics", "Chords", "Home", "Share"), social media promotions ("Join WhatsApp group", "Subscribe to YouTube channel", "Follow on Instagram"), advertisement text, chord finger/tab diagrams, author credits, related songs lists, account menus, interactive chord editors, and page footers.
+   - If both native script and transliterated versions exist, produce clean organized sections.
    - Retain ONLY authentic song lyrics and positioned chords organized into clean musical sections.
 
 OUTPUT FORMAT: Return ONLY valid JSON matching this schema:
@@ -188,8 +190,8 @@ function cleanLyricString(lyrics, chords = []) {
   if (!lyrics) return '';
   let clean = lyrics.trim();
 
-  // Remove bracketed notation like [Dm] from lyrics
-  clean = clean.replace(/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/g, '').trim();
+  // Remove bracketed notation like [Dm] and empty anchor brackets [] from lyrics
+  clean = clean.replace(/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/g, '').replace(/\[\s*\]|\(\s*\)/g, '').trim();
 
   // If word starts with chord name glued (e.g. "DmMaravaamal" when chord is Dm)
   for (const c of chords) {
