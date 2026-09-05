@@ -69,7 +69,11 @@ export default function SongCard({
       })
     : null;
 
-  const handleCardClick = () => {
+  const handleCardClick = (e) => {
+    // If the click happened on a child button or checkbox, let the child handle it
+    if (e.target.closest('button') || e.target.closest('input')) {
+      return;
+    }
     if (isSelectionMode) {
       if (onToggleSelect) onToggleSelect(id);
     } else {
@@ -174,25 +178,31 @@ export default function SongCard({
                 <Share2 size={15} />
               </button>
 
-              <Link
-                to={`/songs/${id}`}
+              <button
+                type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/songs/${id}`);
+                }}
                 title="Open songbook"
               >
                 <BookOpen size={14} />
                 <span className="hide-extra-small">Open</span>
-              </Link>
+              </button>
 
-              <Link
-                to={`/songs/${id}/edit`}
+              <button
+                type="button"
                 className="btn btn-ghost btn-sm"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/songs/${id}/edit`);
+                }}
                 title="Edit song"
                 aria-label="Edit song"
               >
                 <Edit2 size={15} />
-              </Link>
+              </button>
 
               <button
                 type="button"
@@ -208,11 +218,13 @@ export default function SongCard({
         </div>
 
         {/* Share Modal for List Mode */}
-        <ShareModal
-          isOpen={isShareOpen}
-          onClose={() => setIsShareOpen(false)}
-          song={song}
-        />
+        {isShareOpen && (
+          <ShareModal
+            isOpen={isShareOpen}
+            onClose={() => setIsShareOpen(false)}
+            song={song}
+          />
+        )}
       </div>
     );
   }
@@ -343,15 +355,18 @@ export default function SongCard({
                 <Share2 size={15} />
               </button>
 
-              <Link
-                to={`/songs/${id}/edit`}
+              <button
+                type="button"
                 className="btn btn-ghost btn-sm"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/songs/${id}/edit`);
+                }}
                 title="Edit song"
                 aria-label="Edit song"
               >
                 <Edit2 size={15} />
-              </Link>
+              </button>
 
               <button
                 type="button"
@@ -363,25 +378,30 @@ export default function SongCard({
                 <Trash2 size={15} />
               </button>
 
-              <Link
-                to={`/songs/${id}`}
+              <button
+                type="button"
                 className="btn btn-primary btn-sm song-play-btn"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/songs/${id}`);
+                }}
               >
                 <BookOpen size={14} />
-                Play
-              </Link>
+                <span>Play</span>
+              </button>
             </>
           )}
         </div>
       </div>
 
       {/* Share Modal for Grid Mode */}
-      <ShareModal
-        isOpen={isShareOpen}
-        onClose={() => setIsShareOpen(false)}
-        song={song}
-      />
+      {isShareOpen && (
+        <ShareModal
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+          song={song}
+        />
+      )}
     </div>
   );
 }

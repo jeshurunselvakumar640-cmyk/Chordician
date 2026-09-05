@@ -44,7 +44,7 @@ export default function ShareModal({
 
   useEffect(() => {
     let isMounted = true;
-    if (!song) return;
+    if (!isOpen || !song) return;
 
     setSelectedKey(initialKey || song.originalKey || 'C');
 
@@ -65,7 +65,7 @@ export default function ShareModal({
     return () => {
       isMounted = false;
     };
-  }, [song, initialKey]);
+  }, [isOpen, song, initialKey]);
 
   useEffect(() => {
     setIsCopied(false);

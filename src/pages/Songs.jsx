@@ -35,8 +35,10 @@ export default function Songs({
   // Keep state in sync with URL search params
   useEffect(() => {
     const cat = searchParams.get('category');
-    if (cat) {
-      setSelectedCategory(cat);
+    setSelectedCategory(cat || 'ALL');
+    const q = searchParams.get('q');
+    if (q !== null) {
+      setSearchQuery(q);
     }
   }, [searchParams]);
 

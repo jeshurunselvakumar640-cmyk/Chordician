@@ -47,19 +47,33 @@ export default function SongDetails({
   const [isLoading, setIsLoading] = useState(!song);
   const [error, setError] = useState(null);
 
-  const [activeKey, setActiveKey] = useState('C');
+  const [activeKey, setActiveKey] = useState(song?.originalKey || 'C');
   const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch song from Firestore
+  // Immediately hydrate from cachedSongs when id or cachedSongs changes
+  useEffect(() => {
+    if (!id) return;
+    const cached = cachedSongs.find((s) => s.id === id);
+    if (cached) {
+      setSong(cached);
+      setActiveKey(cached.originalKey || 'C');
+      setIsLoading(false);
+    }
+  }, [id, cachedSongs]);
+
+  // Fetch complete song data from Firestore
   useEffect(() => {
     let isMounted = true;
 
     async function loadSong() {
       if (!id) return;
-      setIsLoading(true);
+      const hasCached = cachedSongs.some((s) => s.id === id);
+      if (!hasCached) {
+        setIsLoading(true);
+      }
       setError(null);
 
       const res = await getSongById(id);
@@ -80,7 +94,7 @@ export default function SongDetails({
     return () => {
       isMounted = false;
     };
-  }, [id, showToast]);
+  }, [id, cachedSongs, showToast]);
 
   // Keep activeKey in sync when song is first loaded
   useEffect(() => {
