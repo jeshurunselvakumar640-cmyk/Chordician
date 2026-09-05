@@ -11,16 +11,20 @@ import {
   Activity,
   AlertTriangle,
   RefreshCw,
-  Lock
+  Lock,
+  Download,
+  Smartphone
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { usePWA } from '../context/PWAContext.jsx';
 import { addSong, runFirebaseDiagnostics } from '../firebase/songs.js';
 import { DEMO_PRESETS } from '../services/aiSongParser.js';
 
 export default function Settings({ onSongAdded }) {
   const { theme, setTheme, isDark } = useTheme();
   const { showToast } = useToast();
+  const { canInstall, isStandalone, installApp } = usePWA();
 
   const [copiedRules, setCopiedRules] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -225,6 +229,43 @@ service cloud.firestore {
             <Piano size={16} />
             <span>{isSeeding ? 'Seeding...' : 'Add Sample Songs'}</span>
           </button>
+        </div>
+      </div>
+
+      {/* PWA & App Installation */}
+      <div className="card settings-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <h2 className="settings-section-title" style={{ marginBottom: 0 }}>
+            <Smartphone size={20} style={{ color: 'var(--color-primary)' }} />
+            Progressive Web App (PWA)
+          </h2>
+          {canInstall && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={installApp}
+            >
+              <Download size={14} />
+              <span>Install App</span>
+            </button>
+          )}
+        </div>
+
+        <div className="settings-db-info-list" style={{ marginTop: '16px' }}>
+          <div className="settings-db-row">
+            <span className="settings-db-label">App Name:</span>
+            <strong className="settings-db-val">Chordician</strong>
+          </div>
+          <div className="settings-db-row">
+            <span className="settings-db-label">Tagline:</span>
+            <span className="settings-db-val" style={{ color: 'var(--text-muted)' }}>Every Chord, For Him</span>
+          </div>
+          <div className="settings-db-row">
+            <span className="settings-db-label">Display Mode:</span>
+            <span className="settings-db-status" style={{ color: isStandalone ? 'var(--color-success)' : 'var(--text-muted)' }}>
+              {isStandalone ? '✓ Standalone App' : 'Browser Mode'}
+            </span>
+          </div>
         </div>
       </div>
 

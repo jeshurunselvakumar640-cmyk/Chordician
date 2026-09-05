@@ -10,9 +10,11 @@ import {
   Sparkles,
   Piano,
   CalendarDays,
+  Download,
   X
 } from 'lucide-react';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
+import { usePWA } from '../../context/PWAContext.jsx';
 
 export default function Sidebar({
   mobileOpen = false,
@@ -23,6 +25,7 @@ export default function Sidebar({
   const location = useLocation();
   const { songIds } = useThisSunday();
   const thisSundayCount = songIds ? songIds.length : 0;
+  const { canInstall, installApp } = usePWA();
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -108,6 +111,20 @@ export default function Sidebar({
 
         {/* Footer Quick Action */}
         <div className="sidebar-footer">
+          {canInstall && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                installApp();
+                if (onCloseMobile) onCloseMobile();
+              }}
+              style={{ width: '100%', marginBottom: '8px' }}
+            >
+              <Download size={18} />
+              Install App
+            </button>
+          )}
           <Link
             to="/add-song"
             className="btn btn-primary"

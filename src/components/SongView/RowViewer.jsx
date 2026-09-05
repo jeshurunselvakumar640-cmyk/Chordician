@@ -29,7 +29,6 @@ export default function RowViewer({ row }) {
       return (
         <div className="song-row-display row-lead-container">
           <div className="row-lead">
-            <span className="row-type-indicator lead-indicator">LEAD</span>
             <span className="row-lead-text">{text}</span>
           </div>
         </div>

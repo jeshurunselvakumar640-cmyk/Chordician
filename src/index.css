@@ -6095,4 +6095,115 @@ button:disabled {
   animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ==========================================================================
+   PWA TOAST & NOTIFICATION STYLES
+   ========================================================================== */
+.pwa-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+  max-width: calc(100vw - 32px);
+}
+
+.pwa-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--bg-card, #1e293b);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  max-width: 440px;
+  animation: pwaSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pwa-update-toast {
+  border-left: 4px solid var(--color-primary, #6366f1);
+}
+
+.pwa-offline-toast {
+  border-left: 4px solid #f59e0b;
+}
+
+.pwa-ready-toast {
+  border-left: 4px solid #10b981;
+}
+
+.pwa-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary, #6366f1);
+  flex-shrink: 0;
+}
+
+.pwa-offline-toast .pwa-toast-icon {
+  color: #f59e0b;
+}
+
+.pwa-ready-toast .pwa-toast-icon {
+  color: #10b981;
+}
+
+.pwa-toast-message {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.pwa-toast-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main, #f8fafc);
+}
+
+.pwa-toast-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.35;
+}
+
+.pwa-toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+@keyframes pwaSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .pwa-toast-container {
+    bottom: 80px; /* Above mobile bottom navigation */
+    right: 16px;
+    left: 16px;
+    max-width: none;
+  }
+  
+  .pwa-toast {
+    max-width: none;
+    width: 100%;
+  }
+}
+
+
 

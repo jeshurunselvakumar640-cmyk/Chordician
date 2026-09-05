@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { PWAProvider } from './context/PWAContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { ThisSundayProvider } from './context/ThisSundayContext';
 import Layout from './components/Layout/Layout';
+import ReloadPrompt from './components/UI/ReloadPrompt';
 import Dashboard from './pages/Dashboard';
 import ThisSunday from './pages/ThisSunday';
 import Songs from './pages/Songs';
@@ -207,6 +209,9 @@ function AppContent() {
         onConfirm={handleConfirmDelete}
         onCancel={() => setSongToDelete(null)}
       />
+
+      {/* PWA Update & Status Notifications */}
+      <ReloadPrompt />
     </>
   );
 }
@@ -214,13 +219,15 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <ThisSundayProvider>
-          <BrowserRouter>
-            <AppContent />
-          </BrowserRouter>
-        </ThisSundayProvider>
-      </ToastProvider>
+      <PWAProvider>
+        <ToastProvider>
+          <ThisSundayProvider>
+            <BrowserRouter>
+              <AppContent />
+            </BrowserRouter>
+          </ThisSundayProvider>
+        </ToastProvider>
+      </PWAProvider>
     </ThemeProvider>
   );
 }

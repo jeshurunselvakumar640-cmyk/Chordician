@@ -84,7 +84,7 @@ export function formatRowAsText(row) {
     case 'lyrics':
       return text;
     case 'lead':
-      return text ? `[LEAD: ${text}]` : '';
+      return text;
     case 'bass':
       return text ? `[BASS: ${text}]` : '';
     case 'notes':
@@ -490,7 +490,6 @@ function createPDFRenderElement(songList = [], options = {}) {
           leadWrap.style.gap = '8px';
           leadWrap.style.marginBottom = '6px';
           leadWrap.innerHTML = `
-            <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #b45309;">LEAD</span>
             <span style="font-family: monospace; font-size: 12.5px; font-weight: 700; color: #b45309;">${text}</span>
           `;
           rowEl.appendChild(leadWrap);
