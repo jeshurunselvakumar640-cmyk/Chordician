@@ -5,6 +5,7 @@ import {
   Plus,
   Sparkles,
   Search,
+  RefreshCw,
   X,
   Piano
 } from 'lucide-react';
@@ -12,16 +13,36 @@ import SearchBar from '../SearchBar/SearchBar';
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
 import UserProfileDropdown from './UserProfileDropdown';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 export default function Header({
   onToggleMobile,
   searchQuery,
-  onSearchChange
+  onSearchChange,
+  onRefresh
 }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { canEdit } = useAuth();
+  const { showToast } = useToast();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleQuickRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      if (typeof onRefresh === 'function') {
+        await onRefresh();
+        showToast('Library refreshed from cloud', 'success', 1500);
+      } else {
+        window.location.reload();
+      }
+    } catch (e) {
+      window.location.reload();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 600);
+    }
+  };
 
   const handleSearchSubmit = (val) => {
     onSearchChange(val);
@@ -71,6 +92,18 @@ export default function Header({
           aria-label={mobileSearchOpen ? 'Close search' : 'Open search'}
         >
           {mobileSearchOpen ? <X size={18} /> : <Search size={18} />}
+        </button>
+
+        {/* Mobile Quick Refresh / Sync Trigger */}
+        <button
+          type="button"
+          className="btn-icon mobile-refresh-toggle"
+          onClick={handleQuickRefresh}
+          title="Refresh library"
+          aria-label="Refresh library"
+          disabled={isRefreshing}
+        >
+          <RefreshCw size={17} className={isRefreshing ? 'animate-spin' : ''} />
         </button>
 
         {/* Desktop Quick Actions (Owner Only) */}

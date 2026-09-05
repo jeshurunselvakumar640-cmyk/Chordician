@@ -15,6 +15,13 @@ export default function ReloadPrompt() {
     return null;
   }
 
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
+  const handleRefresh = async () => {
+    setIsUpdating(true);
+    await updateServiceWorker(true);
+  };
+
   return (
     <aside className="pwa-toast-container" aria-live="polite">
       {/* Offline Alert Banner (Only when internet connection is lost) */}
@@ -44,10 +51,11 @@ export default function ReloadPrompt() {
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              onClick={() => updateServiceWorker(true)}
+              onClick={handleRefresh}
+              disabled={isUpdating}
             >
-              <RefreshCw size={14} />
-              Refresh
+              <RefreshCw size={14} className={isUpdating ? 'animate-spin' : ''} />
+              <span>{isUpdating ? 'Refreshing...' : 'Refresh'}</span>
             </button>
             <button
               type="button"

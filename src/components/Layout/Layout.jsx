@@ -10,7 +10,8 @@ export default function Layout({
   searchQuery = '',
   onSearchChange,
   firestoreError = null,
-  onRetryFirestore
+  onRetryFirestore,
+  onRefresh
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [copiedRule, setCopiedRule] = useState(false);
@@ -56,6 +57,7 @@ service cloud.firestore {
           onToggleMobile={() => setMobileOpen(!mobileOpen)}
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
+          onRefresh={onRefresh || onRetryFirestore}
         />
 
         {/* Firestore Permission Guidance Banner if database rules are locked */}

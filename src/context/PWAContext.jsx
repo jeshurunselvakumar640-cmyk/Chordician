@@ -124,6 +124,33 @@ export function PWAProvider({ children }) {
     }
   }, [deferredPrompt]);
 
+  // Guaranteed Service Worker update with hard reload fallback
+  const handleUpdateServiceWorker = useCallback(async (reloadPage = true) => {
+    try {
+      if (typeof updateServiceWorker === 'function') {
+        await updateServiceWorker(reloadPage);
+      }
+    } catch (err) {
+      console.warn('PWA updateServiceWorker error:', err);
+    }
+
+    if (reloadPage && typeof window !== 'undefined') {
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const reg of registrations) {
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+          }
+        }
+      } catch (e) {}
+
+      // Guaranteed hard reload
+      window.location.reload();
+    }
+  }, [updateServiceWorker]);
+
   const closePrompt = useCallback(() => {
     setOfflineReady(false);
     setNeedRefresh(false);
@@ -139,7 +166,7 @@ export function PWAProvider({ children }) {
         installApp,
         needRefresh,
         offlineReady,
-        updateServiceWorker,
+        updateServiceWorker: handleUpdateServiceWorker,
         closePrompt,
         isOnline
       }}

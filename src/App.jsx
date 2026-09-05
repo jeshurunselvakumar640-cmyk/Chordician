@@ -121,6 +121,7 @@ function AppContent() {
               onSearchChange={setSearchQuery}
               firestoreError={firestoreError}
               onRetryFirestore={fetchAllSongs}
+              onRefresh={fetchAllSongs}
             />
           }
         >
