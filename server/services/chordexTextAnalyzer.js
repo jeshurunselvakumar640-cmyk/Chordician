@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 import { findStyle } from '../../src/data/songStyles.js';
 import { buildAlignedChordString } from './chordParser.js';
+import { transliterateTamilToTanglish } from '../../src/engine/core/tamilTransliteration.js';
 
 dotenv.config();
 
@@ -149,11 +150,14 @@ CRITICAL RULES:
 7. PRESERVE ORIGINAL LYRICS & MULTI-LANGUAGE TRANSLITERATIONS:
    - Do NOT translate, summarize, or rewrite lyric words.
    - Preserve Hindi, Tamil, Telugu, and English transliterated words, punctuation, and repetition markers (e.g. "Pani Pe Chalta Hai", "Krus Ko Uthaya Hai", "...X2", "(2)", "-2").
-8. MUSICAL KEY:
-   - Detect the root musical key (e.g. "E", "D", "Dm", "C", "G", "F", "A", "Em", "Cm", "Eb", "Bb").
-9. STYLE IDENTIFICATION:
+8. AUTOMATIC TITLE DETECTION (TAMIL / TANGLISH & MULTILINGUAL):
+   - Automatically detect and formulate the title of the song.
+   - For Tamil songs, if the title or opening lyrics are in Tamil Unicode script, provide the title in natural, standard Tanglish / Romanized Tamil (e.g., 'எத்தனை நன்மைகள்' -> 'Ethanai Nanmaigal', 'உதவி வரும் கன்மலை' -> 'Uthavi Varum Kanmalai', 'இஸ்ரவேலே' -> 'Isravelae', 'என் இயேசு ராஜாவுக்கே' -> 'En Yesu Rajavukke').
+9. MUSICAL KEY DETECTION:
+   - Detect the root musical key from the first chords and harmonic progression in the sheet (e.g. "C", "G", "Eb", "Bb", "D", "E", "F", "Am", "Cm").
+10. STYLE IDENTIFICATION:
    - If a distinct style (e.g. "Indian -> Dandiya", "Indian -> Bhajan", "Pop & Rock -> 8Beat", "Ballad -> PianoBallad", "Worship -> Contemporary") is recognizable, provide it.
-10. DEEP NOISE, EMOJI & CLUTTER PURGE:
+11. DEEP NOISE, EMOJI & CLUTTER PURGE:
    - Completely strip all emoji icons (e.g. 🏠, 🎵, 🎶, ✝️, 🎸, 👍, ❤️, 🙏, 🔔, ⭐, etc.).
    - Completely strip empty anchor brackets (e.g. "[]", "[ ]", "()"). Never output "[]" inside lyrics.
    - Completely strip website navigation, breadcrumbs, search bars, UI labels ("Lyrics", "Chords", "Home", "Share"), social media promotions ("Join WhatsApp group", "Subscribe to YouTube channel", "Follow on Instagram"), advertisement text, chord finger/tab diagrams, author credits, related songs lists, account menus, interactive chord editors, and page footers.
@@ -338,9 +342,65 @@ function cleanLyricString(lyrics, chords = []) {
 export function convertChordexAiToChordician(chordexData, sourceUrl = '') {
   if (!chordexData) return null;
 
-  const title = (chordexData.title || '').trim() || 'Imported Song';
+  let title = (chordexData.title || '').trim();
+
+  // If title is missing or default placeholder, infer from first lyric line
+  if (!title || title === 'Imported Song' || title === 'Untitled' || title === 'Unknown') {
+    for (const sec of chordexData.sections || []) {
+      for (const line of sec.lines || []) {
+        if (line.lyrics && line.lyrics.trim()) {
+          const words = line.lyrics.trim().split(/\s+/).slice(0, 4).join(' ');
+          title = words;
+          break;
+        }
+      }
+      if (title) break;
+    }
+  }
+
+  // If title is in Tamil Unicode script, transliterate to natural Tanglish
+  if (/[\u0B80-\u0BFF]/.test(title)) {
+    title = transliterateTamilToTanglish(title);
+  }
+
+  if (!title) {
+    title = 'Imported Song';
+  }
+
   const artist = (chordexData.artist || '').trim() || '';
-  const originalKey = chordexData.originalKey ? chordexData.originalKey.replace(/m$/, '') : 'C';
+
+  // Extract root musical key
+  let originalKey = '';
+  if (chordexData.originalKey) {
+    const rootMatch = chordexData.originalKey.trim().match(/^[A-G][#b]?/i);
+    if (rootMatch) {
+      const char0 = rootMatch[0].charAt(0).toUpperCase();
+      const char1 = rootMatch[0].length > 1 ? (rootMatch[0].charAt(1).toLowerCase() === 'b' ? 'b' : '#') : '';
+      originalKey = char0 + char1;
+    }
+  }
+
+  // Fallback: infer key from first chord in sections
+  if (!originalKey) {
+    for (const sec of chordexData.sections || []) {
+      for (const line of sec.lines || []) {
+        if (line.chords && line.chords.length > 0) {
+          const match = (line.chords[0].chord || '').match(/^[A-G][#b]?/i);
+          if (match) {
+            const char0 = match[0].charAt(0).toUpperCase();
+            const char1 = match[0].length > 1 ? (match[0].charAt(1).toLowerCase() === 'b' ? 'b' : '#') : '';
+            originalKey = char0 + char1;
+            break;
+          }
+        }
+      }
+      if (originalKey) break;
+    }
+  }
+
+  if (!originalKey) {
+    originalKey = 'C';
+  }
 
   // Validate style if suggested
   let validatedStyle = null;

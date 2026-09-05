@@ -353,6 +353,42 @@ assertEqual(sec3.rows[5].content, 'ஒரு போதும் நான் க
 assertEqual(sec3.rows[7].content, 'கைவிடமாட்டேன் வழியும்', 'Section 3 lyric 4 clean');
 assertEqual(sec3.rows[8].content, '...வழியும்', 'Section 3 lyric 5 echo clean');
 
+// Test 17: Automatic Title (Tamil/Tanglish) & Musical Key Detection from Lyrics & Chords
+console.log('\n--- Test 17: Automatic Tanglish Title & Key Detection ---');
+
+// 17.1: Ethanai Nanmaigal
+const ethanaiRaw = `Verse 1
+C              F                C                     Bb  C       G7           C
+எத்தனை நன்மைகள்எனக்குச் செய்தீர்எப்படி நன்றி சொல்வேன் நான்எப்படி நன்றி சொல்வேன்
+C                         Gsus4
+நன்றி ராஜா... நன்றி ராஜா..`;
+
+const ethanaiRes = parseSmartPaste(ethanaiRaw);
+assert(ethanaiRes.success, 'Ethanai Nanmaigal parsed successfully');
+assert(ethanaiRes.song.title.toLowerCase().includes('ethanai nanmaigal'), `Title auto-detected as Tanglish: "${ethanaiRes.song.title}"`);
+assertEqual(ethanaiRes.song.originalKey, 'C', 'Root key auto-detected as C');
+
+// 17.2: Uthavi Varum Kanmalai
+const uthaviRaw = `Verse 1
+G                C                  D   D7                       G
+உதவி வரும் கன்மலைநோக்கிப் பார்க்கின்றேன்வானமும் வையமும் படைத்தவரைநான் பார்க்கின்றேன்`;
+
+const uthaviRes = parseSmartPaste(uthaviRaw);
+assert(uthaviRes.success, 'Uthavi Varum Kanmalai parsed successfully');
+assert(uthaviRes.song.title.toLowerCase().includes('uthavi varum kanmalai'), `Title auto-detected as Tanglish: "${uthaviRes.song.title}"`);
+assertEqual(uthaviRes.song.originalKey, 'G', 'Root key auto-detected as G');
+
+// 17.3: Isravelae
+assert(t16Result.song.title.toLowerCase().includes('isravelae'), `Isravelae title auto-detected as Tanglish: "${t16Result.song.title}"`);
+assertEqual(t16Result.song.originalKey, 'C', 'Root key auto-detected as C for Cm chord');
+
+// 17.4: Explicit Title Preservation
+const explicitRaw = `[Verse 1]
+[C]Amazing grace, how [F]sweet the [C]sound`;
+const explicitRes = parseSmartPaste(explicitRaw, { title: 'Amazing Grace (Custom)' });
+assertEqual(explicitRes.song.title, 'Amazing Grace (Custom)', 'Explicit custom title preserved without alteration');
+assertEqual(explicitRes.song.originalKey, 'C', 'Key auto-detected as C');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);

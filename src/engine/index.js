@@ -10,6 +10,7 @@ export * from './core/tokenizer.js';
 export * from './core/positionMapper.js';
 export * from './core/lineAnalyzer.js';
 export * from './core/songParser.js';
+export * from './core/tamilTransliteration.js';
 
 export * from './smartPaste/smartPasteParser.js';
 export * from './importUrl/urlSecurity.js';

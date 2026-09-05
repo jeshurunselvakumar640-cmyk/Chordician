@@ -212,7 +212,7 @@ export function parseSong(rawText, options = {}) {
   return {
     title: detectedTitle || 'Imported Song',
     artist: detectedArtist || '',
-    originalKey: detectedKey || 'C',
+    originalKey: detectedKey || '',
     category: options.category || 'Worship',
     timeSignature: detectedTimeSig || '4/4',
     tempo: detectedTempo,
