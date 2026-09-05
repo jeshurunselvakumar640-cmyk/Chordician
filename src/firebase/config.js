@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 import {
   getFirestore,
@@ -19,7 +19,9 @@ import {
 } from 'firebase/auth';
 
 /**
- * Firebase Client SDK Configuration for authentication-2708d
+ * Firebase Client SDK Configuration
+ * - Auth Domain & Project: authentication-2708d (User Authentication & Profile Management)
+ * - Firestore Database: pianonotes-1bd94 (Active 93+ Songbook Library & Chords Database)
  */
 const firebaseConfig = {
   apiKey: "AIzaSyCaxt7IyXNAm5N41gWX0AJA3iJsq9_O-Cc",
@@ -31,19 +33,38 @@ const firebaseConfig = {
   measurementId: "G-9P985Z2SN2"
 };
 
-// Initialize Firebase App
-const app = initializeApp(firebaseConfig);
+const firestoreDbConfig = {
+  apiKey: "AIzaSyB_4AdPTivYU0wmU-w8ra2MsM6oPJr9SYs",
+  authDomain: "pianonotes-1bd94.firebaseapp.com",
+  projectId: "pianonotes-1bd94",
+  storageBucket: "pianonotes-1bd94.firebasestorage.app",
+  messagingSenderId: "540352442337",
+  appId: "1:540352442337:web:65e3bc6eccc26058656ca0",
+  measurementId: "G-M9KMH89JQ8"
+};
 
-// Initialize Firestore
-let db = null;
+// Initialize Primary Auth App
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const auth = getAuth(app);
+
+// Initialize Firestore Database App (holding the 93+ songs library)
+let dbApp;
 try {
-  db = getFirestore(app);
-} catch (e) {
-  console.warn("Firestore initialization notice:", e);
+  dbApp = getApps().find((a) => a.name === 'firestoreSongbookApp') || initializeApp(firestoreDbConfig, 'firestoreSongbookApp');
+} catch {
+  dbApp = app;
 }
 
-// Initialize Firebase Auth
-const auth = getAuth(app);
+let db = null;
+try {
+  db = getFirestore(dbApp);
+} catch (e) {
+  try {
+    db = getFirestore(app);
+  } catch (err) {
+    console.warn("Firestore initialization notice:", err);
+  }
+}
 
 // Initialize Analytics if supported in environment
 let analytics = null;
@@ -103,7 +124,8 @@ export {
   updatePassword,
   onAuthStateChanged,
   analytics,
-  firebaseConfig
+  firebaseConfig,
+  firestoreDbConfig
 };
 
 export default app;
