@@ -102,7 +102,7 @@ export default function TransposeBar({
         <div className="song-zoom-control-group">
           <div className="song-zoom-info">
             <ZoomIn size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
-            <span className="transposer-label hide-mobile">Zoom</span>
+            <span className="transposer-label">Zoom</span>
           </div>
 
           <div className="song-zoom-buttons">

@@ -6,6 +6,7 @@ import {
   Edit2,
   Trash2,
   Maximize2,
+  Play,
   Printer,
   Music,
   Sliders,
@@ -317,15 +318,17 @@ export default function SongDetails({
             <span className="hide-mobile">{isSelectedForCommunion ? 'In Communion' : '+ Communion'}</span>
           </button>
 
-          {/* Performance Mode (Highlighted for Pianist) */}
+          {/* Performance Mode (Highlighted for Pianist / Musician) */}
           <button
             type="button"
             className="btn btn-primary song-perf-trigger-btn"
             onClick={() => setIsPerformanceOpen(true)}
             title="Open distraction-free Performance Mode"
+            aria-label="Play Mode"
+            style={{ minWidth: '40px', minHeight: '40px' }}
           >
-            <Maximize2 size={16} />
-            <span>Play Mode</span>
+            <Play size={16} fill="currentColor" />
+            <span className="hide-mobile">Play Mode</span>
           </button>
 
           <button
