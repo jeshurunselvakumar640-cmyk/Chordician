@@ -52,6 +52,8 @@ export default function ImportSong() {
   const [textArtist, setTextArtist] = useState('');
   const [selectedTextPreset, setSelectedTextPreset] = useState(null);
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
+  const [pasteLoadingStep, setPasteLoadingStep] = useState(1);
+  const [pasteLoadingMessage, setPasteLoadingMessage] = useState('Reading chord and lyric input...');
 
   // Image / Vision Import State
   const [imageFile, setImageFile] = useState(null);
@@ -164,7 +166,25 @@ export default function ImportSong() {
     }
 
     setIsAnalyzingText(true);
+    setPasteLoadingStep(1);
+    setPasteLoadingMessage('Reading and preprocessing chords & lyrics...');
     setAnalysisResult(null);
+
+    // Timers for multi-step progress feedback during reconstruction
+    const timer1 = setTimeout(() => {
+      setPasteLoadingStep(2);
+      setPasteLoadingMessage('Scanning chord patterns & separating attached syllables...');
+    }, 500);
+
+    const timer2 = setTimeout(() => {
+      setPasteLoadingStep(3);
+      setPasteLoadingMessage('Chordex AI reconstructing stanzas, chords & alignments...');
+    }, 1300);
+
+    const timer3 = setTimeout(() => {
+      setPasteLoadingStep(4);
+      setPasteLoadingMessage('Formatting musical sections and preparing song sheet...');
+    }, 2200);
 
     try {
       const res = await restructureSongTextWithChordexAI(
@@ -172,6 +192,9 @@ export default function ImportSong() {
         { title: textTitle, artist: textArtist },
         selectedTextPreset
       );
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
       setIsAnalyzingText(false);
 
       if (res.success && res.song) {
@@ -187,6 +210,9 @@ export default function ImportSong() {
       }
     } catch (err) {
       console.error(err);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
       setIsAnalyzingText(false);
       showToast(err.message || 'An error occurred during text analysis.', 'error');
     }
@@ -661,6 +687,88 @@ export default function ImportSong() {
                 </button>
               </div>
             </div>
+
+            {/* Smart Paste Dynamic Step Progress & Skeleton Loading Indicator */}
+            {isAnalyzingText && (
+              <div className="url-loading-indicator" style={{ marginTop: '20px' }}>
+                <div className="url-loading-header">
+                  <div className="url-loading-spinner-wrap">
+                    <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
+                  </div>
+                  <div className="url-loading-info">
+                    <h4 className="url-loading-title">Reconstructing Chords & Lyrics</h4>
+                    <p className="url-loading-desc">{pasteLoadingMessage}</p>
+                  </div>
+                  <span className="badge badge-primary url-loading-badge">
+                    Step {pasteLoadingStep} of 4
+                  </span>
+                </div>
+
+                {/* Progress Track */}
+                <div className="url-steps-track">
+                  <div className={`url-step-item ${pasteLoadingStep >= 1 ? (pasteLoadingStep > 1 ? 'completed' : 'active') : ''}`}>
+                    <div className="url-step-bullet">
+                      {pasteLoadingStep > 1 ? <Check size={12} /> : <Loader2 size={12} className="animate-spin" />}
+                    </div>
+                    <div className="url-step-text">
+                      <span className="url-step-name">Read Text</span>
+                      <span className="url-step-sub">Pasted stream</span>
+                    </div>
+                  </div>
+
+                  <div className={`url-step-item ${pasteLoadingStep >= 2 ? (pasteLoadingStep > 2 ? 'completed' : 'active') : ''}`}>
+                    <div className="url-step-bullet">
+                      {pasteLoadingStep > 2 ? <Check size={12} /> : pasteLoadingStep === 2 ? <Loader2 size={12} className="animate-spin" /> : '2'}
+                    </div>
+                    <div className="url-step-text">
+                      <span className="url-step-name">Detect Chords</span>
+                      <span className="url-step-sub">Attached letters</span>
+                    </div>
+                  </div>
+
+                  <div className={`url-step-item ${pasteLoadingStep >= 3 ? (pasteLoadingStep > 3 ? 'completed' : 'active') : ''}`}>
+                    <div className="url-step-bullet">
+                      {pasteLoadingStep > 3 ? <Check size={12} /> : pasteLoadingStep === 3 ? <Loader2 size={12} className="animate-spin" /> : '3'}
+                    </div>
+                    <div className="url-step-text">
+                      <span className="url-step-name">Chordex AI</span>
+                      <span className="url-step-sub">Aligning lyrics</span>
+                    </div>
+                  </div>
+
+                  <div className={`url-step-item ${pasteLoadingStep >= 4 ? 'active' : ''}`}>
+                    <div className="url-step-bullet">
+                      {pasteLoadingStep >= 4 ? <Loader2 size={12} className="animate-spin" /> : '4'}
+                    </div>
+                    <div className="url-step-text">
+                      <span className="url-step-name">Build Song</span>
+                      <span className="url-step-sub">Sections & rows</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Shimmer Skeleton Preview */}
+                <div className="url-loading-skeleton-preview">
+                  <div className="skeleton-chord-row">
+                    <div className="skeleton-pill" style={{ width: '60px' }}></div>
+                    <div className="skeleton-pill" style={{ width: '45px' }}></div>
+                    <div className="skeleton-pill" style={{ width: '55px' }}></div>
+                    <div className="skeleton-pill" style={{ width: '40px' }}></div>
+                  </div>
+                  <div className="skeleton-lyric-row">
+                    <div className="skeleton-line" style={{ width: '80%' }}></div>
+                  </div>
+                  <div className="skeleton-chord-row" style={{ marginTop: '10px' }}>
+                    <div className="skeleton-pill" style={{ width: '50px' }}></div>
+                    <div className="skeleton-pill" style={{ width: '65px' }}></div>
+                    <div className="skeleton-pill" style={{ width: '40px' }}></div>
+                  </div>
+                  <div className="skeleton-lyric-row">
+                    <div className="skeleton-line" style={{ width: '65%' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sample Text Presets */}
