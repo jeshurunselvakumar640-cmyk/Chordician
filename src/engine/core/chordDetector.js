@@ -112,7 +112,12 @@ export function matchChordPrefix(text) {
         continue;
       }
 
-      // 3. For chords with accidental/quality/numbers (e.g. "A#", "Bb", "F#m", "Cadd9", "Gsus4", "C7/Am"):
+      // 3. If candidate ends in capital 'M' (e.g. "A#M", "CM") and remainder starts with lowercase letter (e.g. "anathaara"):
+      if (/M$/.test(candidate) && /^[a-z]/.test(remainder)) {
+        continue;
+      }
+
+      // 4. For chords with accidental/quality/numbers (e.g. "A#", "Bb", "F#m", "Cadd9", "Gsus4", "C7/Am"):
       if (/^[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F\s\[\]\(\)\-—.,!?:;a-z]/.test(remainder)) {
         return { chord: candidate, length: len };
       }

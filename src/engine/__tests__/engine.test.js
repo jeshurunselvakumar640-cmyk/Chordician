@@ -271,6 +271,25 @@ assertEqual(t13Result.song.sections[2].name, 'Pre-Chorus', 'Section 3 is Pre-Cho
 assertEqual(t13Result.song.sections[3].name, 'Chorus', 'Section 4 is Chorus');
 assertEqual(t13Result.song.sections[4].name, 'Verse 1', 'Section 5 is Verse 1');
 
+// Test 14: Transliterated Lyrics with Internal Uppercase Vowels
+console.log('\n--- Test 14: Transliterated Words with Uppercase Letters ---');
+const t14Raw = `Eb                   Bb
+என் இயேசு ராஜாவுக்கே
+en iyEsu rajavukkE
+Bb7                   Eb
+எந்நாளும் ஸ்தோத்திரம்
+ennaLum sthOththiram
+                      Bb  
+என்னோடு வாழ்பவர்க்கே
+ennOtu vazhpavarkkE`;
+
+const t14Result = parseSmartPaste(t14Raw);
+assert(t14Result.success, 'Test 14 smart paste succeeded');
+const t14Rows = t14Result.song.sections[0].rows;
+const t14Lyrics = t14Rows.filter(r => r.type === 'lyrics').map(r => r.content);
+assert(t14Lyrics.includes('en iyEsu rajavukkE'), 'Preserved exact transliterated line without false trailing chord E');
+assert(t14Lyrics.includes('ennOtu vazhpavarkkE'), 'Preserved exact transliterated line without false chord E');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);

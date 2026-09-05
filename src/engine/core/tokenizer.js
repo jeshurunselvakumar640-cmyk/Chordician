@@ -40,6 +40,7 @@ export function tokenizeLine(rawLine) {
   // 2. Character-by-character scan for attached / glued chords (e.g. DmMaravaamal, AmA#Manathaara)
   let reconstructedLyrics = '';
   const chords = [];
+  let lastChordEnd = -1;
 
   let i = 0;
   while (i < line.length) {
@@ -52,9 +53,13 @@ export function tokenizeLine(rawLine) {
       continue;
     }
 
-    // Check if remaining substring starts with a chord prefix
+    const canBeChordStart =
+      i === 0 ||
+      i === lastChordEnd ||
+      !/[a-z]/.test(line[i - 1]);
+
     const sub = line.substring(i);
-    const chordMatch = matchChordPrefix(sub);
+    const chordMatch = canBeChordStart ? matchChordPrefix(sub) : null;
 
     if (chordMatch) {
       const chordValue = normalizeChordString(chordMatch.chord);
@@ -67,6 +72,7 @@ export function tokenizeLine(rawLine) {
       });
 
       i += chordMatch.length;
+      lastChordEnd = i;
 
       // Handle any whitespace immediately following the chord
       while (i < line.length && line[i] === ' ') {

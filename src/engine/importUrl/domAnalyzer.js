@@ -19,6 +19,9 @@ export function cleanDom($) {
     '.ad, .ads, .advertisement, .cookie, .cookie-banner, .cookie-consent, ' +
     '.social-share, .comments-area, #comments, .sidebar, #sidebar, .drawer, ' +
     '.breadcrumb, .breadcrumbs, .menu, .navigation, #wpadminbar, ' +
+    '.modal, .modal-dialog, .modal-content, #songbooksbscriptionalert, #accordionsongbook, #offlinemess, ' +
+    '.tools, .scroller, .createppt, .transclass, .transclasssty, .sButton, .favsongid, .navmenubg, .menu-item, ' +
+    '.search_char, .search-char, .alpha-list, .keyboard-bar, .colthree, ' +
     '#chord-diagrams, .guitar-chord, .ukulele-chord, .piano-chord, ' +
     '.transpose, .transpose-keys, .key-selector, .keys-list, .pitch-list, #transpose, ' +
     '.transpose-controls, .chord-switcher, .scale-list, .c-transpose, .transpose-bar, ' +
@@ -38,7 +41,17 @@ export function cleanDom($) {
  * @param {cheerio.CheerioAPI} $
  */
 export function formatInlineChordElements($) {
-  // Ruby tags
+  // A. If chords are inside a dedicated chordline (.chordline, .chords-line, .chord-row, .c-line),
+  // unwrap the inner chord elements so natural line horizontal spacing is preserved!
+  $('.chordline, .chords-line, .chord-row, .c-line').find('.chrd, .crd, .chord, span').each((_, el) => {
+    const $el = $(el);
+    const text = ($el.attr('data-chord') || $el.text() || '').trim();
+    if (text && isChord(text, true)) {
+      $el.replaceWith(text);
+    }
+  });
+
+  // B. Ruby tags
   $('ruby').each((_, el) => {
     const $ruby = $(el);
     const chord = $ruby.find('rt').text().trim();
@@ -59,6 +72,9 @@ export function formatInlineChordElements($) {
   for (const selector of specificChordSelectors) {
     $(selector).each((_, el) => {
       const $el = $(el);
+      if ($el.closest('.chordline, .chords-line, .chord-row').length > 0) {
+        return;
+      }
       const chordText = ($el.attr('data-chord') || $el.text() || '').trim();
       if (chordText && chordText.length <= 14 && isChord(chordText, true)) {
         $el.replaceWith(`[${chordText.replace(/^[\[\(]+|[\]\)]+$/g, '')}]`);
@@ -75,6 +91,9 @@ export function formatInlineChordElements($) {
 
   $('span, b, strong, i, em, font, sup').each((_, el) => {
     const $el = $(el);
+    if ($el.closest('.chordline, .chords-line, .chord-row').length > 0) {
+      return;
+    }
     if ($el.children().length === 0) {
       const text = $el.text().trim();
       if (text && text.length <= 12 && isChord(text, true)) {
@@ -98,9 +117,13 @@ export function findBestSongContainer($) {
     '#tab-english',
     '#tab-tamil',
     '#tab-merged',
+    '.songpre',
+    '.songcont',
+    '.song-pre',
     '.chord-content',
     '.chord-tab-panel',
     '.chord-sheet',
+    '.entrybody',
     '.chordpro-content',
     '.song-chords',
     '.chords-container',
@@ -208,7 +231,7 @@ export function getNodeFormattedText($el, $) {
   const $clone = $el.clone();
   $clone.find('br, hr').replaceWith('\n');
 
-  $clone.find('p, div, li, tr, blockquote, section, article, h1, h2, h3, h4, h5, h6, pre').each((_, elem) => {
+  $clone.find('p, div, li, tr, blockquote, section, article, h1, h2, h3, h4, h5, h6, pre, samp, strong').each((_, elem) => {
     $(elem).prepend('\n').append('\n');
   });
 

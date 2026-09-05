@@ -20,13 +20,16 @@ export function extractSongFromHtml(html, sourceUrl = '') {
   // 3. Convert line-break elements to newlines
   $('br, hr').replaceWith('\n');
 
-  // 4. Strip strictly non-content noise elements, sidebars, diagrams, and widgets
+  // 4. Strip strictly non-content noise elements, sidebars, diagrams, modals, and widgets
   $(
     'script:not([type="application/ld+json"]), style, noscript, iframe, svg, img, picture, ' +
     'audio, video, nav, footer, form, input, button, select, dialog, aside, [role="complementary"], ' +
     '.ad, .ads, .advertisement, .cookie, .cookie-banner, .cookie-consent, ' +
     '.social-share, .comments-area, #comments, .sidebar, #sidebar, .drawer, ' +
     '.breadcrumb, .breadcrumbs, .menu, .navigation, #wpadminbar, ' +
+    '.modal, .modal-dialog, .modal-content, #songbooksbscriptionalert, #accordionsongbook, #offlinemess, ' +
+    '.tools, .scroller, .createppt, .transclass, .transclasssty, .sButton, .favsongid, .navmenubg, .menu-item, ' +
+    '.search_char, .search-char, .alpha-list, .keyboard-bar, .colthree, ' +
     '#chord-diagrams, .guitar-chord, .ukulele-chord, .piano-chord, ' +
     '.transpose, .transpose-keys, .key-selector, .keys-list, .pitch-list, #transpose, ' +
     '.transpose-controls, .chord-switcher, .scale-list, .c-transpose, .transpose-bar, ' +
@@ -67,7 +70,17 @@ export function extractSongFromHtml(html, sourceUrl = '') {
  * so chords inside <span>, <b>, <td>, <ruby>, <sup> elements are preserved without losing alignment.
  */
 function formatInlineChordElements($) {
-  // A. Ruby tags: <ruby>word<rt>Chord</rt></ruby> -> [Chord]word
+  // A. If chords are inside a dedicated chordline (.chordline, .chords-line, .chord-row, .c-line),
+  // unwrap the inner chord elements so natural line horizontal spacing is preserved!
+  $('.chordline, .chords-line, .chord-row, .c-line').find('.chrd, .crd, .chord, span').each((_, el) => {
+    const $el = $(el);
+    const text = ($el.attr('data-chord') || $el.text() || '').trim();
+    if (text && isChord(text, true)) {
+      $el.replaceWith(text);
+    }
+  });
+
+  // B. Ruby tags: <ruby>word<rt>Chord</rt></ruby> -> [Chord]word
   $('ruby').each((_, el) => {
     const $ruby = $(el);
     const chord = $ruby.find('rt').text().trim();
@@ -80,7 +93,7 @@ function formatInlineChordElements($) {
     }
   });
 
-  // B. Elements with chord data attributes or explicit chord class names
+  // C. Elements with chord data attributes or explicit chord class names
   const specificChordSelectors = [
     '[data-chord]', '[data-name="chord"]', '[data-c]',
     '.chord-name', '.chord-pro', '.ug-chord', '.chord-mark', '.c-name', 'sup.chord', 'rt'
@@ -89,6 +102,9 @@ function formatInlineChordElements($) {
   for (const selector of specificChordSelectors) {
     $(selector).each((_, el) => {
       const $el = $(el);
+      if ($el.closest('.chordline, .chords-line, .chord-row').length > 0) {
+        return;
+      }
       const chordText = ($el.attr('data-chord') || $el.text() || '').trim();
       if (chordText && chordText.length <= 14 && isChord(chordText, true)) {
         $el.replaceWith(`[${chordText.replace(/^[\[\(]+|[\]\)]+$/g, '')}]`);
@@ -98,14 +114,17 @@ function formatInlineChordElements($) {
     });
   }
 
-  // C. Unwrap chord helper wrappers
+  // D. Unwrap chord helper wrappers
   $('.chord-anchor, .chord-stack, .chord-wrap').each((_, el) => {
     $(el).replaceWith($(el).html() || '');
   });
 
-  // D. Any standalone leaf inline element whose text is strictly a valid chord
+  // E. Any standalone leaf inline element whose text is strictly a valid chord
   $('span, b, strong, i, em, font, sup').each((_, el) => {
     const $el = $(el);
+    if ($el.closest('.chordline, .chords-line, .chord-row').length > 0) {
+      return;
+    }
     if ($el.children().length === 0) {
       const text = $el.text().trim();
       if (text && text.length <= 12 && isChord(text, true)) {
@@ -127,9 +146,13 @@ function extractBestSongContainerText($, html) {
     '#tab-english',
     '#tab-tamil',
     '#tab-merged',
+    '.songpre',
+    '.songcont',
+    '.song-pre',
     '.chord-content',
     '.chord-tab-panel',
     '.chord-sheet',
+    '.entrybody',
     '.chordpro-content',
     '.song-chords',
     '.chords-container',
@@ -260,7 +283,7 @@ const TIME_SIG_REGEX = /^(?:[1-9]|1[0-2])\/(?:2|4|8|16)$/;
 const INSTRUMENT_TAB_HEADER_REGEX =
   /^(?:.+?\s+)?(?:Chords|Lyrics|Tabs|Song|Chord Chart|Sheet Music)(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i;
 const FOOTER_UI_STOP_REGEX =
-  /^(?:Your Account|Your Favourites|Your favorites|Interactive chord editor|Click a word|ChordPro source|Edit chords|Version history|Restricted \(copyright\)|Top Artists|Chords Z|Top Songs|Popular Songs|All Artists|Browse by|A B C D E F G|HIJKLMNOPQRSTUVWXYZ|Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:|Copyright\s*©|All rights reserved)\b/i;
+  /^(?:Your Account|Your Favourites|Your favorites|Interactive chord editor|Click a word|ChordPro source|Edit chords|Version history|Restricted \(copyright\)|Top Artists|Chords Z|Top Songs|Popular Songs|All Artists|Browse by|A B C D E F G|HIJKLMNOPQRSTUVWXYZ|Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:|Copyright\s*©|All rights reserved|Latest Songs|Churchspot Mobile App|Download from Google Playstore|Google Certified|No data collected|Creating UNLIMITED|Restore Purchase|Save songs for OFFLINE|Subscribe Now|No Thanks|No Ads)\b/i;
 
 /**
  * Post-processes raw text to strip trailing related songs, chromatic note scales, emojis, transpose ladders, and UI labels.
@@ -329,12 +352,32 @@ export function cleanExtractedSongText(text, metadata = {}) {
     }
 
     if (validSongLinesFound >= 8) {
-      if (/^(?:Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:|Copyright\s*©|All rights reserved)\b/i.test(trimmed)) {
+      if (/^(?:Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:|Copyright\s*©|All rights reserved|Latest Songs|Churchspot Mobile App|Download from Google Playstore)\b/i.test(trimmed)) {
         break;
       }
     }
 
     if (FOOTER_UI_STOP_REGEX.test(trimmed)) {
+      continue;
+    }
+
+    // Alphabet index charts or long letter sequences used for search navigation
+    if (trimmed.includes('அஆஇ') || trimmed.includes('ககாகிகீ') || (trimmed.length > 35 && !trimmed.includes(' ') && /[அ-ஹ]/.test(trimmed)) || /^(?:[A-Z]\s+){6,}[A-Z]$/i.test(trimmed)) {
+      continue;
+    }
+
+    // Top search buttons & tools
+    if (/^(?:Tamil Search|English Songs|Login|Chord Videos\*?|New Song Request\*?|PPT\*?|A\-|A\+|Tamil|English)$/i.test(trimmed)) {
+      continue;
+    }
+
+    // Standalone URLs on a single line
+    if (/^https?:\/\/[^\s]+$/i.test(trimmed)) {
+      continue;
+    }
+
+    // Marketing blurbs, subscription modals, and Play Store promos
+    if (/^(?:You can unlock some amazing features|If you are already subscribed|No Permissions Required|Small Size|Save songs for|Create UNLIMITED|Restore Purchase|Subscribe Now|No Thanks|No Ads|Google Certified|No data collected|Download from Google Playstore|Churchspot Mobile App)/i.test(trimmed)) {
       continue;
     }
 
@@ -368,6 +411,14 @@ export function cleanExtractedSongText(text, metadata = {}) {
       continue;
     }
 
+    // Combined Scale & Time Signature (e.g. "Eb | 3/4" or "Key: G | 4/4")
+    const scaleTimeMatch = trimmed.match(/^([A-G][#b]?(?:m|maj|min)?)\s*\|\s*((?:[1-9]|1[0-2])\/(?:2|4|8|16))$/i);
+    if (scaleTimeMatch) {
+      if (!metadata.originalKey) metadata.originalKey = scaleTimeMatch[1].toUpperCase();
+      if (!metadata.timeSignature) metadata.timeSignature = scaleTimeMatch[2];
+      continue;
+    }
+
     if (TIME_SIG_REGEX.test(trimmed)) {
       if (!metadata.timeSignature) metadata.timeSignature = trimmed;
       continue;
@@ -397,30 +448,38 @@ function extractMetadata($, sourceUrl) {
   let artist = '';
   let originalKey = null;
 
-  // A. Check JSON-LD
-  $('script[type="application/ld+json"]').each((_, el) => {
-    try {
-      const data = JSON.parse($(el).html() || '{}');
-      const items = Array.isArray(data) ? data : [data];
+  // A. Check dedicated song title elements first
+  const specificTitle = $('#song_title, .song_title, .song-title, h1.entry-title, h1.post-title').first().text().trim();
+  if (specificTitle) {
+    title = specificTitle;
+  }
 
-      for (const item of items) {
-        if (item.name && !title) title = item.name;
-        if (item.headline && !title) title = item.headline;
+  // B. Check JSON-LD
+  if (!title || !artist) {
+    $('script[type="application/ld+json"]').each((_, el) => {
+      try {
+        const data = JSON.parse($(el).html() || '{}');
+        const items = Array.isArray(data) ? data : [data];
 
-        if (item.byArtist) {
-          const by = item.byArtist;
-          artist = typeof by === 'string' ? by : (by.name || '');
-        } else if (item.author) {
-          const auth = item.author;
-          artist = typeof auth === 'string' ? auth : (auth.name || '');
+        for (const item of items) {
+          if (item.name && !title) title = item.name;
+          if (item.headline && !title) title = item.headline;
+
+          if (item.byArtist && !artist) {
+            const by = item.byArtist;
+            artist = typeof by === 'string' ? by : (by.name || '');
+          } else if (item.author && !artist) {
+            const auth = item.author;
+            artist = typeof auth === 'string' ? auth : (auth.name || '');
+          }
         }
+      } catch {
+        // Ignore invalid JSON-LD
       }
-    } catch {
-      // Ignore invalid JSON-LD
-    }
-  });
+    });
+  }
 
-  // B. Check Open Graph & Meta tags
+  // C. Check Open Graph & Meta tags
   if (!title) {
     title = $('meta[property="og:title"]').attr('content') ||
             $('meta[name="twitter:title"]').attr('content') ||
@@ -433,7 +492,7 @@ function extractMetadata($, sourceUrl) {
             $('meta[name="author"]').attr('content') || '';
   }
 
-  // C. Check <h1> or <title>
+  // D. Check <h1> or <title>
   if (!title) {
     const h1 = $('h1').first().text().trim();
     if (h1 && h1.length < 120) {
@@ -445,7 +504,7 @@ function extractMetadata($, sourceUrl) {
     title = $('title').text().trim();
   }
 
-  // D. Check dedicated artist elements if still missing
+  // E. Check dedicated artist elements if still missing
   if (!artist) {
     const artistCandidate = $(
       '.artist, .song-artist, .author, .composer, [itemprop="byArtist"], [itemprop="author"]'
@@ -455,14 +514,23 @@ function extractMetadata($, sourceUrl) {
     }
   }
 
-  // E. Check for Key in HTML text (e.g. "Key: G" or "Key of C" or "Scale: Dm")
-  const pageText = $('body').text();
-  const keyMatch = pageText.match(/\b(?:Key|Scale)(?:\s*:\s*|\s+of\s+)([A-G][#b]?(?:m|maj|min)?)\b/i);
-  if (keyMatch && keyMatch[1]) {
-    originalKey = keyMatch[1].toUpperCase();
+  // F. Check for combined Scale & Time in HTML text (e.g. "Eb | 3/4")
+  const scaleTimeText = $('.scaletime, [class*="scaletime"]').first().text().trim();
+  const scaleTimeMatch = scaleTimeText.match(/([A-G][#b]?(?:m|maj|min)?)\s*\|\s*((?:[1-9]|1[0-2])\/(?:2|4|8|16))/i);
+  if (scaleTimeMatch) {
+    originalKey = scaleTimeMatch[1].toUpperCase();
   }
 
-  // F. Clean up Title & Artist
+  // G. Check for Key in HTML text (e.g. "Key: G" or "Key of C" or "Scale: Dm")
+  if (!originalKey) {
+    const pageText = $('body').text();
+    const keyMatch = pageText.match(/\b(?:Key|Scale)(?:\s*:\s*|\s+of\s+)([A-G][#b]?(?:m|maj|min)?)\b/i);
+    if (keyMatch && keyMatch[1]) {
+      originalKey = keyMatch[1].toUpperCase();
+    }
+  }
+
+  // H. Clean up Title & Artist
   const cleaned = cleanTitleAndArtist(title, artist, sourceUrl);
   title = cleaned.title;
   artist = cleaned.artist;
@@ -535,7 +603,7 @@ function getNodeFormattedText($el, $) {
   const $clone = $el.clone();
   $clone.find('br, hr').replaceWith('\n');
 
-  $clone.find('p, div, li, tr, blockquote, section, article, h1, h2, h3, h4, h5, h6, pre').each((_, elem) => {
+  $clone.find('p, div, li, tr, blockquote, section, article, h1, h2, h3, h4, h5, h6, pre, samp, strong').each((_, elem) => {
     $(elem).prepend('\n').append('\n');
   });
 
