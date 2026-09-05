@@ -39,6 +39,20 @@ export default function SongSectionEditor({
     });
   };
 
+  const handleInsertRow = (targetIndex, type = 'chords') => {
+    const newRow = {
+      id: 'row_' + Date.now() + Math.random().toString(36).substring(2, 6),
+      type,
+      content: ''
+    };
+    const newRows = [...(section.rows || [])];
+    newRows.splice(targetIndex, 0, newRow);
+    onChange({
+      ...section,
+      rows: newRows
+    });
+  };
+
   const handleRowChange = (rowIndex, updatedRow) => {
     const newRows = [...(section.rows || [])];
     newRows[rowIndex] = updatedRow;
@@ -175,18 +189,55 @@ export default function SongSectionEditor({
             </div>
           </div>
         ) : (
-          (section.rows || []).map((row, rIndex) => (
-            <SongRowEditor
-              key={row.id || rIndex}
-              row={row}
-              index={rIndex}
-              totalRows={(section.rows || []).length}
-              onChange={(updated) => handleRowChange(rIndex, updated)}
-              onDelete={() => handleDeleteRow(rIndex)}
-              onMoveUp={() => handleMoveRow(rIndex, -1)}
-              onMoveDown={() => handleMoveRow(rIndex, 1)}
-            />
-          ))
+          <>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Insert at top:</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => handleInsertRow(0, 'chords')}
+                  style={{ fontSize: '0.72rem', padding: '1px 6px' }}
+                  title="Insert chords row at the very top"
+                >
+                  + Chords
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => handleInsertRow(0, 'lyrics')}
+                  style={{ fontSize: '0.72rem', padding: '1px 6px' }}
+                  title="Insert lyrics row at the very top"
+                >
+                  + Lyrics
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => handleInsertRow(0, 'lead')}
+                  style={{ fontSize: '0.72rem', padding: '1px 6px', color: '#b45309' }}
+                  title="Insert lead melody row at the very top"
+                >
+                  + Lead
+                </button>
+              </div>
+            </div>
+
+            {(section.rows || []).map((row, rIndex) => (
+              <SongRowEditor
+                key={row.id || rIndex}
+                row={row}
+                index={rIndex}
+                totalRows={(section.rows || []).length}
+                onChange={(updated) => handleRowChange(rIndex, updated)}
+                onDelete={() => handleDeleteRow(rIndex)}
+                onMoveUp={() => handleMoveRow(rIndex, -1)}
+                onMoveDown={() => handleMoveRow(rIndex, 1)}
+                onInsertBelow={(type) => handleInsertRow(rIndex + 1, type)}
+                onInsertAbove={(type) => handleInsertRow(rIndex, type)}
+              />
+            ))}
+          </>
         )}
       </div>
 

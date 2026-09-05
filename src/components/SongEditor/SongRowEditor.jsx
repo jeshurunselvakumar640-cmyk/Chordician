@@ -3,7 +3,9 @@ import {
   Trash2,
   ChevronUp,
   ChevronDown,
-  Sparkles
+  Sparkles,
+  Plus,
+  X
 } from 'lucide-react';
 import { ROW_TYPES } from '../../utils/musicConstants.js';
 import ChordHelper from './ChordHelper';
@@ -15,9 +17,12 @@ export default function SongRowEditor({
   onChange,
   onDelete,
   onMoveUp,
-  onMoveDown
+  onMoveDown,
+  onInsertBelow,
+  onInsertAbove
 }) {
   const [showHelper, setShowHelper] = useState(false);
+  const [showInsertMenu, setShowInsertMenu] = useState(false);
 
   const handleTypeChange = (e) => {
     onChange({
@@ -93,6 +98,23 @@ export default function SongRowEditor({
         </div>
 
         <div className="editor-row-actions">
+          {/* Plus icon to insert new row directly below */}
+          <button
+            type="button"
+            className={`btn-ghost editor-icon-btn ${showInsertMenu ? 'btn-primary' : ''}`}
+            onClick={() => setShowInsertMenu(!showInsertMenu)}
+            title="Insert row below (Chords, Lyrics, Lead notes...)"
+            aria-label="Insert row below"
+            style={{
+              color: showInsertMenu ? '#ffffff' : 'var(--color-primary)',
+              background: showInsertMenu ? 'var(--color-primary)' : 'rgba(99, 102, 241, 0.1)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '4px'
+            }}
+          >
+            <Plus size={16} />
+          </button>
+
           <button
             type="button"
             className="btn-ghost editor-icon-btn"
@@ -136,6 +158,100 @@ export default function SongRowEditor({
 
       {showHelper && canUseHelper && (
         <ChordHelper rowType={row.type} onInsert={handleInsertSnippet} />
+      )}
+
+      {/* Insert Row In-Between Panel */}
+      {showInsertMenu && (
+        <div
+          className="editor-insert-between-bar"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+            marginTop: '8px',
+            padding: '8px 12px',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%)',
+            border: '1.5px dashed var(--color-primary)',
+            borderRadius: 'var(--radius-md)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Plus size={14} /> Insert below:
+            </span>
+
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                onInsertBelow?.('chords');
+                setShowInsertMenu(false);
+              }}
+              style={{ fontSize: '0.78rem', padding: '3px 8px', fontWeight: '600' }}
+            >
+              + Chords
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                onInsertBelow?.('lyrics');
+                setShowInsertMenu(false);
+              }}
+              style={{ fontSize: '0.78rem', padding: '3px 8px', fontWeight: '600' }}
+            >
+              + Lyrics
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                onInsertBelow?.('lead');
+                setShowInsertMenu(false);
+              }}
+              style={{ fontSize: '0.78rem', padding: '3px 8px', color: '#b45309', fontWeight: '600' }}
+            >
+              + Lead
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                onInsertBelow?.('bass');
+                setShowInsertMenu(false);
+              }}
+              style={{ fontSize: '0.78rem', padding: '3px 8px', color: '#0369a1', fontWeight: '600' }}
+            >
+              + Bass
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                onInsertBelow?.('notes');
+                setShowInsertMenu(false);
+              }}
+              style={{ fontSize: '0.78rem', padding: '3px 8px', fontWeight: '600' }}
+            >
+              + Note
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setShowInsertMenu(false)}
+            style={{ fontSize: '0.75rem', padding: '2px 6px', color: 'var(--text-muted)' }}
+          >
+            ✕ Close
+          </button>
+        </div>
       )}
     </div>
   );
