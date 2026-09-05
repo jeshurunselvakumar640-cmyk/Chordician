@@ -34,6 +34,7 @@ import ConfirmModal from '../components/Modal/ConfirmModal';
 import BatchExportModal from '../components/Modal/BatchExportModal';
 import { formatMainStyleHighlight } from '../data/songStyles.js';
 import { transposeSong } from '../services/transposer.js';
+import { searchSongsWithFuzzy } from '../utils/fuzzySearch.js';
 
 export default function ThisSunday({ songs = [], isLoading = false }) {
   const navigate = useNavigate();
@@ -80,18 +81,25 @@ export default function ThisSunday({ songs = [], isLoading = false }) {
     return songs.filter(s => !songIds.includes(s.id));
   }, [songs, songIds]);
 
-  // Filtered available songs for modal picker
-  const filteredModalSongs = useMemo(() => {
-    return songs.filter(s => {
-      const matchSearch =
-        !modalSearch.trim() ||
-        (s.title || '').toLowerCase().includes(modalSearch.toLowerCase()) ||
-        (s.artist || '').toLowerCase().includes(modalSearch.toLowerCase());
-      const matchCat =
+  // Filtered available songs for modal picker with fuzzy search support
+  const { filteredModalSongs, modalDidYouMean, isModalFuzzyMatch } = useMemo(() => {
+    const baseList = songs.filter(s => {
+      return (
         modalCategory === 'ALL' ||
-        (s.category || '').toLowerCase() === modalCategory.toLowerCase();
-      return matchSearch && matchCat;
+        (s.category || '').toLowerCase() === modalCategory.toLowerCase()
+      );
     });
+
+    if (!modalSearch.trim()) {
+      return { filteredModalSongs: baseList, modalDidYouMean: null, isModalFuzzyMatch: false };
+    }
+
+    const searchResult = searchSongsWithFuzzy(baseList, modalSearch);
+    return {
+      filteredModalSongs: searchResult.results,
+      modalDidYouMean: searchResult.didYouMean,
+      isModalFuzzyMatch: searchResult.isFuzzyMatch
+    };
   }, [songs, modalSearch, modalCategory]);
 
   const daysUntilText = getDaysUntil(serviceDate);
@@ -522,6 +530,22 @@ export default function ThisSunday({ songs = [], isLoading = false }) {
                   </button>
                 ))}
               </div>
+
+              {isModalFuzzyMatch && modalDidYouMean && (
+                <div className="did-you-mean-banner did-you-mean-modal" style={{ margin: '8px 0 0 0' }}>
+                  <Sparkles size={14} className="did-you-mean-icon" />
+                  <span style={{ fontSize: '0.82rem' }}>Did you mean:</span>
+                  <button
+                    type="button"
+                    className="did-you-mean-btn"
+                    style={{ fontSize: '0.82rem', padding: '2px 8px' }}
+                    onClick={() => setModalSearch(modalDidYouMean)}
+                  >
+                    <strong>{modalDidYouMean}</strong>
+                  </button>
+                  <span>?</span>
+                </div>
+              )}
             </div>
 
             {/* Song Selection List */}

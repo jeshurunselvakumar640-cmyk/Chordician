@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { LayoutGrid, List, Heart, FileDown } from 'lucide-react';
+import { LayoutGrid, List, Heart, FileDown, Sparkles } from 'lucide-react';
 import SongCard from '../components/SongCard/SongCard';
 import SearchBar from '../components/SearchBar/SearchBar';
 import EmptyState from '../components/UI/EmptyState';
 import BatchExportModal from '../components/Modal/BatchExportModal';
 import { SongCardSkeleton } from '../components/UI/SkeletonLoader';
 import { getStoredViewMode, setStoredViewMode } from '../services/storage.js';
+import { searchSongsWithFuzzy } from '../utils/fuzzySearch.js';
 
 export default function Favorites({
   songs = [],
@@ -22,18 +23,17 @@ export default function Favorites({
     setStoredViewMode(mode);
   };
 
-  const favoriteSongs = useMemo(() => {
-    return songs
-      .filter((song) => song.favorite)
-      .filter((song) => {
-        if (!searchQuery.trim()) return true;
-        const q = searchQuery.toLowerCase().trim();
-        return (
-          (song.title || '').toLowerCase().includes(q) ||
-          (song.artist || '').toLowerCase().includes(q) ||
-          (song.category || '').toLowerCase().includes(q)
-        );
-      });
+  const { favoriteSongs, didYouMean, isFuzzyMatch } = useMemo(() => {
+    const baseFavorites = songs.filter((song) => song.favorite);
+    if (!searchQuery.trim()) {
+      return { favoriteSongs: baseFavorites, didYouMean: null, isFuzzyMatch: false };
+    }
+    const searchResult = searchSongsWithFuzzy(baseFavorites, searchQuery);
+    return {
+      favoriteSongs: searchResult.results,
+      didYouMean: searchResult.didYouMean,
+      isFuzzyMatch: searchResult.isFuzzyMatch
+    };
   }, [songs, searchQuery]);
 
   return (
@@ -98,6 +98,27 @@ export default function Favorites({
             onChange={setSearchQuery}
             placeholder="Search favorite songs..."
           />
+        </div>
+      )}
+
+      {/* "Did You Mean" Spelling Suggestion Banner */}
+      {isFuzzyMatch && didYouMean && (
+        <div className="did-you-mean-banner">
+          <div className="did-you-mean-content">
+            <Sparkles size={16} className="did-you-mean-icon" />
+            <span className="did-you-mean-text">
+              Showing results for similar spelling. Did you mean:{' '}
+            </span>
+            <button
+              type="button"
+              className="did-you-mean-btn"
+              onClick={() => setSearchQuery(didYouMean)}
+              title={`Search for "${didYouMean}"`}
+            >
+              <strong>{didYouMean}</strong>
+            </button>
+            <span className="did-you-mean-qm">?</span>
+          </div>
         </div>
       )}
 

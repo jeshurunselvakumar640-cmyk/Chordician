@@ -4,7 +4,8 @@ import {
   LayoutGrid,
   List,
   RotateCcw,
-  FileDown
+  FileDown,
+  Sparkles
 } from 'lucide-react';
 import SongCard from '../components/SongCard/SongCard';
 import SearchBar from '../components/SearchBar/SearchBar';
@@ -13,6 +14,7 @@ import BatchExportModal from '../components/Modal/BatchExportModal';
 import { SongCardSkeleton } from '../components/UI/SkeletonLoader';
 import { ALL_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../utils/musicConstants.js';
 import { getStoredViewMode, setStoredViewMode } from '../services/storage.js';
+import { searchSongsWithFuzzy } from '../utils/fuzzySearch.js';
 
 export default function Songs({
   songs = [],
@@ -83,57 +85,51 @@ export default function Songs({
     return counts;
   }, [songs]);
 
-  // Filter & Sort Songs
-  const filteredSongs = useMemo(() => {
-    return songs
-      .filter((song) => {
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
-          const matchTitle = (song.title || '').toLowerCase().includes(q);
-          const matchArtist = (song.artist || '').toLowerCase().includes(q);
-          const matchCategory = (song.category || '').toLowerCase().includes(q);
-          
-          const matchLyrics = (song.sections || []).some((sec) =>
-            (sec.rows || []).some((row) =>
-              row.type === 'lyrics' && (row.content || '').toLowerCase().includes(q)
-            )
-          );
+  // Filter & Sort Songs with Fuzzy Spell Resilience
+  const { filteredSongs, didYouMean, isFuzzyMatch } = useMemo(() => {
+    // 1. First filter by Key, Category, and Favorites
+    const baseList = songs.filter((song) => {
+      if (selectedKey !== 'ALL' && song.originalKey !== selectedKey) {
+        return false;
+      }
+      if (selectedCategory !== 'ALL' && (song.category || '').toLowerCase() !== selectedCategory.toLowerCase()) {
+        return false;
+      }
+      if (favoritesOnly && !song.favorite) {
+        return false;
+      }
+      return true;
+    });
 
-          if (!matchTitle && !matchArtist && !matchCategory && !matchLyrics) {
-            return false;
-          }
-        }
+    // 2. Perform exact or fuzzy search
+    let searchResult = { results: baseList, didYouMean: null, isFuzzyMatch: false };
+    if (searchQuery.trim()) {
+      searchResult = searchSongsWithFuzzy(baseList, searchQuery);
+    }
 
-        if (selectedKey !== 'ALL' && song.originalKey !== selectedKey) {
-          return false;
-        }
-
-        if (selectedCategory !== 'ALL' && (song.category || '').toLowerCase() !== selectedCategory.toLowerCase()) {
-          return false;
-        }
-
-        if (favoritesOnly && !song.favorite) {
-          return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'title_asc') {
-          return (a.title || '').localeCompare(b.title || '');
-        }
-        if (sortBy === 'artist_asc') {
-          return (a.artist || '').localeCompare(b.artist || '');
-        }
-        if (sortBy === 'created_desc') {
-          const dateA = new Date(a.createdAt || 0).getTime();
-          const dateB = new Date(b.createdAt || 0).getTime();
-          return dateB - dateA;
-        }
-        const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-        const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    // 3. Sort matching songs
+    const sorted = [...searchResult.results].sort((a, b) => {
+      if (sortBy === 'title_asc') {
+        return (a.title || '').localeCompare(b.title || '');
+      }
+      if (sortBy === 'artist_asc') {
+        return (a.artist || '').localeCompare(b.artist || '');
+      }
+      if (sortBy === 'created_desc') {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
         return dateB - dateA;
-      });
+      }
+      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+
+    return {
+      filteredSongs: sorted,
+      didYouMean: searchResult.didYouMean,
+      isFuzzyMatch: searchResult.isFuzzyMatch
+    };
   }, [songs, searchQuery, selectedKey, selectedCategory, favoritesOnly, sortBy]);
 
   const hasActiveFilters = searchQuery.trim() || selectedKey !== 'ALL' || selectedCategory !== 'ALL' || favoritesOnly;
@@ -304,6 +300,27 @@ export default function Songs({
           </div>
         )}
       </div>
+
+      {/* "Did You Mean" Spelling Suggestion Banner */}
+      {isFuzzyMatch && didYouMean && (
+        <div className="did-you-mean-banner">
+          <div className="did-you-mean-content">
+            <Sparkles size={16} className="did-you-mean-icon" />
+            <span className="did-you-mean-text">
+              Showing results for similar spelling. Did you mean:{' '}
+            </span>
+            <button
+              type="button"
+              className="did-you-mean-btn"
+              onClick={() => handleSearchChange(didYouMean)}
+              title={`Search for "${didYouMean}"`}
+            >
+              <strong>{didYouMean}</strong>
+            </button>
+            <span className="did-you-mean-qm">?</span>
+          </div>
+        </div>
+      )}
 
       {/* Songs Output */}
       {isLoading ? (

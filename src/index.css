@@ -6405,6 +6405,148 @@ button:disabled {
   margin-top: 4px;
 }
 
+/* ==========================================================================
+   DID YOU MEAN? & FUZZY SPELL SUGGESTION BANNER
+   ========================================================================== */
 
+.did-you-mean-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  border-radius: var(--radius-lg, 12px);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 50%, rgba(56, 189, 248, 0.05) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  box-shadow: 0 4px 16px -2px rgba(99, 102, 241, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  animation: didYouMeanFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
+@keyframes didYouMeanFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+.did-you-mean-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--text-main, #f8fafc);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.did-you-mean-icon {
+  color: #818cf8;
+  flex-shrink: 0;
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(129, 140, 248, 0.4));
+  }
+  50% {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 6px rgba(129, 140, 248, 0.8));
+  }
+}
+
+.did-you-mean-text {
+  color: var(--text-secondary, #cbd5e1);
+  font-weight: 500;
+}
+
+.did-you-mean-text em {
+  font-style: normal;
+  color: var(--text-muted, #94a3b8);
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.did-you-mean-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(139, 92, 246, 0.22) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  color: #a5b4fc;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-full, 9999px);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+
+.did-you-mean-btn:hover {
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
+}
+
+.did-you-mean-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.did-you-mean-qm {
+  font-weight: 700;
+  color: #818cf8;
+}
+
+.did-you-mean-modal {
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.82rem;
+  gap: 6px;
+}
+
+/* Light Mode Did You Mean Theme Overrides */
+:root[data-theme='light'] .did-you-mean-banner {
+  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 50%, #f0f9ff 100%);
+  border-color: #c7d2fe;
+  box-shadow: 0 4px 16px -2px rgba(99, 102, 241, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+:root[data-theme='light'] .did-you-mean-content {
+  color: #1e293b;
+}
+
+:root[data-theme='light'] .did-you-mean-icon {
+  color: #4f46e5;
+}
+
+:root[data-theme='light'] .did-you-mean-text {
+  color: #475569;
+}
+
+:root[data-theme='light'] .did-you-mean-btn {
+  background: #ffffff;
+  border-color: #818cf8;
+  color: #4338ca;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.15);
+}
+
+:root[data-theme='light'] .did-you-mean-btn:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+}
+
+:root[data-theme='light'] .did-you-mean-qm {
+  color: #4f46e5;
+}

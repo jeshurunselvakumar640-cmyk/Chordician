@@ -16,6 +16,7 @@ import KeyBadge from '../UI/KeyBadge';
 import { exportSongsToPDF } from '../../services/shareService.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { formatMainStyleHighlight } from '../../data/songStyles.js';
+import { searchSongsWithFuzzy } from '../../utils/fuzzySearch.js';
 
 export default function BatchExportModal({
   isOpen,
@@ -46,18 +47,25 @@ export default function BatchExportModal({
     }
   }, [isOpen, defaultSelectedIds, songs, subtitle]);
 
-  // Filter songs by search and category
-  const filteredSongs = useMemo(() => {
-    return songs.filter((s) => {
-      const matchSearch =
-        !searchQuery.trim() ||
-        (s.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (s.artist || '').toLowerCase().includes(searchQuery.toLowerCase());
-      const matchCat =
+  // Filter songs by search and category with fuzzy spell resilience
+  const { filteredSongs, didYouMean, isFuzzyMatch } = useMemo(() => {
+    const baseList = songs.filter((s) => {
+      return (
         selectedCategory === 'ALL' ||
-        (s.category || '').toLowerCase() === selectedCategory.toLowerCase();
-      return matchSearch && matchCat;
+        (s.category || '').toLowerCase() === selectedCategory.toLowerCase()
+      );
     });
+
+    if (!searchQuery.trim()) {
+      return { filteredSongs: baseList, didYouMean: null, isFuzzyMatch: false };
+    }
+
+    const searchResult = searchSongsWithFuzzy(baseList, searchQuery);
+    return {
+      filteredSongs: searchResult.results,
+      didYouMean: searchResult.didYouMean,
+      isFuzzyMatch: searchResult.isFuzzyMatch
+    };
   }, [songs, searchQuery, selectedCategory]);
 
   if (!isOpen) return null;
@@ -216,6 +224,23 @@ export default function BatchExportModal({
               ))}
             </div>
           </div>
+
+          {/* Did You Mean Suggestion Banner */}
+          {isFuzzyMatch && didYouMean && (
+            <div className="did-you-mean-banner did-you-mean-modal" style={{ margin: '6px 0 10px 0' }}>
+              <Sparkles size={14} className="did-you-mean-icon" />
+              <span style={{ fontSize: '0.82rem' }}>Did you mean:</span>
+              <button
+                type="button"
+                className="did-you-mean-btn"
+                style={{ fontSize: '0.82rem', padding: '2px 8px' }}
+                onClick={() => setSearchQuery(didYouMean)}
+              >
+                <strong>{didYouMean}</strong>
+              </button>
+              <span>?</span>
+            </div>
+          )}
 
           {/* Select / Deselect All Controls */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
