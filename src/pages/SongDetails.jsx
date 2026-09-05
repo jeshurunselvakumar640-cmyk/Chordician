@@ -17,13 +17,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
-  Share2
+  Share2,
+  Eye,
+  Crown
 } from 'lucide-react';
 import { getSongById } from '../firebase/songs.js';
 import { transposeSong } from '../services/transposer.js';
 import { formatStyleCode, formatMainStyleHighlight } from '../data/songStyles.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useThisSunday } from '../context/ThisSundayContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import KeyBadge from '../components/UI/KeyBadge';
 import TransposeBar from '../components/Transposer/TransposeBar';
 import SongViewer from '../components/SongView/SongViewer';
@@ -40,6 +43,7 @@ export default function SongDetails({
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { canEdit } = useAuth();
 
   const [song, setSong] = useState(() => {
     return cachedSongs.find((s) => s.id === id) || null;
@@ -251,36 +255,50 @@ export default function SongDetails({
             <span className="hide-mobile">Share</span>
           </button>
 
-          <Link
-            to={`/songs/${id}/edit`}
-            className="btn btn-secondary"
-            title="Edit song structure"
-            style={{ minWidth: '40px', minHeight: '40px', padding: '8px 12px' }}
-          >
-            <Edit2 size={16} />
-            <span className="hide-mobile">Edit</span>
-          </Link>
+          {canEdit ? (
+            <>
+              <Link
+                to={`/songs/${id}/edit`}
+                className="btn btn-secondary"
+                title="Edit song structure"
+                style={{ minWidth: '40px', minHeight: '40px', padding: '8px 12px' }}
+              >
+                <Edit2 size={16} />
+                <span className="hide-mobile">Edit</span>
+              </Link>
 
-          <button
-            type="button"
-            className="btn btn-secondary hide-mobile"
-            onClick={handlePrint}
-            title="Print chord chart"
-            style={{ minWidth: '40px', minHeight: '40px', padding: '8px' }}
-          >
-            <Printer size={16} />
-          </button>
+              <button
+                type="button"
+                className="btn btn-secondary hide-mobile"
+                onClick={handlePrint}
+                title="Print chord chart"
+                style={{ minWidth: '40px', minHeight: '40px', padding: '8px' }}
+              >
+                <Printer size={16} />
+              </button>
 
-          <button
-            type="button"
-            className="btn btn-ghost text-danger"
-            onClick={() => setIsDeleteModalOpen(true)}
-            title="Delete this song"
-            aria-label="Delete song"
-            style={{ minWidth: '40px', minHeight: '40px', padding: '8px' }}
-          >
-            <Trash2 size={18} />
-          </button>
+              <button
+                type="button"
+                className="btn btn-ghost text-danger"
+                onClick={() => setIsDeleteModalOpen(true)}
+                title="Delete this song"
+                aria-label="Delete song"
+                style={{ minWidth: '40px', minHeight: '40px', padding: '8px' }}
+              >
+                <Trash2 size={18} />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-secondary hide-mobile"
+              onClick={handlePrint}
+              title="Print chord chart"
+              style={{ minWidth: '40px', minHeight: '40px', padding: '8px' }}
+            >
+              <Printer size={16} />
+            </button>
+          )}
         </div>
       </div>
 

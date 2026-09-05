@@ -4,6 +4,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { PWAProvider } from './context/PWAContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { ThisSundayProvider } from './context/ThisSundayContext';
+import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout/Layout';
 import ReloadPrompt from './components/UI/ReloadPrompt';
 import Dashboard from './pages/Dashboard';
@@ -17,6 +18,8 @@ import EditSong from './pages/EditSong';
 import ImportSong from './pages/ImportSong';
 import Settings from './pages/Settings';
 import ConfirmModal from './components/Modal/ConfirmModal';
+import AuthModal from './components/Modal/AuthModal';
+import ProtectedRoute from './components/UI/ProtectedRoute';
 import { getSongs, deleteSong, toggleFavoriteSong } from './firebase/songs';
 
 function AppContent() {
@@ -184,13 +187,28 @@ function AppContent() {
           />
           <Route
             path="/songs/:id/edit"
-            element={<EditSong onSongUpdated={fetchAllSongs} />}
+            element={
+              <ProtectedRoute title="Edit Song (Owner Access Only)">
+                <EditSong onSongUpdated={fetchAllSongs} />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/add-song"
-            element={<AddSong onSongAdded={fetchAllSongs} />}
+            element={
+              <ProtectedRoute title="Add New Song (Owner Access Only)">
+                <AddSong onSongAdded={fetchAllSongs} />
+              </ProtectedRoute>
+            }
           />
-          <Route path="/import" element={<ImportSong />} />
+          <Route
+            path="/import"
+            element={
+              <ProtectedRoute title="AI Screenshot Import (Owner Access Only)">
+                <ImportSong />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/settings"
             element={<Settings onSongAdded={fetchAllSongs} />}
@@ -210,6 +228,9 @@ function AppContent() {
         onCancel={() => setSongToDelete(null)}
       />
 
+      {/* User Authentication Modal (Sign In, Sign Up, Forgot Password) */}
+      <AuthModal />
+
       {/* PWA Update & Status Notifications */}
       <ReloadPrompt />
     </>
@@ -221,11 +242,13 @@ export default function App() {
     <ThemeProvider>
       <PWAProvider>
         <ToastProvider>
-          <ThisSundayProvider>
-            <BrowserRouter>
-              <AppContent />
-            </BrowserRouter>
-          </ThisSundayProvider>
+          <AuthProvider>
+            <ThisSundayProvider>
+              <BrowserRouter>
+                <AppContent />
+              </BrowserRouter>
+            </ThisSundayProvider>
+          </AuthProvider>
         </ToastProvider>
       </PWAProvider>
     </ThemeProvider>

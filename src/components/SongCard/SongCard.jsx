@@ -17,6 +17,7 @@ import ShareModal from '../Modal/ShareModal';
 import { formatMainStyleHighlight } from '../../data/songStyles.js';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function SongCard({
   song,
@@ -30,6 +31,7 @@ export default function SongCard({
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { isInThisSunday, toggleSong } = useThisSunday();
+  const { canEdit } = useAuth();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const { id, title, artist, originalKey, category, style, favorite, sections = [], updatedAt } = song;
 
@@ -191,28 +193,32 @@ export default function SongCard({
                 <span className="hide-extra-small">Open</span>
               </button>
 
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/songs/${id}/edit`);
-                }}
-                title="Edit song"
-                aria-label="Edit song"
-              >
-                <Edit2 size={15} />
-              </button>
+              {canEdit && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/songs/${id}/edit`);
+                    }}
+                    title="Edit song"
+                    aria-label="Edit song"
+                  >
+                    <Edit2 size={15} />
+                  </button>
 
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm text-danger"
-                onClick={handleDeleteClick}
-                title="Delete song"
-                aria-label="Delete song"
-              >
-                <Trash2 size={15} />
-              </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm text-danger"
+                    onClick={handleDeleteClick}
+                    title="Delete song"
+                    aria-label="Delete song"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
@@ -355,28 +361,32 @@ export default function SongCard({
                 <Share2 size={15} />
               </button>
 
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/songs/${id}/edit`);
-                }}
-                title="Edit song"
-                aria-label="Edit song"
-              >
-                <Edit2 size={15} />
-              </button>
+              {canEdit && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/songs/${id}/edit`);
+                    }}
+                    title="Edit song"
+                    aria-label="Edit song"
+                  >
+                    <Edit2 size={15} />
+                  </button>
 
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm text-danger"
-                onClick={handleDeleteClick}
-                title="Delete song"
-                aria-label="Delete song"
-              >
-                <Trash2 size={15} />
-              </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm text-danger"
+                    onClick={handleDeleteClick}
+                    title="Delete song"
+                    aria-label="Delete song"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </>
+              )}
 
               <button
                 type="button"

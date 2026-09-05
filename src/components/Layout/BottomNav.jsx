@@ -9,10 +9,19 @@ import {
   Settings
 } from 'lucide-react';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function BottomNav({ totalSongs = 0, favoriteCount = 0 }) {
   const { songIds } = useThisSunday();
   const thisSundayCount = songIds ? songIds.length : 0;
+  const { canEdit, openAuthModal } = useAuth();
+
+  const handleCenterClick = (e) => {
+    if (!canEdit) {
+      e.preventDefault();
+      openAuthModal('login');
+    }
+  };
 
   return (
     <nav className="bottom-nav" aria-label="Mobile bottom navigation">
@@ -45,6 +54,7 @@ export default function BottomNav({ totalSongs = 0, favoriteCount = 0 }) {
         to="/add-song"
         className="bottom-nav-add-btn"
         aria-label="Add new song"
+        onClick={handleCenterClick}
       >
         <div className="bottom-nav-add-icon">
           <Plus size={24} />

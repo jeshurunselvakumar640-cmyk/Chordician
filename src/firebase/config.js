@@ -1,26 +1,46 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc
+} from 'firebase/firestore';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  updatePassword,
+  onAuthStateChanged,
+  signInAnonymously
+} from 'firebase/auth';
 
 /**
- * Firebase Client SDK Configuration for pianonotes-1bd94
+ * Firebase Client SDK Configuration for authentication-2708d
  */
 const firebaseConfig = {
-  apiKey: "AIzaSyB_4AdPTivYU0wmU-w8ra2MsM6oPJr9SYs",
-  authDomain: "pianonotes-1bd94.firebaseapp.com",
-  projectId: "pianonotes-1bd94",
-  storageBucket: "pianonotes-1bd94.firebasestorage.app",
-  messagingSenderId: "540352442337",
-  appId: "1:540352442337:web:65e3bc6eccc26058656ca0",
-  measurementId: "G-M9KMH89JQ8"
+  apiKey: "AIzaSyCaxt7IyXNAm5N41gWX0AJA3iJsq9_O-Cc",
+  authDomain: "authentication-2708d.firebaseapp.com",
+  projectId: "authentication-2708d",
+  storageBucket: "authentication-2708d.firebasestorage.app",
+  messagingSenderId: "101323771563",
+  appId: "1:101323771563:web:68073d61462d90b39471ee",
+  measurementId: "G-9P985Z2SN2"
 };
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore
-const db = getFirestore(app);
+let db = null;
+try {
+  db = getFirestore(app);
+} catch (e) {
+  console.warn("Firestore initialization notice:", e);
+}
 
 // Initialize Firebase Auth
 const auth = getAuth(app);
@@ -68,5 +88,22 @@ export function ensureAuthReady() {
   return authInitPromise;
 }
 
-export { app, db, auth, analytics, firebaseConfig };
+export {
+  app,
+  auth,
+  db,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  updatePassword,
+  onAuthStateChanged,
+  analytics,
+  firebaseConfig
+};
 
+export default app;

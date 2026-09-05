@@ -11,10 +11,12 @@ import {
   Piano,
   CalendarDays,
   Download,
+  Crown,
   X
 } from 'lucide-react';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
 import { usePWA } from '../../context/PWAContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function Sidebar({
   mobileOpen = false,
@@ -26,6 +28,7 @@ export default function Sidebar({
   const { songIds } = useThisSunday();
   const thisSundayCount = songIds ? songIds.length : 0;
   const { canInstall, installApp } = usePWA();
+  const { canEdit, openAuthModal } = useAuth();
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -52,7 +55,7 @@ export default function Sidebar({
     { to: '/songs', label: 'My Songs', icon: <Music size={19} />, badge: totalSongs > 0 ? totalSongs : null },
     { to: '/favorites', label: 'Favorites', icon: <Heart size={19} />, badge: favoriteCount > 0 ? favoriteCount : null },
     { to: '/recent', label: 'Recently Added', icon: <Clock size={19} /> },
-    { to: '/import', label: 'AI Import', icon: <Sparkles size={19} /> },
+    ...(canEdit ? [{ to: '/import', label: 'AI Import', icon: <Sparkles size={19} /> }] : []),
     { to: '/settings', label: 'Settings', icon: <Settings size={19} /> }
   ];
 
@@ -125,15 +128,35 @@ export default function Sidebar({
               Install App
             </button>
           )}
-          <Link
-            to="/add-song"
-            className="btn btn-primary"
-            onClick={onCloseMobile}
-            style={{ width: '100%' }}
-          >
-            <Plus size={18} />
-            Add Song
-          </Link>
+
+          {canEdit ? (
+            <Link
+              to="/add-song"
+              className="btn btn-primary"
+              onClick={onCloseMobile}
+              style={{ width: '100%' }}
+            >
+              <Plus size={18} />
+              Add Song
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                if (onCloseMobile) onCloseMobile();
+                openAuthModal('login');
+              }}
+              style={{
+                width: '100%',
+                fontSize: '0.82rem',
+                border: '1px dashed var(--color-border)',
+                color: 'var(--color-text-muted)'
+              }}
+            >
+              <Crown size={14} style={{ color: '#f59e0b' }} /> Sign in as Owner
+            </button>
+          )}
         </div>
       </aside>
     </>

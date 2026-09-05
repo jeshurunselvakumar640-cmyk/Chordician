@@ -4,13 +4,14 @@ import {
   Menu,
   Plus,
   Sparkles,
-  User,
   Search,
   X,
   Piano
 } from 'lucide-react';
 import SearchBar from '../SearchBar/SearchBar';
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
+import UserProfileDropdown from './UserProfileDropdown';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Header({
   onToggleMobile,
@@ -19,6 +20,7 @@ export default function Header({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { canEdit } = useAuth();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const handleSearchSubmit = (val) => {
@@ -71,33 +73,33 @@ export default function Header({
           {mobileSearchOpen ? <X size={18} /> : <Search size={18} />}
         </button>
 
-        {/* Desktop Quick Actions */}
-        <Link
-          to="/import"
-          className="btn btn-secondary btn-sm desktop-only-action"
-          title="Import song from screenshot with AI"
-        >
-          <Sparkles size={15} style={{ color: 'var(--color-primary)' }} />
-          AI Import
-        </Link>
+        {/* Desktop Quick Actions (Owner Only) */}
+        {canEdit && (
+          <>
+            <Link
+              to="/import"
+              className="btn btn-secondary btn-sm desktop-only-action"
+              title="Import song from screenshot with AI"
+            >
+              <Sparkles size={15} style={{ color: 'var(--color-primary)' }} />
+              AI Import
+            </Link>
 
-        <Link
-          to="/add-song"
-          className="btn btn-primary btn-sm desktop-only-action"
-          title="Create a new structured song"
-        >
-          <Plus size={16} />
-          Add Song
-        </Link>
+            <Link
+              to="/add-song"
+              className="btn btn-primary btn-sm desktop-only-action"
+              title="Create a new structured song"
+            >
+              <Plus size={16} />
+              Add Song
+            </Link>
+          </>
+        )}
 
         <ThemeToggle />
 
-        <div
-          className="user-profile-badge desktop-only-action"
-          title="Pianist Profile"
-        >
-          <User size={18} />
-        </div>
+        {/* User Profile / Auth Dropdown */}
+        <UserProfileDropdown />
       </div>
 
       {/* Mobile Expandable Search Bar */}

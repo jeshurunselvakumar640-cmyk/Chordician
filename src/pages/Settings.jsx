@@ -13,18 +13,26 @@ import {
   RefreshCw,
   Lock,
   Download,
-  Smartphone
+  Smartphone,
+  Crown,
+  User,
+  LogIn,
+  LogOut,
+  Eye
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePWA } from '../context/PWAContext.jsx';
+import { useAuth, OWNER_EMAIL, OWNER_DEFAULT_NAME } from '../context/AuthContext.jsx';
 import { addSong, runFirebaseDiagnostics } from '../firebase/songs.js';
+import { firebaseConfig } from '../firebase/config.js';
 import { DEMO_PRESETS } from '../services/aiSongParser.js';
 
 export default function Settings({ onSongAdded }) {
   const { theme, setTheme, isDark } = useTheme();
   const { showToast } = useToast();
   const { canInstall, isStandalone, installApp } = usePWA();
+  const { currentUser, userProfile, isOwner, canEdit, logout, openAuthModal } = useAuth();
 
   const [copiedRules, setCopiedRules] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -37,18 +45,19 @@ export default function Settings({ onSongAdded }) {
 service cloud.firestore {
   match /databases/{database}/documents {
     // Chordician Songbook Root Collection
+    // Public visitors can view all songs; Only Owner can create, edit, or delete
     match /songs/{songId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null && (
+        request.auth.token.email == '${OWNER_EMAIL}' ||
+        request.auth.token.email_verified == true
+      );
     }
-  }
-}`;
 
-  const authenticatedRulesText = `rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // If Firebase Auth is enabled in Firebase Console
-    match /songs/{songId} {
-      allow read, write: if request.auth != null;
+    // User Profiles
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }`;
@@ -95,13 +104,106 @@ service cloud.firestore {
     }
   };
 
+  const displayName = userProfile?.displayName || currentUser?.displayName || (isOwner ? OWNER_DEFAULT_NAME : 'Musician');
+
   return (
     <div className="settings-page">
       <div className="settings-header">
         <h1 className="settings-title">Settings</h1>
         <p className="settings-subtitle">
-          Customize your Chordician experience, view database configurations, and test Firebase connectivity.
+          Manage your account permissions, appearance, database configurations, and test Firebase connectivity.
         </p>
+      </div>
+
+      {/* Account & Permissions Section */}
+      <div className="card settings-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <h2 className="settings-section-title" style={{ marginBottom: 0 }}>
+            {isOwner ? (
+              <Crown size={20} style={{ color: '#f59e0b' }} />
+            ) : (
+              <User size={20} style={{ color: 'var(--color-primary)' }} />
+            )}
+            Account & Permissions
+          </h2>
+
+          <div>
+            {currentUser ? (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={async () => {
+                  await logout();
+                  showToast('Signed out successfully', 'info');
+                }}
+                style={{ color: '#ef4444' }}
+              >
+                <LogOut size={14} />
+                <span>Sign Out</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => openAuthModal('login')}
+              >
+                <LogIn size={14} />
+                <span>Sign In as Owner</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="settings-db-info-list" style={{ marginTop: '16px' }}>
+          <div className="settings-db-row">
+            <span className="settings-db-label">Status:</span>
+            <span className="settings-db-status">
+              {currentUser ? '✓ Authenticated' : '👁️ View-Only Guest'}
+            </span>
+          </div>
+
+          {currentUser && (
+            <>
+              <div className="settings-db-row">
+                <span className="settings-db-label">Account Name:</span>
+                <strong className="settings-db-val">{displayName}</strong>
+              </div>
+              <div className="settings-db-row">
+                <span className="settings-db-label">Email:</span>
+                <strong className="font-mono-input settings-db-val">{currentUser.email}</strong>
+              </div>
+            </>
+          )}
+
+          <div className="settings-db-row">
+            <span className="settings-db-label">Access Level:</span>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                background: isOwner ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.1)',
+                color: isOwner ? '#f59e0b' : 'var(--color-primary)',
+                fontWeight: 600,
+                fontSize: '0.82rem'
+              }}
+            >
+              {isOwner ? (
+                <>
+                  <Crown size={14} />
+                  <span>👑 Full Owner Access (Add, Edit, Import, Delete)</span>
+                </>
+              ) : (
+                <>
+                  <Eye size={14} />
+                  <span>👁️ View-Only Mode (All notes & chord sheets viewable)</span>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Theme & Appearance */}
@@ -167,7 +269,7 @@ service cloud.firestore {
         <div className="settings-db-info-list" style={{ marginTop: '16px' }}>
           <div className="settings-db-row">
             <span className="settings-db-label">Project ID:</span>
-            <strong className="font-mono-input settings-db-val">pianonotes-1bd94</strong>
+            <strong className="font-mono-input settings-db-val">{firebaseConfig.projectId}</strong>
           </div>
           <div className="settings-db-row">
             <span className="settings-db-label">Firestore Path:</span>
@@ -212,24 +314,26 @@ service cloud.firestore {
           </div>
         )}
 
-        {/* Sample Seed Button */}
-        <div className="settings-seed-box">
-          <div>
-            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Sample Song Library</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              Populate Firestore with sample hymn, jazz, and ballad chord sheets.
+        {/* Sample Seed Button (Only for Owner) */}
+        {canEdit && (
+          <div className="settings-seed-box">
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Sample Song Library</div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                Populate Firestore with sample hymn, jazz, and ballad chord sheets.
+              </div>
             </div>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleSeedSamples}
+              disabled={isSeeding}
+            >
+              <Piano size={16} />
+              <span>{isSeeding ? 'Seeding...' : 'Add Sample Songs'}</span>
+            </button>
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={handleSeedSamples}
-            disabled={isSeeding}
-          >
-            <Piano size={16} />
-            <span>{isSeeding ? 'Seeding...' : 'Add Sample Songs'}</span>
-          </button>
-        </div>
+        )}
       </div>
 
       {/* PWA & App Installation */}
@@ -287,7 +391,7 @@ service cloud.firestore {
         </div>
 
         <p className="settings-rules-desc">
-          To allow Chordician to read and write songs in your Firestore database (Project: <strong className="font-mono-input">pianonotes-1bd94</strong>), paste these rules into your <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> tab:
+          To allow Chordician to read and write songs in your Firestore database (Project: <strong className="font-mono-input">{firebaseConfig.projectId}</strong>), paste these rules into your <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> tab:
         </p>
 
         <pre className="settings-rules-pre">
@@ -297,4 +401,3 @@ service cloud.firestore {
     </div>
   );
 }
-
