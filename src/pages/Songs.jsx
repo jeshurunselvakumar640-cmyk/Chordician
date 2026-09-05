@@ -3,11 +3,13 @@ import { useSearchParams } from 'react-router-dom';
 import {
   LayoutGrid,
   List,
-  RotateCcw
+  RotateCcw,
+  FileDown
 } from 'lucide-react';
 import SongCard from '../components/SongCard/SongCard';
 import SearchBar from '../components/SearchBar/SearchBar';
 import EmptyState from '../components/UI/EmptyState';
+import BatchExportModal from '../components/Modal/BatchExportModal';
 import { SongCardSkeleton } from '../components/UI/SkeletonLoader';
 import { ALL_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../utils/musicConstants.js';
 import { getStoredViewMode, setStoredViewMode } from '../services/storage.js';
@@ -28,6 +30,7 @@ export default function Songs({
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState('updated_desc');
   const [viewMode, setViewMode] = useState(() => getStoredViewMode());
+  const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
 
   // Keep state in sync with URL search params
   useEffect(() => {
@@ -144,26 +147,41 @@ export default function Songs({
           </p>
         </div>
 
-        {/* View Toggle */}
-        <div className="view-mode-toggle-group">
-          <button
-            type="button"
-            className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => handleViewModeChange('grid')}
-            title="Grid view"
-            aria-label="Grid view"
-          >
-            <LayoutGrid size={16} />
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => handleViewModeChange('list')}
-            title="List view"
-            aria-label="List view"
-          >
-            <List size={16} />
-          </button>
+        {/* View Toggle & Batch PDF Export */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {songs.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setIsBatchExportOpen(true)}
+              title="Select songs to export as PDF"
+              style={{ padding: '6px 12px', fontSize: '0.84rem' }}
+            >
+              <FileDown size={15} />
+              <span className="hide-mobile">Export PDF</span>
+            </button>
+          )}
+
+          <div className="view-mode-toggle-group">
+            <button
+              type="button"
+              className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => handleViewModeChange('grid')}
+              title="Grid view"
+              aria-label="Grid view"
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => handleViewModeChange('list')}
+              title="List view"
+              aria-label="List view"
+            >
+              <List size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -335,6 +353,15 @@ export default function Songs({
           ))}
         </div>
       )}
+
+      {/* Multi-Song Batch Export PDF Modal */}
+      <BatchExportModal
+        isOpen={isBatchExportOpen}
+        onClose={() => setIsBatchExportOpen(false)}
+        songs={filteredSongs.length > 0 ? filteredSongs : songs}
+        title="Export Songs to PDF"
+        subtitle="Chordician Personal Songbook"
+      />
     </div>
   );
 }

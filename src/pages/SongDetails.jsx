@@ -16,7 +16,8 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Check
+  Check,
+  Share2
 } from 'lucide-react';
 import { getSongById } from '../firebase/songs.js';
 import { transposeSong } from '../services/transposer.js';
@@ -28,6 +29,7 @@ import TransposeBar from '../components/Transposer/TransposeBar';
 import SongViewer from '../components/SongView/SongViewer';
 import PerformanceModal from '../components/Modal/PerformanceModal';
 import ConfirmModal from '../components/Modal/ConfirmModal';
+import ShareModal from '../components/Modal/ShareModal';
 import { SongDetailsSkeleton } from '../components/UI/SkeletonLoader';
 
 export default function SongDetails({
@@ -47,6 +49,7 @@ export default function SongDetails({
 
   const [activeKey, setActiveKey] = useState('C');
   const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -221,6 +224,17 @@ export default function SongDetails({
             style={{ minWidth: '40px', minHeight: '40px', padding: '8px' }}
           >
             <Heart size={20} fill={favorite ? 'currentColor' : 'none'} />
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setIsShareModalOpen(true)}
+            title="Share song details, chords, or export PDF"
+            style={{ minWidth: '40px', minHeight: '40px', padding: '8px 12px' }}
+          >
+            <Share2 size={16} />
+            <span className="hide-mobile">Share</span>
           </button>
 
           <Link
@@ -409,6 +423,14 @@ export default function SongDetails({
         currentIndex={inSundaySetlist ? adjacentInfo.currentIndex : -1}
         onNextSong={handleNextSong}
         onPrevSong={handlePrevSong}
+      />
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        song={song}
+        initialKey={activeKey}
       />
 
       {/* Delete Confirmation Modal */}

@@ -22,7 +22,8 @@ import {
   Gauge,
   Layers,
   ArrowLeft,
-  RotateCcw
+  RotateCcw,
+  FileDown
 } from 'lucide-react';
 import { useThisSunday } from '../context/ThisSundayContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -30,6 +31,7 @@ import KeyBadge from '../components/UI/KeyBadge';
 import EmptyState from '../components/UI/EmptyState';
 import PerformanceModal from '../components/Modal/PerformanceModal';
 import ConfirmModal from '../components/Modal/ConfirmModal';
+import BatchExportModal from '../components/Modal/BatchExportModal';
 import { formatMainStyleHighlight } from '../data/songStyles.js';
 import { transposeSong } from '../services/transposer.js';
 
@@ -58,6 +60,9 @@ export default function ThisSunday({ songs = [], isLoading = false }) {
 
   // Clear confirm modal state
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+
+  // Batch Export PDF modal state
+  const [isExportPDFOpen, setIsExportPDFOpen] = useState(false);
 
   // Performance / Play Mode state
   const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
@@ -226,6 +231,16 @@ export default function ThisSunday({ songs = [], isLoading = false }) {
 
           {setlistSongs.length > 0 && (
             <>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsExportPDFOpen(true)}
+                title="Export entire Sunday setlist as a single PDF"
+              >
+                <FileDown size={16} />
+                <span className="hide-mobile">Export PDF</span>
+              </button>
+
               <button
                 type="button"
                 className="btn btn-secondary hide-mobile"
@@ -586,6 +601,16 @@ export default function ThisSunday({ songs = [], isLoading = false }) {
           </div>
         </div>
       )}
+
+      {/* Batch Export PDF Modal for Sunday Setlist */}
+      <BatchExportModal
+        isOpen={isExportPDFOpen}
+        onClose={() => setIsExportPDFOpen(false)}
+        songs={setlistSongs}
+        title="Export This Sunday Setlist as PDF"
+        defaultSelectedIds={songIds}
+        subtitle={`Sunday Service — ${formatServiceDate(serviceDate)}`}
+      />
 
       {/* Clear Setlist Confirmation Modal */}
       <ConfirmModal

@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { LayoutGrid, List, Heart } from 'lucide-react';
+import { LayoutGrid, List, Heart, FileDown } from 'lucide-react';
 import SongCard from '../components/SongCard/SongCard';
 import SearchBar from '../components/SearchBar/SearchBar';
 import EmptyState from '../components/UI/EmptyState';
+import BatchExportModal from '../components/Modal/BatchExportModal';
 import { SongCardSkeleton } from '../components/UI/SkeletonLoader';
 import { getStoredViewMode, setStoredViewMode } from '../services/storage.js';
 
@@ -14,6 +15,7 @@ export default function Favorites({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState(() => getStoredViewMode());
+  const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
 
   const handleViewModeChange = (mode) => {
     setViewMode(mode);
@@ -50,26 +52,41 @@ export default function Favorites({
           </div>
         </div>
 
-        {/* View Toggle */}
-        <div className="view-mode-toggle-group">
-          <button
-            type="button"
-            className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => handleViewModeChange('grid')}
-            title="Grid view"
-            aria-label="Grid view"
-          >
-            <LayoutGrid size={16} />
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => handleViewModeChange('list')}
-            title="List view"
-            aria-label="List view"
-          >
-            <List size={16} />
-          </button>
+        {/* View Toggle & Batch Export */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {favoriteSongs.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setIsBatchExportOpen(true)}
+              title="Export favorite songs as PDF"
+              style={{ padding: '6px 12px', fontSize: '0.84rem' }}
+            >
+              <FileDown size={15} />
+              <span className="hide-mobile">Export PDF</span>
+            </button>
+          )}
+
+          <div className="view-mode-toggle-group">
+            <button
+              type="button"
+              className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => handleViewModeChange('grid')}
+              title="Grid view"
+              aria-label="Grid view"
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => handleViewModeChange('list')}
+              title="List view"
+              aria-label="List view"
+            >
+              <List size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -128,6 +145,15 @@ export default function Favorites({
           ))}
         </div>
       )}
+
+      {/* Batch Export PDF Modal for Favorites */}
+      <BatchExportModal
+        isOpen={isBatchExportOpen}
+        onClose={() => setIsBatchExportOpen(false)}
+        songs={favoriteSongs}
+        title="Export Favorite Songs to PDF"
+        subtitle="Chordician Favorite Songs"
+      />
     </div>
   );
 }

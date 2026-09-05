@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, BookOpen, Edit2, Trash2, Music, Sliders, CalendarDays } from 'lucide-react';
+import { Heart, BookOpen, Edit2, Trash2, Music, Sliders, CalendarDays, Share2 } from 'lucide-react';
 import KeyBadge from '../UI/KeyBadge';
+import ShareModal from '../Modal/ShareModal';
 import { formatMainStyleHighlight } from '../../data/songStyles.js';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -15,6 +16,7 @@ export default function SongCard({
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { isInThisSunday, toggleSong } = useThisSunday();
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const { id, title, artist, originalKey, category, style, favorite, sections = [], updatedAt } = song;
 
   const isSunday = isInThisSunday(id);
@@ -98,6 +100,19 @@ export default function SongCard({
             <span className="hide-extra-small">{isSunday ? 'Sunday' : '+ Sunday'}</span>
           </button>
 
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsShareOpen(true);
+            }}
+            title="Share song details, chords, or PDF"
+            aria-label="Share song"
+          >
+            <Share2 size={15} />
+          </button>
+
           <Link
             to={`/songs/${id}`}
             className="btn btn-secondary btn-sm"
@@ -128,6 +143,13 @@ export default function SongCard({
             <Trash2 size={15} />
           </button>
         </div>
+
+        {/* Share Modal for List Mode */}
+        <ShareModal
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+          song={song}
+        />
       </div>
     );
   }
@@ -197,6 +219,19 @@ export default function SongCard({
         </span>
 
         <div className="song-card-action-group">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsShareOpen(true);
+            }}
+            title="Share song details, chords, or PDF"
+            aria-label="Share song"
+          >
+            <Share2 size={15} />
+          </button>
+
           <Link
             to={`/songs/${id}/edit`}
             className="btn btn-ghost btn-sm"
@@ -227,6 +262,13 @@ export default function SongCard({
           </Link>
         </div>
       </div>
+
+      {/* Share Modal for Grid Mode */}
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        song={song}
+      />
     </div>
   );
 }
