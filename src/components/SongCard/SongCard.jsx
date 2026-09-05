@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, BookOpen, Edit2, Trash2, Music, Sliders } from 'lucide-react';
+import { Heart, BookOpen, Edit2, Trash2, Music, Sliders, CalendarDays } from 'lucide-react';
 import KeyBadge from '../UI/KeyBadge';
 import { formatMainStyleHighlight } from '../../data/songStyles.js';
+import { useThisSunday } from '../../context/ThisSundayContext.jsx';
+import { useToast } from '../../context/ToastContext.jsx';
 
 export default function SongCard({
   song,
@@ -11,7 +13,21 @@ export default function SongCard({
   onDeleteRequest
 }) {
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { isInThisSunday, toggleSong } = useThisSunday();
   const { id, title, artist, originalKey, category, style, favorite, sections = [], updatedAt } = song;
+
+  const isSunday = isInThisSunday(id);
+
+  const handleSundayToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const added = toggleSong(id);
+    showToast(
+      added ? `Added "${title}" to This Sunday` : `Removed "${title}" from This Sunday`,
+      added ? 'success' : 'info'
+    );
+  };
 
   const handleFavoriteClick = (e) => {
     e.preventDefault();
@@ -70,6 +86,18 @@ export default function SongCard({
             </span>
           )}
 
+          <button
+            type="button"
+            className={`btn btn-sm ${isSunday ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={handleSundayToggle}
+            title={isSunday ? 'In This Sunday setlist (click to remove)' : 'Add to This Sunday setlist'}
+            aria-label="Toggle This Sunday"
+            style={{ padding: '6px 10px' }}
+          >
+            <CalendarDays size={14} />
+            <span className="hide-extra-small">{isSunday ? 'Sunday' : '+ Sunday'}</span>
+          </button>
+
           <Link
             to={`/songs/${id}`}
             className="btn btn-secondary btn-sm"
@@ -112,15 +140,28 @@ export default function SongCard({
           <p className="song-card-artist">{artist || 'Unknown Artist'}</p>
         </div>
 
-        <button
-          type="button"
-          className={`btn-icon-favorite song-card-fav-btn ${favorite ? 'favorited' : ''}`}
-          onClick={handleFavoriteClick}
-          title={favorite ? 'Remove from favorites' : 'Add to favorites'}
-          aria-label="Toggle favorite"
-        >
-          <Heart size={22} fill={favorite ? 'currentColor' : 'none'} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            type="button"
+            className={`btn btn-icon-sm ${isSunday ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={handleSundayToggle}
+            title={isSunday ? 'In This Sunday setlist (click to remove)' : 'Add to This Sunday setlist'}
+            aria-label="Toggle This Sunday"
+            style={{ width: '32px', height: '32px', padding: 0 }}
+          >
+            <CalendarDays size={16} />
+          </button>
+
+          <button
+            type="button"
+            className={`btn-icon-favorite song-card-fav-btn ${favorite ? 'favorited' : ''}`}
+            onClick={handleFavoriteClick}
+            title={favorite ? 'Remove from favorites' : 'Add to favorites'}
+            aria-label="Toggle favorite"
+          >
+            <Heart size={22} fill={favorite ? 'currentColor' : 'none'} />
+          </button>
+        </div>
       </div>
 
       <div className="song-card-badges">

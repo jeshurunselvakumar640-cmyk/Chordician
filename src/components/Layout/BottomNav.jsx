@@ -2,13 +2,18 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
+  CalendarDays,
   Music,
   Plus,
   Heart,
   Settings
 } from 'lucide-react';
+import { useThisSunday } from '../../context/ThisSundayContext.jsx';
 
 export default function BottomNav({ totalSongs = 0, favoriteCount = 0 }) {
+  const { songIds } = useThisSunday();
+  const thisSundayCount = songIds ? songIds.length : 0;
+
   return (
     <nav className="bottom-nav" aria-label="Mobile bottom navigation">
       <NavLink
@@ -19,6 +24,31 @@ export default function BottomNav({ totalSongs = 0, favoriteCount = 0 }) {
       >
         <LayoutDashboard size={20} />
         <span className="bottom-nav-label">Home</span>
+      </NavLink>
+
+      <NavLink
+        to="/this-sunday"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        aria-label="This Sunday"
+      >
+        <div className="bottom-nav-icon-wrapper">
+          <CalendarDays size={20} />
+          {thisSundayCount > 0 && (
+            <span className="bottom-nav-badge">{thisSundayCount}</span>
+          )}
+        </div>
+        <span className="bottom-nav-label">Sunday</span>
+      </NavLink>
+
+      {/* Highlighted Center Add Action */}
+      <NavLink
+        to="/add-song"
+        className="bottom-nav-add-btn"
+        aria-label="Add new song"
+      >
+        <div className="bottom-nav-add-icon">
+          <Plus size={24} />
+        </div>
       </NavLink>
 
       <NavLink
@@ -33,17 +63,6 @@ export default function BottomNav({ totalSongs = 0, favoriteCount = 0 }) {
           )}
         </div>
         <span className="bottom-nav-label">Songs</span>
-      </NavLink>
-
-      {/* Highlighted Center Add Action */}
-      <NavLink
-        to="/add-song"
-        className="bottom-nav-add-btn"
-        aria-label="Add new song"
-      >
-        <div className="bottom-nav-add-icon">
-          <Plus size={24} />
-        </div>
       </NavLink>
 
       <NavLink

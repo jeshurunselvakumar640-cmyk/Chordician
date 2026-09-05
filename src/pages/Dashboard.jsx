@@ -9,12 +9,15 @@ import {
   Sparkles,
   ArrowRight,
   Globe,
-  Layers
+  Layers,
+  CalendarDays,
+  Play
 } from 'lucide-react';
 import SongCard from '../components/SongCard/SongCard';
 import EmptyState from '../components/UI/EmptyState';
 import { StatsSkeleton, SongCardSkeleton } from '../components/UI/SkeletonLoader';
 import { PRIMARY_LANGUAGES } from '../utils/musicConstants.js';
+import { useThisSunday } from '../context/ThisSundayContext.jsx';
 
 export default function Dashboard({
   songs = [],
@@ -23,6 +26,13 @@ export default function Dashboard({
   onDeleteRequest
 }) {
   const [selectedLanguage, setSelectedLanguage] = useState('ALL');
+  const { songIds, serviceDate, formatServiceDate, getDaysUntil, getDaysUntilNumber } = useThisSunday();
+
+  const daysUntil = getDaysUntilNumber(serviceDate);
+  const daysUntilText = getDaysUntil(serviceDate);
+  const sundaySongs = useMemo(() => {
+    return (songIds || []).map((id) => songs.find((s) => s.id === id)).filter(Boolean);
+  }, [songIds, songs]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -92,6 +102,144 @@ export default function Dashboard({
             <span>Add Song</span>
           </Link>
         </div>
+      </div>
+
+      {/* This Sunday Live Worship Setlist Widget */}
+      <div
+        className="card this-sunday-dashboard-widget"
+        style={{
+          marginBottom: '28px',
+          padding: '20px 24px',
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%)',
+          border: '1px solid rgba(139, 92, 246, 0.25)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)'
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px',
+            marginBottom: sundaySongs.length > 0 ? '16px' : 0
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: 'var(--radius-lg)',
+                background: 'linear-gradient(135deg, var(--color-primary) 0%, #a855f7 100%)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+              }}
+            >
+              <CalendarDays size={24} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: '700', margin: 0 }}>This Sunday's Service</h2>
+                <span className="badge badge-primary" style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
+                  {formatServiceDate(serviceDate)}
+                </span>
+                {daysUntilText && daysUntil >= 0 && (
+                  <span
+                    className={`badge ${daysUntil === 0 ? 'badge-success' : 'badge-meta'}`}
+                    style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                  >
+                    {daysUntilText}
+                  </span>
+                )}
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                {sundaySongs.length > 0
+                  ? `${sundaySongs.length} ${sundaySongs.length === 1 ? 'song' : 'songs'} selected for worship • Auto-expires after Sunday`
+                  : 'No songs selected for this Sunday yet. Plan your worship setlist!'}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {sundaySongs.length > 0 && (
+              <Link
+                to={`/songs/${sundaySongs[0].id}`}
+                className="btn btn-primary"
+                style={{ padding: '8px 16px', fontSize: '0.875rem' }}
+              >
+                <Play size={16} fill="currentColor" />
+                <span>Start Service</span>
+              </Link>
+            )}
+            <Link
+              to="/this-sunday"
+              className={`btn ${sundaySongs.length > 0 ? 'btn-secondary' : 'btn-primary'}`}
+              style={{ padding: '8px 16px', fontSize: '0.875rem' }}
+            >
+              <span>{sundaySongs.length > 0 ? 'Manage Setlist' : '+ Plan This Sunday'}</span>
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+        </div>
+
+        {sundaySongs.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              paddingTop: '12px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+            }}
+          >
+            {sundaySongs.map((song, index) => (
+              <Link
+                key={song.id}
+                to={`/songs/${song.id}`}
+                className="card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 14px',
+                  whiteSpace: 'nowrap',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-elevated, var(--bg-surface))',
+                  border: '1px solid var(--border-color)',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  transition: 'all var(--transition-fast)'
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    color: 'var(--color-primary)',
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    background: 'rgba(99, 102, 241, 0.15)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {index + 1}
+                </span>
+                <span style={{ fontWeight: '600', fontSize: '0.875rem' }}>{song.title}</span>
+                <span className="badge badge-key" style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
+                  {song.originalKey || 'C'}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Language Categories Quick Hub */}

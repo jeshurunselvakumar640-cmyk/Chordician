@@ -12,12 +12,17 @@ import {
   Clock,
   Gauge,
   FileText,
-  User
+  User,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Check
 } from 'lucide-react';
 import { getSongById } from '../firebase/songs.js';
 import { transposeSong } from '../services/transposer.js';
 import { formatStyleCode, formatMainStyleHighlight } from '../data/songStyles.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { useThisSunday } from '../context/ThisSundayContext.jsx';
 import KeyBadge from '../components/UI/KeyBadge';
 import TransposeBar from '../components/Transposer/TransposeBar';
 import SongViewer from '../components/SongView/SongViewer';
@@ -87,6 +92,30 @@ export default function SongDetails({
     return transposeSong(song, activeKey || song.originalKey || 'C');
   }, [song, activeKey]);
 
+  const { 
+    isInThisSunday, 
+    toggleSong, 
+    getAdjacentSongs, 
+    serviceDate, 
+    formatServiceDate 
+  } = useThisSunday();
+
+  const isSelectedForSunday = song ? isInThisSunday(song.id) : false;
+  const adjacentInfo = song ? getAdjacentSongs(song.id, cachedSongs) : null;
+  const inSundaySetlist = Boolean(adjacentInfo && adjacentInfo.currentIndex !== -1);
+
+  const handleNextSong = () => {
+    if (adjacentInfo?.nextSong) {
+      navigate(`/songs/${adjacentInfo.nextSong.id}`);
+    }
+  };
+
+  const handlePrevSong = () => {
+    if (adjacentInfo?.prevSong) {
+      navigate(`/songs/${adjacentInfo.prevSong.id}`);
+    }
+  };
+
   const handleFavoriteClick = async () => {
     if (!song) return;
     const newStatus = !song.favorite;
@@ -151,6 +180,27 @@ export default function SongDetails({
         </button>
 
         <div className="song-details-action-group">
+          {/* This Sunday Setlist Quick Toggle */}
+          <button
+            type="button"
+            className={`btn ${isSelectedForSunday ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => {
+              if (song) {
+                const added = toggleSong(song.id);
+                showToast(
+                  added ? `Added "${song.title}" to This Sunday` : `Removed "${song.title}" from This Sunday`,
+                  added ? 'success' : 'info'
+                );
+              }
+            }}
+            title={isSelectedForSunday ? 'In This Sunday setlist' : 'Add to This Sunday setlist'}
+            aria-label="Toggle This Sunday"
+            style={{ minWidth: '40px', minHeight: '40px', padding: '8px 12px' }}
+          >
+            <CalendarDays size={16} />
+            <span className="hide-mobile">{isSelectedForSunday ? 'In This Sunday' : '+ This Sunday'}</span>
+          </button>
+
           {/* Performance Mode (Highlighted for Pianist) */}
           <button
             type="button"
@@ -205,6 +255,68 @@ export default function SongDetails({
           </button>
         </div>
       </div>
+
+      {/* This Sunday Worship Setlist Flow Bar */}
+      {inSundaySetlist && (
+        <div 
+          className="card this-sunday-flow-banner"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px',
+            marginBottom: '16px',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%)',
+            border: '1px solid rgba(139, 92, 246, 0.3)',
+            borderRadius: 'var(--radius-lg)',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="badge badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <CalendarDays size={13} />
+              This Sunday
+            </span>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Song <strong>{adjacentInfo.currentIndex + 1}</strong> of <strong>{adjacentInfo.total}</strong> ({formatServiceDate(serviceDate)})
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handlePrevSong}
+              disabled={!adjacentInfo.prevSong}
+              title={adjacentInfo.prevSong ? `Previous: ${adjacentInfo.prevSong.title}` : 'No previous song'}
+            >
+              <ChevronLeft size={16} />
+              <span className="hide-mobile">Previous</span>
+            </button>
+
+            <Link
+              to="/this-sunday"
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+              title="View full Sunday setlist"
+            >
+              View Setlist
+            </Link>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleNextSong}
+              disabled={!adjacentInfo.nextSong}
+              title={adjacentInfo.nextSong ? `Next: ${adjacentInfo.nextSong.title}` : 'No next song'}
+            >
+              <span className="hide-mobile">Next</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Unified Modern Song Header Card */}
       <div className="card song-details-header-card">
@@ -293,6 +405,10 @@ export default function SongDetails({
         onClose={() => setIsPerformanceOpen(false)}
         transposedSong={transposedSong}
         onChangeKey={setActiveKey}
+        setlistSongs={inSundaySetlist ? adjacentInfo.setlistSongs : []}
+        currentIndex={inSundaySetlist ? adjacentInfo.currentIndex : -1}
+        onNextSong={handleNextSong}
+        onPrevSong={handlePrevSong}
       />
 
       {/* Delete Confirmation Modal */}

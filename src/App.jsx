@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
+import { ThisSundayProvider } from './context/ThisSundayContext';
 import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard';
+import ThisSunday from './pages/ThisSunday';
 import Songs from './pages/Songs';
 import Favorites from './pages/Favorites';
 import Recent from './pages/Recent';
@@ -127,6 +129,15 @@ function AppContent() {
             }
           />
           <Route
+            path="/this-sunday"
+            element={
+              <ThisSunday
+                songs={songs}
+                isLoading={isLoading}
+              />
+            }
+          />
+          <Route
             path="/songs"
             element={
               <Songs
@@ -204,9 +215,11 @@ export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
+        <ThisSundayProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </ThisSundayProvider>
       </ToastProvider>
     </ThemeProvider>
   );

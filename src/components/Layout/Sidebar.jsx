@@ -9,8 +9,10 @@ import {
   Plus,
   Sparkles,
   Piano,
+  CalendarDays,
   X
 } from 'lucide-react';
+import { useThisSunday } from '../../context/ThisSundayContext.jsx';
 
 export default function Sidebar({
   mobileOpen = false,
@@ -19,6 +21,8 @@ export default function Sidebar({
   favoriteCount = 0
 }) {
   const location = useLocation();
+  const { songIds } = useThisSunday();
+  const thisSundayCount = songIds ? songIds.length : 0;
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -41,6 +45,7 @@ export default function Sidebar({
 
   const navItems = [
     { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={19} /> },
+    { to: '/this-sunday', label: 'This Sunday', icon: <CalendarDays size={19} />, badge: thisSundayCount > 0 ? thisSundayCount : null },
     { to: '/songs', label: 'My Songs', icon: <Music size={19} />, badge: totalSongs > 0 ? totalSongs : null },
     { to: '/favorites', label: 'Favorites', icon: <Heart size={19} />, badge: favoriteCount > 0 ? favoriteCount : null },
     { to: '/recent', label: 'Recently Added', icon: <Clock size={19} /> },

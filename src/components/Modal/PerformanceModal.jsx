@@ -9,7 +9,10 @@ import {
   Minus,
   Type,
   Music,
-  Sliders
+  Sliders,
+  ChevronLeft,
+  ChevronRight,
+  ListMusic
 } from 'lucide-react';
 import TransposeBar from '../Transposer/TransposeBar';
 import SectionViewer from '../SongView/SectionViewer';
@@ -19,7 +22,11 @@ export default function PerformanceModal({
   isOpen,
   onClose,
   transposedSong,
-  onChangeKey
+  onChangeKey,
+  setlistSongs = [],
+  currentIndex = 0,
+  onNextSong,
+  onPrevSong
 }) {
   const [fontSize, setFontSize] = useState('large'); // 'small', 'normal', 'large', 'xlarge'
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -28,6 +35,10 @@ export default function PerformanceModal({
 
   const scrollContainerRef = useRef(null);
   const animationFrameRef = useRef(null);
+
+  const hasSetlist = Array.isArray(setlistSongs) && setlistSongs.length > 1;
+  const canGoPrev = hasSetlist && currentIndex > 0 && typeof onPrevSong === 'function';
+  const canGoNext = hasSetlist && currentIndex < setlistSongs.length - 1 && typeof onNextSong === 'function';
 
   // Handle Fullscreen toggle
   const toggleFullscreen = () => {
@@ -48,7 +59,7 @@ export default function PerformanceModal({
     }
   };
 
-  // Keyboard Shortcuts (Esc to exit, Space to toggle auto-scroll)
+  // Keyboard Shortcuts (Esc to exit, Space to toggle auto-scroll, [ / ] or Left/Right for song nav)
   useEffect(() => {
     if (!isOpen) return;
 
@@ -58,12 +69,18 @@ export default function PerformanceModal({
       } else if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
         e.preventDefault();
         setIsScrolling((prev) => !prev);
+      } else if ((e.key === '[' || (e.altKey && e.key === 'ArrowLeft')) && canGoPrev) {
+        e.preventDefault();
+        onPrevSong();
+      } else if ((e.key === ']' || (e.altKey && e.key === 'ArrowRight')) && canGoNext) {
+        e.preventDefault();
+        onNextSong();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, canGoPrev, canGoNext, onPrevSong, onNextSong]);
 
   // Auto-scroll loop
   useEffect(() => {
@@ -199,6 +216,41 @@ export default function PerformanceModal({
               </div>
             )}
           </div>
+
+          {/* Setlist Previous & Next Song Navigation */}
+          {hasSetlist && (
+            <div className="perf-control-group perf-setlist-nav-group" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={onPrevSong}
+                disabled={!canGoPrev}
+                title="Previous song in setlist (Keyboard: [ or Alt+Left)"
+                aria-label="Previous song"
+                style={{ padding: '4px 8px' }}
+              >
+                <ChevronLeft size={16} />
+                <span className="hide-mobile">Prev</span>
+              </button>
+
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0 4px', color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+                {currentIndex + 1}/{setlistSongs.length}
+              </span>
+
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={onNextSong}
+                disabled={!canGoNext}
+                title="Next song in setlist (Keyboard: ] or Alt+Right)"
+                aria-label="Next song"
+                style={{ padding: '4px 8px' }}
+              >
+                <span className="hide-mobile">Next</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right Tools (Fullscreen & Exit) */}
@@ -227,7 +279,7 @@ export default function PerformanceModal({
       </div>
 
       {/* Main Performance Sheet (Scalable Responsive Typography) */}
-      <div className={`performance-content perf-font-${fontSize}`}>
+      <div className={`performance-content perf-font-${fontSize}`} style={{ paddingBottom: hasSetlist ? '80px' : '40px' }}>
         {sections.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
             <Music size={40} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
@@ -241,6 +293,54 @@ export default function PerformanceModal({
           </div>
         )}
       </div>
+
+      {/* Floating Bottom Setlist Navigator Bar */}
+      {hasSetlist && (
+        <div className="perf-floating-setlist-bar" style={{
+          position: 'fixed',
+          bottom: '18px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-focus)',
+          borderRadius: '30px',
+          padding: '6px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4)',
+          zIndex: 100,
+          backdropFilter: 'blur(12px)'
+        }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onPrevSong}
+            disabled={!canGoPrev}
+            style={{ borderRadius: '20px', padding: '5px 12px' }}
+            title="Go to previous song in setlist"
+          >
+            <ChevronLeft size={16} />
+            <span>Prev</span>
+          </button>
+
+          <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+            Song {currentIndex + 1} of {setlistSongs.length}
+          </span>
+
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={onNextSong}
+            disabled={!canGoNext}
+            style={{ borderRadius: '20px', padding: '5px 12px' }}
+            title="Go to next song in setlist"
+          >
+            <span>Next</span>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
