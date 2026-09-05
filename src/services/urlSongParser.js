@@ -54,6 +54,49 @@ export const SAMPLE_URL_PRESETS = [
     }
   },
   {
+    id: 'aaraathippaen_sample',
+    title: 'Aaraathippaen Naan Aaraathippaen (TamilChristianSongs.in)',
+    url: 'https://tamilchristiansongs.in/chords/aaraathippaen-naan-aaraathippaen/',
+    description: 'Fr. S.J. Berchmans classic in F Major with complete 7 verses and accurate chords',
+    mockData: {
+      title: 'Aaraathippaen Naan Aaraathippaen',
+      artist: 'Fr. S.J. Berchmans',
+      originalKey: 'F',
+      category: 'Worship',
+      style: {
+        category: 'Indian',
+        name: 'Dandiya',
+        churchStyleNumber: '096',
+        keyboardStyleNumber: '200'
+      },
+      tempo: 105,
+      timeSignature: '4/4',
+      notes: 'Imported from URL: https://tamilchristiansongs.in/chords/aaraathippaen-naan-aaraathippaen/',
+      sections: [
+        {
+          id: 'sec_1',
+          name: 'Verse 1',
+          rows: [
+            { id: 'r_1_1', type: 'chords', content: 'F       A         C7        F   C             C7           F' },
+            { id: 'r_1_2', type: 'lyrics', content: 'AaraathiPpaen Naan AaraathipPaen Aanndavar YesuVai AaraathipPaen' },
+            { id: 'r_1_3', type: 'chords', content: 'F                             C7 Bb                    F' },
+            { id: 'r_1_4', type: 'lyrics', content: 'Vallavarae Ummai Aaraathippaen Nallavarae Ummai AaraathiPpaen...aaraathippaen' },
+            { id: 'r_1_5', type: 'chords', content: 'F                               C7   C             C7           F' },
+            { id: 'r_1_6', type: 'lyrics', content: 'Parisuththa Ullaththodu AaraathiPpaen Panninthu KuniNthu AaraathiPpaen...aaraathippaen' },
+            { id: 'r_1_7', type: 'chords', content: 'F                            C7 C          C7           F' },
+            { id: 'r_1_8', type: 'lyrics', content: 'Aaviyilae Ummai Aaraathippaen Unnmaiyilae UmMai AaraathipPaen...aaraathippaen' },
+            { id: 'r_1_9', type: 'chords', content: 'F                           C7 C            C7           F' },
+            { id: 'r_1_10', type: 'lyrics', content: 'Thootharkalodu Aaraathippaen Sthoththira PaliYodu AaraathiPpaen...aaraathippaen' },
+            { id: 'r_1_11', type: 'chords', content: 'F                              C7 C            C7          F' },
+            { id: 'r_1_12', type: 'lyrics', content: 'Kaannpavarai Naan Aaraathippaen Kaappavarai Naan AaraathippaeN...aaraathippaen' },
+            { id: 'r_1_13', type: 'chords', content: 'F                             C7  C              C7           F' },
+            { id: 'r_1_14', type: 'lyrics', content: 'Vennnnaatai Anninthu AaraathipPaen Kuruththolai AeNthi AaraathiPpaen...aaraathippaen' }
+          ]
+        }
+      ]
+    }
+  },
+  {
     id: 'amazing_grace_url',
     title: 'Amazing Grace (Classic Hymn)',
     url: 'https://hymnary.org/text/amazing_grace_how_sweet_the_sound',
