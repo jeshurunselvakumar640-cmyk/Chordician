@@ -223,6 +223,37 @@ const firstLyricRow = allRows.find(r => r.type === 'lyrics');
 assert(firstLyricRow && !firstLyricRow.content.includes('[]'), 'First lyric row has no empty brackets');
 assert(firstLyricRow.content.includes('AaraathiPpaen Naan'), 'First lyric contains correct words');
 
+// Test 12: Emoji & Waste Text Purge Test
+console.log('\n--- Test 12: Full Emoji & Web Junk Purge ---');
+const t12Raw = `🎵🎶🎸 [Chorus] ✝️
+E                  A
+Kaun Hai, Kaun Hai Rajao Ka Raja 🙏
+E                  A
+Kaun Hai, Kaun Hai Duniya Ka ❤️
+Badhshah 👑
+F#m             B
+Yeshu Hai Uska  Naam ⭐
+F#m              B
+Yeshu Hai Uska  Naam 🔔
+                 E  E/G#  A  B
+Toh Karo Jai Jai Kar 🎉
+
+Interactive chord editor
+Leave a Reply
+Recent Posts
+You May Also Like`;
+
+const t12Result = parseSmartPaste(t12Raw);
+assert(t12Result.success, 'Test 12 smart paste succeeded');
+const t12AllRows = t12Result.song.sections.flatMap(s => s.rows);
+const emojiRegex = /[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}]/u;
+const rowsWithEmojis = t12AllRows.filter(r => emojiRegex.test(r.content));
+assertEqual(rowsWithEmojis.length, 0, 'Zero emojis present in all generated rows');
+
+// Verify junk was stripped
+const junkPresent = t12AllRows.some(r => /Interactive chord editor|Leave a Reply|Recent Posts|You May Also Like/i.test(r.content));
+assert(!junkPresent, 'Website footer junk properly stopped and stripped');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);

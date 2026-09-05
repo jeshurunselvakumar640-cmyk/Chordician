@@ -73,8 +73,8 @@ OUTPUT FORMAT: Return ONLY valid JSON matching this schema:
 }`;
 
 // Cache the fastest working model to eliminate retry overhead on subsequent imports
-let cachedFastestModel = 'gemini-3.6-flash';
-const FAST_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+let cachedFastestModel = 'gemini-2.5-flash';
+const FAST_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
 
 /**
  * Safely parses JSON with auto-repair for trailing brackets/quotes
@@ -183,12 +183,20 @@ ${trimmedInput}
   throw lastError || new Error('Failed to reconstruct song with Chordex AI.');
 }
 
+function removeEmojis(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str.replace(
+    /[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]/gu,
+    ''
+  );
+}
+
 /**
- * Cleans any residual glued chord prefixes from lyric words
+ * Cleans any residual glued chord prefixes, emojis, or empty brackets from lyric words
  */
 function cleanLyricString(lyrics, chords = []) {
   if (!lyrics) return '';
-  let clean = lyrics.trim();
+  let clean = removeEmojis(lyrics).trim();
 
   // Remove bracketed notation like [Dm] and empty anchor brackets [] from lyrics
   clean = clean.replace(/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/g, '').replace(/\[\s*\]|\(\s*\)/g, '').trim();

@@ -21,7 +21,10 @@ export function cleanDom($) {
     '.breadcrumb, .breadcrumbs, .menu, .navigation, #wpadminbar, ' +
     '.transpose, .transpose-keys, .key-selector, .keys-list, .pitch-list, #transpose, ' +
     '.transpose-controls, .chord-switcher, .scale-list, .c-transpose, .transpose-bar, ' +
-    '.key-changer, .chords-controls, .song-meta-box, .song-toolbar, .key-buttons, .scale-selector'
+    '.key-changer, .chords-controls, .song-meta-box, .song-toolbar, .key-buttons, .scale-selector, ' +
+    '.related-posts, .related-songs, .related-articles, .related_posts, .yarpp-related, ' +
+    '.interactive-editor, .chordpro-editor, .account-menu, .user-favorites, .user-profile, ' +
+    '.widget, .widget-area, .author-bio, .post-author, .post-navigation, .entry-meta, .meta-info'
   ).remove();
 
   formatInlineChordElements($);
@@ -40,6 +43,8 @@ export function formatInlineChordElements($) {
     const lyric = $ruby.text().trim();
     if (chord && isChord(chord, true)) {
       $ruby.replaceWith(`[${chord}]${lyric}`);
+    } else {
+      $ruby.replaceWith(lyric);
     }
   });
 
@@ -56,6 +61,8 @@ export function formatInlineChordElements($) {
       const chordText = ($el.attr('data-chord') || $el.text() || '').trim();
       if (chordText && chordText.length <= 14 && isChord(chordText, true)) {
         $el.replaceWith(`[${chordText}]`);
+      } else {
+        $el.remove();
       }
     });
   }
@@ -66,6 +73,8 @@ export function formatInlineChordElements($) {
       const text = $el.text().trim();
       if (text && text.length <= 12 && isChord(text, true)) {
         $el.replaceWith(`[${text}]`);
+      } else if (!text || text.length === 0) {
+        $el.remove();
       }
     }
   });

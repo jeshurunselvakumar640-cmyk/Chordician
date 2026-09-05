@@ -19,7 +19,7 @@ import { removeEmojis } from './lyricDetector.js';
  * }}
  */
 export function tokenizeLine(rawLine) {
-  const line = removeEmojis(rawLine);
+  let line = removeEmojis(rawLine);
   const trimmed = line.trim();
 
   if (!trimmed) {
@@ -32,8 +32,8 @@ export function tokenizeLine(rawLine) {
     };
   }
 
-  // 1. Check for Inline Bracketed Chords e.g. [Dm]Amazing Grace [Am]How sweet
-  if (/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/.test(line)) {
+  // 1. Check for Inline Bracketed Chords e.g. [Dm]Amazing Grace [Am]How sweet or empty brackets []
+  if (/\[.*?\]|\(.*?\)/.test(line)) {
     return parseInlineBracketedLine(line);
   }
 
@@ -115,6 +115,10 @@ function parseInlineBracketedLine(line) {
             position: reconstructedLyrics.length,
             confidence: 0.99
           });
+          i = closeIdx + 1;
+          continue;
+        } else if (candidate.length === 0) {
+          // Empty bracket marker like [] or [ ] or ()
           i = closeIdx + 1;
           continue;
         }

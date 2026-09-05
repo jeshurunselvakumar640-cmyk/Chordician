@@ -29,7 +29,10 @@ export function extractSongFromHtml(html, sourceUrl = '') {
     '.breadcrumb, .breadcrumbs, .menu, .navigation, #wpadminbar, ' +
     '.transpose, .transpose-keys, .key-selector, .keys-list, .pitch-list, #transpose, ' +
     '.transpose-controls, .chord-switcher, .scale-list, .c-transpose, .transpose-bar, ' +
-    '.key-changer, .chords-controls, .song-meta-box, .song-toolbar, .key-buttons, .scale-selector'
+    '.key-changer, .chords-controls, .song-meta-box, .song-toolbar, .key-buttons, .scale-selector, ' +
+    '.related-posts, .related-songs, .related-articles, .related_posts, .yarpp-related, ' +
+    '.interactive-editor, .chordpro-editor, .account-menu, .user-favorites, .user-profile, ' +
+    '.widget, .widget-area, .author-bio, .post-author, .post-navigation, .entry-meta, .meta-info'
   ).remove();
 
   // 5. Smart Song Content Container Detection with Scoring
@@ -69,6 +72,8 @@ function formatInlineChordElements($) {
     const lyric = $ruby.text().trim();
     if (chord && isChord(chord, true)) {
       $ruby.replaceWith(`[${chord}]${lyric}`);
+    } else {
+      $ruby.replaceWith(lyric);
     }
   });
 
@@ -86,6 +91,9 @@ function formatInlineChordElements($) {
       const chordText = ($el.attr('data-chord') || $el.text() || '').trim();
       if (chordText && chordText.length <= 14 && isChord(chordText, true)) {
         $el.replaceWith(`[${chordText}]`);
+      } else {
+        // Remove empty marker spans so they don't produce []
+        $el.remove();
       }
     });
   }
@@ -97,6 +105,8 @@ function formatInlineChordElements($) {
       const text = $el.text().trim();
       if (text && text.length <= 12 && isChord(text, true)) {
         $el.replaceWith(`[${text}]`);
+      } else if (!text || text.length === 0) {
+        $el.remove();
       }
     }
   });
@@ -217,14 +227,21 @@ function scoreSongContent(text) {
 /**
  * Removes emojis from text strings
  */
-function removeEmojis(str) {
+export function removeEmojis(str) {
   if (!str) return '';
-  return str.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').trim();
+  return str.replace(
+    /[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}]/gu,
+    ''
+  );
 }
 
 const SINGLE_NOTE_REGEX = /^[A-G][#b♭♯]?(?:m|maj|min|dim|aug|sus[24]?|add9|7)?$/i;
 const TIME_SIG_REGEX = /^(?:[1-9]|1[0-2])\/(?:2|4|8|16)$/;
 const TITLE_HEADER_REGEX = /^(.+?)\s+(?:Chords|Lyrics|Tabs|Song|Chord Chart|Sheet Music|Guitar Chords|Piano Chords)$/i;
+const FOOTER_UI_STOP_REGEX =
+  /^(?:Your Account|Your Favourites|Your favorites|Interactive chord editor|Click a word|ChordPro source|Edit chords|Version history|Restricted \(copyright\)|Top Artists|Chords Z|Top Songs|Popular Songs|All Artists|Browse by|A B C D E F G|HIJKLMNOPQRSTUVWXYZ|Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:)\b/i;
+const DUPLICATE_INSTRUMENT_BLOCK_REGEX =
+  /^.+?\s+Chords\s+(?:Guitar|Keyboard|Piano|for Keyboard|Ukulele|for Guitar)/i;
 
 /**
  * Post-processes raw text to strip trailing related songs, chromatic note scales, emojis, transpose ladders, and UI labels.
@@ -238,8 +255,9 @@ export function cleanExtractedSongText(text, metadata = {}) {
   for (let i = 0; i < rawLines.length; i++) {
     const raw = rawLines[i];
     const noEmoji = removeEmojis(raw);
-    const trimmed = noEmoji.trim();
-    processed.push({ raw: noEmoji, trimmed });
+    const noBrackets = noEmoji.replace(/\[\s*\]|\(\s*\)/g, '');
+    const trimmed = noBrackets.trim();
+    processed.push({ raw: noBrackets, trimmed });
   }
 
   // Detect transpose note ladders (runs of >= 3 consecutive single note lines)
@@ -291,8 +309,8 @@ export function cleanExtractedSongText(text, metadata = {}) {
       continue;
     }
 
-    if (validSongLinesFound >= 6) {
-      if (/^(?:Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:)\b/i.test(trimmed)) {
+    if (validSongLinesFound >= 4) {
+      if (FOOTER_UI_STOP_REGEX.test(trimmed) || DUPLICATE_INSTRUMENT_BLOCK_REGEX.test(trimmed)) {
         break;
       }
     }
