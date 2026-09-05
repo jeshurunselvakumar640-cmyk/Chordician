@@ -2,8 +2,8 @@
  * Chord detection, recognition, and alignment engine for Chordician.
  */
 
-// Comprehensive Chord Regex matching standard, extended, and slash chords
-export const CHORD_REGEX = /^[A-G](?:#|b)?(?:m|min|minor|maj|major|dim|dim7|aug|sus2|sus4|sus|add9|add11|add2|add4|5|2|4|6|m6|6\/9|7|maj7|maj9|maj11|maj13|m7|min7|m9|m11|m13|7sus4|7b5|7#5|7b9|7#9|9|11|13)?(?:\/[A-G](?:#|b)?)?$/i;
+// Comprehensive Chord Regex matching standard, extended, and slash chords (strictly capital root)
+export const CHORD_REGEX = /^[A-G](?:#|b)?(?:m|min|minor|maj|major|dim|dim7|aug|sus2|sus4|sus|add9|add11|add2|add4|5|2|4|6|m6|6\/9|7|maj7|maj9|maj11|maj13|m7|min7|m9|m11|m13|7sus4|7b5|7#5|7b9|7#9|9|11|13)?(?:\/[A-G](?:#|b)?)?$/;
 
 // Regex for extracting chords with positions within a line
 export const CHORD_FIND_REGEX = /\b[A-G](?:#|b)?(?:m|min|minor|maj|major|dim|dim7|aug|sus2|sus4|sus|add9|add11|add2|add4|5|2|4|6|m6|6\/9|7|maj7|maj9|maj11|maj13|m7|min7|m9|m11|m13|7sus4|7b5|7#5|7b9|7#9|9|11|13)?(?:\/[A-G](?:#|b)?)?\b/g;

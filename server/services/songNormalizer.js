@@ -75,17 +75,41 @@ export function normalizeSongData({ title, artist, originalKey, rawText }, sourc
       continue;
     }
 
-    // 3. Check for Inline Bracketed Chords (e.g. "[Dm]Maravaamal [Am]Ninaiththeeraiyaa")
-    if (/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/.test(rawLine)) {
-      if (pendingChordLine !== null) {
+    // 3. If we already have a pending chord line, pair it with the next lyric line or handle consecutive chord line
+    if (pendingChordLine !== null) {
+      if (isChordLine(rawLine)) {
+        // Two consecutive chord lines -> flush previous as standalone
         currentSection.rows.push({
           id: `r_${sectionIndex}_${rowIndex++}`,
           type: 'chords',
           content: pendingChordLine
         });
+        pendingChordLine = rawLine;
+      } else {
+        // Paired chord line + lyric line!
+        currentSection.rows.push({
+          id: `r_${sectionIndex}_${rowIndex++}`,
+          type: 'chords',
+          content: pendingChordLine
+        });
+        currentSection.rows.push({
+          id: `r_${sectionIndex}_${rowIndex++}`,
+          type: 'lyrics',
+          content: rawLine.trimEnd()
+        });
         pendingChordLine = null;
       }
+      continue;
+    }
 
+    // 4. Check if this line is a standalone chord line (leads chords for the next line)
+    if (isChordLine(rawLine)) {
+      pendingChordLine = rawLine;
+      continue;
+    }
+
+    // 5. Check for Inline Bracketed Chords (e.g. "[Dm]Maravaamal [Am]Ninaiththeeraiyaa")
+    if (/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/.test(rawLine)) {
       const inline = parseInlineBracketedChords(rawLine);
       if (inline.chords.length > 0) {
         const chordRowContent = buildAlignedChordString(inline.chords);
@@ -103,18 +127,9 @@ export function normalizeSongData({ title, artist, originalKey, rawText }, sourc
       }
     }
 
-    // 4. Check for Attached Chords (e.g. "DmMaravaamal NinaiththeeraiyaaAmA#Manathaara")
+    // 6. Check for Attached Chords in single-line glued format (e.g. "DmMaravaamal NinaiththeeraiyaaAmA#Manathaara")
     const attached = parseAttachedChordLine(rawLine);
     if (attached.chords.length > 0 && attached.lyrics.trim().length > 0) {
-      if (pendingChordLine !== null) {
-        currentSection.rows.push({
-          id: `r_${sectionIndex}_${rowIndex++}`,
-          type: 'chords',
-          content: pendingChordLine
-        });
-        pendingChordLine = null;
-      }
-
       const chordRowContent = buildAlignedChordString(attached.chords);
       currentSection.rows.push({
         id: `r_${sectionIndex}_${rowIndex++}`,
@@ -129,41 +144,12 @@ export function normalizeSongData({ title, artist, originalKey, rawText }, sourc
       continue;
     }
 
-    // 5. Check for Chord Line vs Lyric Line (Two-Layer chord-above-lyrics)
-    if (isChordLine(rawLine)) {
-      if (pendingChordLine !== null) {
-        // Two consecutive chord lines -> flush previous as standalone
-        currentSection.rows.push({
-          id: `r_${sectionIndex}_${rowIndex++}`,
-          type: 'chords',
-          content: pendingChordLine
-        });
-      }
-      pendingChordLine = rawLine;
-    } else {
-      // It's a lyric line
-      if (pendingChordLine !== null) {
-        // Paired chord line + lyric line!
-        currentSection.rows.push({
-          id: `r_${sectionIndex}_${rowIndex++}`,
-          type: 'chords',
-          content: pendingChordLine
-        });
-        currentSection.rows.push({
-          id: `r_${sectionIndex}_${rowIndex++}`,
-          type: 'lyrics',
-          content: rawLine.trimEnd()
-        });
-        pendingChordLine = null;
-      } else {
-        // Standalone lyric line (no chords above it)
-        currentSection.rows.push({
-          id: `r_${sectionIndex}_${rowIndex++}`,
-          type: 'lyrics',
-          content: rawLine.trimEnd()
-        });
-      }
-    }
+    // 7. Otherwise it's a standalone lyric line
+    currentSection.rows.push({
+      id: `r_${sectionIndex}_${rowIndex++}`,
+      type: 'lyrics',
+      content: rawLine.trimEnd()
+    });
   }
 
   // Flush any final pending chord line
