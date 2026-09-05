@@ -36,6 +36,10 @@ CRITICAL RULES:
    - Detect the root musical key (e.g. "E", "D", "Dm", "C", "G", "F", "A", "Em").
 7. STYLE IDENTIFICATION:
    - If a distinct style (e.g. "Indian -> Dandiya", "Indian -> Bhajan", "Pop & Rock -> 8Beat", "Ballad -> PianoBallad", "Worship -> Contemporary") is recognizable, provide it.
+8. DEEP NOISE, EMOJI & CLUTTER PURGE:
+   - Completely strip all emoji icons (e.g. 🏠, 🎵, 🎶, ✝️, 🎸, 👍, ❤️, 🙏, 🔔, ⭐, etc.).
+   - Completely strip website navigation, breadcrumbs, search bars, UI labels ("Lyrics", "Chords", "Home", "Share"), social media promotions ("Join WhatsApp group", "Subscribe to YouTube channel", "Follow on Instagram"), advertisement text, chord finger/tab diagrams, author credits, and page footers.
+   - Retain ONLY authentic song lyrics and positioned chords organized into clean musical sections.
 
 OUTPUT FORMAT: Return ONLY valid JSON matching this schema:
 {

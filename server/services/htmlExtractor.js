@@ -212,7 +212,15 @@ function scoreSongContent(text) {
 }
 
 /**
- * Post-processes raw text to strip trailing related songs, chromatic note scales, and UI labels.
+ * Removes emojis from text strings
+ */
+function removeEmojis(str) {
+  if (!str) return '';
+  return str.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').trim();
+}
+
+/**
+ * Post-processes raw text to strip trailing related songs, chromatic note scales, emojis, and UI labels.
  */
 function cleanExtractedSongText(text) {
   if (!text) return '';
@@ -222,8 +230,10 @@ function cleanExtractedSongText(text) {
   let validSongLinesFound = 0;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
+    const rawLine = lines[i];
+    // Strip emojis
+    const lineWithoutEmoji = removeEmojis(rawLine);
+    const trimmed = lineWithoutEmoji.trim();
 
     // If empty line, preserve spacing
     if (!trimmed) {
@@ -235,18 +245,27 @@ function cleanExtractedSongText(text) {
 
     // If we have already gathered a substantial song (>= 6 lines) and hit an obvious footer/comment header, stop reading
     if (validSongLinesFound >= 6) {
-      if (/^(?:Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation)\b/i.test(trimmed)) {
+      if (/^(?:Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:)\b/i.test(trimmed)) {
         break;
       }
     }
 
-    // Skip isolated social sharing lines
-    if (/^(?:Share this:|Share on (?:Facebook|Twitter|WhatsApp|Pinterest)|Like this:|Tweet|Pin it|Email this)\b/i.test(trimmed)) {
+    // Skip social sharing, channel subscription, and WhatsApp group lines
+    if (/^(?:Share this:|Share on|Like this:|Tweet|Pin it|Email this|Follow us on|Join our (?:WhatsApp|Telegram) group|Subscribe to our (?:YouTube|channel)|Join (?:WhatsApp|Telegram)|Click here for|Download (?:PDF|Chords|Audio)|Listen on (?:Spotify|Apple Music|Amazon))\b/i.test(trimmed)) {
+      continue;
+    }
+
+    // Skip guitar tuning / diagram lines (e.g. "Standard Tuning: E A D G B E", "Capo 2nd fret", "E A D G B E")
+    if (/^(?:Standard Tuning|Tuning|Capo|Key of the song|Tempo|BPM|Strumming Pattern)\s*[:|-]/i.test(trimmed)) {
+      continue;
+    }
+    if (/^[eEaAdDgGbB]\s*\|\s*[-0-9pbrh\/~|\s]+$/i.test(trimmed)) {
+      // Guitar tab staff line
       continue;
     }
 
     // Skip breadcrumb lines (e.g. "Home > Songs > Tamil Christian Songs")
-    if (/^(?:Home|Songs|Lyrics)\s*[>»/]\s*/i.test(trimmed)) {
+    if (/^(?:Home|Songs|Lyrics|Chords)\s*[>»/|]\s*/i.test(trimmed)) {
       continue;
     }
 
@@ -259,11 +278,11 @@ function cleanExtractedSongText(text) {
     }
 
     // Skip standalone single UI words
-    if (/^(?:Lyrics|Chords|Bible|Share|Related|Print|Transpose|Download|Guitar|Keyboard|Piano|Tamil|English|Search|Menu|Home)$/i.test(trimmed)) {
+    if (/^(?:Lyrics|Chords|Bible|Share|Related|Print|Transpose|Download|Guitar|Keyboard|Piano|Tamil|English|Hindi|Search|Menu|Home|About|Contact|Privacy|Terms|DMCA)$/i.test(trimmed)) {
       continue;
     }
 
-    cleanLines.push(line);
+    cleanLines.push(lineWithoutEmoji);
     validSongLinesFound++;
   }
 
@@ -359,8 +378,8 @@ function extractMetadata($, sourceUrl) {
  * Strips common website suffixes from title (e.g. "Amazing Grace - Chords & Lyrics | Ultimate Guitar")
  */
 function cleanTitleAndArtist(title, artist, sourceUrl) {
-  let cleanTitle = (title || '').trim();
-  let cleanArtist = (artist || '').trim();
+  let cleanTitle = removeEmojis((title || '').trim());
+  let cleanArtist = removeEmojis((artist || '').trim());
 
   // Remove common title suffixes
   cleanTitle = cleanTitle.replace(
