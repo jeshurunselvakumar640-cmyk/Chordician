@@ -1,7 +1,9 @@
 /**
- * Frontend client service for importing song chord sheets from webpage URLs.
+ * Frontend client service for importing song chord sheets from webpage URLs and Smart Paste.
+ * Powered by Chordician's unified Parsing Engine.
  */
 import { fetchWithRetry } from '../utils/apiClient.js';
+import { parseSmartPaste } from '../engine/index.js';
 
 export const SAMPLE_URL_PRESETS = [
   {
@@ -123,11 +125,10 @@ export function validateClientUrl(urlString) {
  * Sends URL to the backend to fetch and parse chords & lyrics
  */
 export async function importSongFromUrl(urlString, selectedPresetId = null) {
-  // If demo preset selected
   if (selectedPresetId) {
     const preset = SAMPLE_URL_PRESETS.find(p => p.id === selectedPresetId);
     if (preset) {
-      await new Promise(r => setTimeout(r, 800)); // Smooth UI feel
+      await new Promise(r => setTimeout(r, 600));
       return {
         success: true,
         sourceUrl: preset.url,
@@ -213,7 +214,7 @@ The [C]hour I first believed.`
 ];
 
 /**
- * Sends raw chord/lyric text to Chordex AI backend for intelligent reconstruction
+ * Sends raw chord/lyric text to Chordex AI backend or runs local parsing engine for intelligent reconstruction
  */
 export async function restructureSongTextWithChordexAI(rawText, metadata = {}, selectedPresetId = null) {
   if (selectedPresetId) {
@@ -246,27 +247,32 @@ export async function restructureSongTextWithChordexAI(rawText, metadata = {}, s
 
     const result = await response.json();
 
-    if (!response.ok || !result.success) {
+    if (response.ok && result.success && result.song) {
       return {
-        success: false,
-        error: result.error || 'Failed to restructure song chords and lyrics.',
-        code: result.code || 'PARSER_FAILED'
+        success: true,
+        sourceUrl: 'Smart Paste / Direct Input',
+        song: result.song,
+        warnings: result.warnings || []
       };
     }
+  } catch (err) {
+    console.warn('Backend text restructure unreachable, running local parsing engine:', err);
+  }
 
+  // Fallback to local parsing engine directly in the browser
+  const localResult = parseSmartPaste(rawText, metadata);
+  if (localResult.success && localResult.song) {
     return {
       success: true,
-      sourceUrl: 'Smart Paste / Direct Input',
-      song: result.song,
-      warnings: result.warnings || []
-    };
-  } catch (err) {
-    console.error('Chordex AI text restructure error:', err);
-    return {
-      success: false,
-      error: 'Unable to reach the Chordician backend server. Please check your network connection.',
-      code: 'NETWORK_ERROR'
+      sourceUrl: 'Smart Paste / Local Engine',
+      song: localResult.song,
+      warnings: localResult.warnings || []
     };
   }
-}
 
+  return {
+    success: false,
+    error: localResult.error || 'Failed to restructure song chords and lyrics.',
+    code: 'PARSER_FAILED'
+  };
+}

@@ -26,7 +26,10 @@ export function extractSongFromHtml(html, sourceUrl = '') {
     'audio, video, nav, footer, form, input, button, select, dialog, ' +
     '.ad, .ads, .advertisement, .cookie, .cookie-banner, .cookie-consent, ' +
     '.social-share, .comments-area, #comments, .sidebar, #sidebar, ' +
-    '.breadcrumb, .breadcrumbs, .menu, .navigation, #wpadminbar'
+    '.breadcrumb, .breadcrumbs, .menu, .navigation, #wpadminbar, ' +
+    '.transpose, .transpose-keys, .key-selector, .keys-list, .pitch-list, #transpose, ' +
+    '.transpose-controls, .chord-switcher, .scale-list, .c-transpose, .transpose-bar, ' +
+    '.key-changer, .chords-controls, .song-meta-box, .song-toolbar, .key-buttons, .scale-selector'
   ).remove();
 
   // 5. Smart Song Content Container Detection with Scoring
@@ -219,23 +222,68 @@ function removeEmojis(str) {
   return str.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE0F}]/gu, '').trim();
 }
 
+const SINGLE_NOTE_REGEX = /^[A-G][#b♭♯]?(?:m|maj|min|dim|aug|sus[24]?|add9|7)?$/i;
+const TIME_SIG_REGEX = /^(?:[1-9]|1[0-2])\/(?:2|4|8|16)$/;
+const TITLE_HEADER_REGEX = /^(.+?)\s+(?:Chords|Lyrics|Tabs|Song|Chord Chart|Sheet Music|Guitar Chords|Piano Chords)$/i;
+
 /**
- * Post-processes raw text to strip trailing related songs, chromatic note scales, emojis, and UI labels.
+ * Post-processes raw text to strip trailing related songs, chromatic note scales, emojis, transpose ladders, and UI labels.
  */
-function cleanExtractedSongText(text) {
+export function cleanExtractedSongText(text, metadata = {}) {
   if (!text) return '';
 
-  const lines = text.split(/\r?\n/);
+  const rawLines = text.split(/\r?\n/);
+  const processed = [];
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const raw = rawLines[i];
+    const noEmoji = removeEmojis(raw);
+    const trimmed = noEmoji.trim();
+    processed.push({ raw: noEmoji, trimmed });
+  }
+
+  // Detect transpose note ladders (runs of >= 3 consecutive single note lines)
+  const isLadder = new Array(processed.length).fill(false);
+  let runStart = -1;
+  let runCount = 0;
+
+  for (let i = 0; i < processed.length; i++) {
+    const { trimmed } = processed[i];
+    if (trimmed && SINGLE_NOTE_REGEX.test(trimmed)) {
+      if (runStart === -1) runStart = i;
+      runCount++;
+    } else if (!trimmed && runStart !== -1) {
+      continue;
+    } else {
+      if (runCount >= 3) {
+        for (let j = runStart; j < i; j++) {
+          if (processed[j].trimmed && SINGLE_NOTE_REGEX.test(processed[j].trimmed)) {
+            isLadder[j] = true;
+          }
+        }
+      }
+      runStart = -1;
+      runCount = 0;
+    }
+  }
+  if (runCount >= 3) {
+    for (let j = runStart; j < processed.length; j++) {
+      if (processed[j].trimmed && SINGLE_NOTE_REGEX.test(processed[j].trimmed)) {
+        isLadder[j] = true;
+      }
+    }
+  }
+
   const cleanLines = [];
   let validSongLinesFound = 0;
 
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
-    // Strip emojis
-    const lineWithoutEmoji = removeEmojis(rawLine);
-    const trimmed = lineWithoutEmoji.trim();
+  for (let i = 0; i < processed.length; i++) {
+    const { raw, trimmed } = processed[i];
 
-    // If empty line, preserve spacing
+    if (isLadder[i]) {
+      continue;
+    }
+
     if (!trimmed) {
       if (cleanLines.length > 0 && cleanLines[cleanLines.length - 1] !== '') {
         cleanLines.push('');
@@ -243,46 +291,58 @@ function cleanExtractedSongText(text) {
       continue;
     }
 
-    // If we have already gathered a substantial song (>= 6 lines) and hit an obvious footer/comment header, stop reading
     if (validSongLinesFound >= 6) {
       if (/^(?:Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:)\b/i.test(trimmed)) {
         break;
       }
     }
 
-    // Skip social sharing, channel subscription, and WhatsApp group lines
     if (/^(?:Share this:|Share on|Like this:|Tweet|Pin it|Email this|Follow us on|Join our (?:WhatsApp|Telegram) group|Subscribe to our (?:YouTube|channel)|Join (?:WhatsApp|Telegram)|Click here for|Download (?:PDF|Chords|Audio)|Listen on (?:Spotify|Apple Music|Amazon))\b/i.test(trimmed)) {
       continue;
     }
 
-    // Skip guitar tuning / diagram lines (e.g. "Standard Tuning: E A D G B E", "Capo 2nd fret", "E A D G B E")
     if (/^(?:Standard Tuning|Tuning|Capo|Key of the song|Tempo|BPM|Strumming Pattern)\s*[:|-]/i.test(trimmed)) {
       continue;
     }
     if (/^[eEaAdDgGbB]\s*\|\s*[-0-9pbrh\/~|\s]+$/i.test(trimmed)) {
-      // Guitar tab staff line
       continue;
     }
 
-    // Skip breadcrumb lines (e.g. "Home > Songs > Tamil Christian Songs")
     if (/^(?:Home|Songs|Lyrics|Chords)\s*[>»/|]\s*/i.test(trimmed)) {
       continue;
     }
 
-    // Skip chromatic note scales (e.g. "A♭AA♯B♭BCC♯D♭DD♯E♭EFF♯G♭GG♯" or "A Bb B C C# D Eb E F F# G Ab")
     if (/^[A-G][#b♭♯\sA-G]+$/i.test(trimmed) && trimmed.length > 15 && !trimmed.includes(' ')) {
       continue;
     }
-    if (/^(?:[A-G][#b♭♯]?\s+){6,}[A-G][#b♭♯]?$/i.test(trimmed)) {
+    if (/^(?:[A-G][#b♭♯]?\s+){5,}[A-G][#b♭♯]?$/i.test(trimmed)) {
       continue;
     }
 
-    // Skip standalone single UI words
+    if (TIME_SIG_REGEX.test(trimmed)) {
+      if (!metadata.timeSignature) metadata.timeSignature = trimmed;
+      continue;
+    }
+
+    if (validSongLinesFound === 0) {
+      if (SINGLE_NOTE_REGEX.test(trimmed)) {
+        if (!metadata.originalKey) metadata.originalKey = trimmed.toUpperCase();
+        continue;
+      }
+      const titleMatch = trimmed.match(TITLE_HEADER_REGEX);
+      if (titleMatch) {
+        if (!metadata.title || metadata.title === 'Imported Song') {
+          metadata.title = titleMatch[1].trim();
+        }
+        continue;
+      }
+    }
+
     if (/^(?:Lyrics|Chords|Bible|Share|Related|Print|Transpose|Download|Guitar|Keyboard|Piano|Tamil|English|Hindi|Search|Menu|Home|About|Contact|Privacy|Terms|DMCA)$/i.test(trimmed)) {
       continue;
     }
 
-    cleanLines.push(lineWithoutEmoji);
+    cleanLines.push(raw);
     validSongLinesFound++;
   }
 
