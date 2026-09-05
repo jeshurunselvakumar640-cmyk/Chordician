@@ -20,19 +20,20 @@ export function extractSongFromHtml(html, sourceUrl = '') {
   // 3. Convert line-break elements to newlines
   $('br, hr').replaceWith('\n');
 
-  // 4. Strip strictly non-content noise elements
+  // 4. Strip strictly non-content noise elements, sidebars, and widgets
   $(
     'script:not([type="application/ld+json"]), style, noscript, iframe, svg, img, picture, ' +
-    'audio, video, nav, footer, form, input, button, select, dialog, ' +
+    'audio, video, nav, footer, form, input, button, select, dialog, aside, [role="complementary"], ' +
     '.ad, .ads, .advertisement, .cookie, .cookie-banner, .cookie-consent, ' +
-    '.social-share, .comments-area, #comments, .sidebar, #sidebar, ' +
+    '.social-share, .comments-area, #comments, .sidebar, #sidebar, .drawer, ' +
     '.breadcrumb, .breadcrumbs, .menu, .navigation, #wpadminbar, ' +
     '.transpose, .transpose-keys, .key-selector, .keys-list, .pitch-list, #transpose, ' +
     '.transpose-controls, .chord-switcher, .scale-list, .c-transpose, .transpose-bar, ' +
     '.key-changer, .chords-controls, .song-meta-box, .song-toolbar, .key-buttons, .scale-selector, ' +
     '.related-posts, .related-songs, .related-articles, .related_posts, .yarpp-related, ' +
     '.interactive-editor, .chordpro-editor, .account-menu, .user-favorites, .user-profile, ' +
-    '.widget, .widget-area, .author-bio, .post-author, .post-navigation, .entry-meta, .meta-info'
+    '.widget, .widget-area, .author-bio, .post-author, .post-navigation, .entry-meta, .meta-info, ' +
+    '.popular-posts, .popular-songs, .recent-posts, .recent-songs, .song-sidebar, .songs-list'
   ).remove();
 
   // 5. Smart Song Content Container Detection with Scoring
@@ -98,6 +99,11 @@ function formatInlineChordElements($) {
     });
   }
 
+  // Unwrap chord helper wrappers
+  $('.chord-anchor, .chord-stack').each((_, el) => {
+    $(el).replaceWith($(el).html() || '');
+  });
+
   // C. Any standalone leaf inline element whose text is strictly a valid chord
   $('span, b, strong, i, em, font, sup').each((_, el) => {
     const $el = $(el);
@@ -117,6 +123,17 @@ function formatInlineChordElements($) {
  */
 function extractBestSongContainerText($, html) {
   const candidateSelectors = [
+    '#chord-display-en',
+    '#chord-display-ta',
+    '#tab-english',
+    '#tab-tamil',
+    '#tab-merged',
+    '.chord-content',
+    '.chord-tab-panel',
+    '.chord-sheet',
+    '.chordpro-content',
+    '.song-chords',
+    '.chords-container',
     '.js-tab-content',
     '.tab-content',
     '.song-content',
@@ -153,6 +170,10 @@ function extractBestSongContainerText($, html) {
           bestText = text;
         }
       }
+    }
+    // If a high-priority chord display container scored well, return immediately
+    if (bestScore >= 12 && bestText.trim().length > 30) {
+      return bestText;
     }
   }
 
