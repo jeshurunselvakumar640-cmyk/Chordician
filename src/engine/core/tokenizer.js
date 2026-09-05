@@ -65,9 +65,12 @@ export function tokenizeLine(rawLine) {
           });
           i = closeIdx + 1;
           lastChordEnd = i;
-          // Skip any whitespace immediately following bracketed chord
-          while (i < line.length && line[i] === ' ') {
-            i++;
+          // Handle whitespace immediately following bracketed chord: preserve in lyrics
+          if (i < line.length && line[i] === ' ') {
+            reconstructedLyrics += ' ';
+            while (i < line.length && line[i] === ' ') {
+              i++;
+            }
           }
           continue;
         } else if (candidate.length === 0) {
@@ -101,9 +104,12 @@ export function tokenizeLine(rawLine) {
       i += chordMatch.length;
       lastChordEnd = i;
 
-      // Handle any whitespace immediately following the chord
-      while (i < line.length && line[i] === ' ') {
-        i++;
+      // Handle any whitespace immediately following the chord: preserve in lyrics
+      if (i < line.length && line[i] === ' ') {
+        reconstructedLyrics += ' ';
+        while (i < line.length && line[i] === ' ') {
+          i++;
+        }
       }
       continue;
     }

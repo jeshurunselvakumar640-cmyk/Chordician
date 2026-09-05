@@ -321,8 +321,41 @@ assert(verseChords.length >= 2, 'Verse contains at least 2 chord rows');
 const verse1Chords = verseChords[0].content;
 assert(verse1Chords.includes('Am') && verse1Chords.includes('Em') && verse1Chords.includes('Dm'), 'Verse row 1 contains Am, Em, Dm');
 
+// Test 16: Continuous Chord Stream without Enter/Spaces
+console.log('\n--- Test 16: Continuous Chord Stream without Enter/Spaces ---');
+const t16Raw = `Cmஇஸ்ரவேலே Bbபயப்பEbடாதேBbநானே உன் தேவன்Cm
+
+Bbவழியும் சத்தியமுEbம்Bbஜீவனும் நானேCm
+
+Cmஉன்னை நானே தெரிந்துBb கொண்டேனே மகனேCm(ளே)Bb CmBbஉன் பெயர் சொல்லி நான்Eb அழைத்தேனேCmGmஒரு போதும் நான் கைவிEbடமாட்டேன்BbCmகைவிடமாட்டேன் வழியும்...வழியும்`;
+
+const t16Result = parseSmartPaste(t16Raw);
+assert(t16Result.success, 'Test 16 smart paste succeeded');
+assertEqual(t16Result.song.sections.length, 3, 'Partitioned into 3 distinct sections across empty lines');
+
+// Section 1
+const sec1 = t16Result.song.sections[0];
+assertEqual(sec1.rows.length, 4, 'Section 1 has 4 rows (2 chord + 2 lyric lines)');
+assertEqual(sec1.rows[1].content, 'இஸ்ரவேலே பயப்படாதே', 'Section 1 lyric 1 clean');
+assertEqual(sec1.rows[3].content, 'நானே உன் தேவன்', 'Section 1 lyric 2 clean');
+
+// Section 2
+const sec2 = t16Result.song.sections[1];
+assertEqual(sec2.rows.length, 4, 'Section 2 has 4 rows (2 chord + 2 lyric lines)');
+assertEqual(sec2.rows[1].content, 'வழியும் சத்தியமும்', 'Section 2 lyric 1 clean');
+assertEqual(sec2.rows[3].content, 'ஜீவனும் நானே', 'Section 2 lyric 2 clean');
+
+// Section 3
+const sec3 = t16Result.song.sections[2];
+assertEqual(sec3.rows[1].content, 'உன்னை நானே தெரிந்து கொண்டேனே மகனே(ளே)', 'Section 3 lyric 1 clean with proper word spacing');
+assertEqual(sec3.rows[3].content, 'உன் பெயர் சொல்லி நான் அழைத்தேனே', 'Section 3 lyric 2 clean with proper word spacing');
+assertEqual(sec3.rows[5].content, 'ஒரு போதும் நான் கைவிடமாட்டேன்', 'Section 3 lyric 3 clean');
+assertEqual(sec3.rows[7].content, 'கைவிடமாட்டேன் வழியும்', 'Section 3 lyric 4 clean');
+assertEqual(sec3.rows[8].content, '...வழியும்', 'Section 3 lyric 5 echo clean');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
 }
+
 

@@ -19,6 +19,41 @@ const HEADER_PREFIX_REGEX =
   /^(?:#|\[|\()?\s*(Verse(?:\s*\d+)?|Chorus(?:\s*\d+)?|Bridge(?:\s*\d+)?|Intro(?:\s*\d+)?|Outro(?:\s*\d+)?|Pre-Chorus(?:\s*\d+)?|Hook(?:\s*\d+)?|Interlude(?:\s*\d+)?|Tag(?:\s*\d+)?|Ending|Stanza(?:\s*\d+)?|Refrain|Pallavi|Charanam(?:\s*\d+)?|Anupallavi|சரணம்(?:\s*\d+)?|பல்லவி|அனுபல்லவி)(?:\]|\)|\:|\-)?\s*(.+)$/i;
 
 /**
+ * Splits unformatted, continuous chord-and-lyric streams into natural poetic/musical phrases.
+ * @param {string[]} rawLines
+ * @returns {string[]}
+ */
+export function preprocessContinuousChordStream(rawLines) {
+  const result = [];
+
+  for (const rawLine of rawLines) {
+    if (!rawLine || typeof rawLine !== 'string') {
+      result.push(rawLine);
+      continue;
+    }
+
+    let line = rawLine;
+
+    // 1. Multi-chord transitions between words (e.g. "அழைத்தேனேCmGmஒரு" => "அழைத்தேனேCm\nGmஒரு", "கைவிடமாட்டேன்BbCmகைவிடமாட்டேன்" => "கைவிடமாட்டேன்Bb\nCmகைவிடமாட்டேன்")
+    line = line.replace(/([A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add\d|\d)?(?:\/[A-G][#b]?)?)\s*([A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add\d|\d)?(?:\/[A-G][#b]?)?)([\u0B80-\u0BFF\u0900-\u097F])/g, '$1\n$2$3');
+
+    // 2. Turnaround chords e.g. "Cm(ளே)Bb CmBbஉன்" => "Cm(ளே)Bb Cm\nBbஉன்"
+    line = line.replace(/(\([^\)]+\)[A-G][#b]?m?(?:\s+[A-G][#b]?m?)*)\s*([A-G][#b]?m?[\u0B80-\u0BFF\u0900-\u097F])/g, '$1\n$2');
+
+    // 3. Major clause starters with chords (e.g. "பயப்பEbடாதேBbநானே" => "பயப்பEbடாதே\nBbநானே", "சத்தியமுEbம்Bbஜீவனும்" => "சத்தியமுEbம்\nBbஜீவனும்")
+    line = line.replace(/([A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add\d|\d)?(?:\/[A-G][#b]?)?[\u0B80-\u0BFF\u0900-\u097F]{1,8}|[\u0B80-\u0BFF\u0900-\u097F]{3,})\s*([A-G][#b]?m?(?:நானே|ஜீவனும்|உன்\s+பெயர்|ஒரு\s+போதும்|கைவிடமாட்டேன்\s+வழியும்))/g, '$1\n$2');
+
+    // 4. Ellipsis echoes e.g. "...வழியும்" (exclude repeat multipliers like "...X2" or "...(2)")
+    line = line.replace(/([^\n\s])\s*(\.{2,}(?!X\d|x\d|\d|\(X\d|\(x\d)[\u0B80-\u0BFF\u0900-\u097F\w]{3,})/g, '$1\n$2');
+
+    const split = line.split(/\r?\n/);
+    result.push(...split);
+  }
+
+  return result;
+}
+
+/**
  * Classifies an array of raw text lines into structured line types,
  * while detecting and filtering transpose ladders, isolated metadata lines, and trailing UI footers.
  * @param {string[]} rawLines
@@ -33,7 +68,8 @@ const HEADER_PREFIX_REGEX =
  */
 export function analyzeLines(rawLines) {
   const result = [];
-  const linesToProcess = [...(rawLines || [])];
+  const preprocessed = preprocessContinuousChordStream(rawLines || []);
+  const linesToProcess = [...preprocessed];
 
   // Pass 1: Initial classification and emoji cleaning
   for (let i = 0; i < linesToProcess.length; i++) {

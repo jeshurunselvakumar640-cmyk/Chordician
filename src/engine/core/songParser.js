@@ -72,6 +72,27 @@ export function parseSong(rawText, options = {}) {
         totalChordsFound += paired.chords.length;
         pendingChordLine = null;
       }
+
+      // If current section has lines and more content follows, partition into next section
+      if (currentSection.lines.length > 0) {
+        const remainingHasContent = classifiedLines.slice(i + 1).some(
+          l => l.type !== 'EMPTY' && l.type !== 'TRANSPOSE_LADDER'
+        );
+        const nextExplicitHeader = classifiedLines.slice(i + 1).find(
+          l => l.type === 'SECTION_HEADER'
+        );
+
+        // If no explicit section header immediately follows, create a new section for the paragraph
+        if (remainingHasContent && !nextExplicitHeader) {
+          sections.push(currentSection);
+          const nextIdx = sections.length + 1;
+          currentSection = {
+            id: `sec_${nextIdx}`,
+            name: `Verse ${nextIdx}`,
+            lines: []
+          };
+        }
+      }
       continue;
     }
 

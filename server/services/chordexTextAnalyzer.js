@@ -30,20 +30,51 @@ CRITICAL RULES:
        => Lyrics line: "யேசுஎந்நாளும் எழுந்தருளிசத்துறு வைத்திய வெற்றி தந்தீர் (x2)"
      - Example: "DmMaravaamal" => Chord: "Dm" at position 0, Lyrics: "Maravaamal"
      - Example: "AmA#Manathaara" => Chords: "Am" at position 0, "A#" at position 3, Lyrics: "Manathaara"
-3. INLINE BRACKETED CHORDS:
+
+3. UNFORMATTED CONTINUOUS CHORD STREAMS (WITHOUT ENTER, SPACES, OR ALIGNMENT):
+   - When text is pasted as a continuous unformatted stream with chords embedded inside and between phrases:
+     Example Input:
+     Cmஇஸ்ரவேலே Bbபயப்பEbடாதேBbநானே உன் தேவன்Cm
+
+     Bbவழியும் சத்தியமுEbம்Bbஜீவனும் நானேCm
+
+     Cmஉன்னை நானே தெரிந்துBb கொண்டேனே மகனேCm(ளே)Bb CmBbஉன் பெயர் சொல்லி நான்Eb அழைத்தேனேCmGmஒரு போதும் நான் கைவிEbடமாட்டேன்BbCmகைவிடமாட்டேன் வழியும்...வழியும்
+
+     Expected Output Structure:
+     [Section 1 / Chorus / Pallavi]
+     Line 1: Chords: "Cm        Bb    Eb", Lyrics: "இஸ்ரவேலே பயப்படாதே"
+     Line 2: Chords: "Bb             Cm", Lyrics: "நானே உன் தேவன்"
+
+     [Section 2 / Refrain]
+     Line 1: Chords: "Bb              Eb", Lyrics: "வழியும் சத்தியமும்"
+     Line 2: Chords: "Bb          Cm", Lyrics: "ஜீவனும் நானே"
+
+     [Section 3 / Verse 1 / Charanam 1]
+     Line 1: Chords: "Cm                            Bb                   Cm  Bb Cm", Lyrics: "உன்னை நானே தெரிந்து கொண்டேனே மகனே(ளே)"
+     Line 2: Chords: "Bb                     Eb          Cm", Lyrics: "உன் பெயர் சொல்லி நான் அழைத்தேனே"
+     Line 3: Chords: "Gm                     Eb          Bb", Lyrics: "ஒரு போதும் நான் கைவிடமாட்டேன்"
+     Line 4: Chords: "Cm", Lyrics: "கைவிடமாட்டேன் வழியும்"
+     Line 5: Chords: "", Lyrics: "...வழியும்"
+
+   - Critical requirements for continuous streams:
+     1. Separate lines and sections at natural poetic and musical phrase boundaries (e.g. at clause breaks, turnaround chords like "Cm(ளே)Bb CmBb", or transition chords like "CmGm", "BbCm").
+     2. Restore natural word spacing so words are never jammed together (e.g. "பயப்படாதே நானே", "சத்தியமும் ஜீவனும்", "மகனே(ளே) உன்", "அழைத்தேனே ஒரு", "கைவிடமாட்டேன் கைவிடமாட்டேன்").
+     3. Keep chords that appear inside words (e.g. "பயப்பEbடாதே" -> chord "Eb" over "பயப்படாதே", "சத்தியமுEbம்" -> chord "Eb" over "சத்தியமும்", "கைவிEbடமாட்டேன்" -> chord "Eb" over "கைவிடமாட்டேன்") intact over that word, while cleanly healing the word.
+
+4. INLINE BRACKETED CHORDS:
    - "[C]Amazing grace, how [F]sweet the [C]sound" => Extract bracketed chords with character offsets and strip brackets from lyrics.
    - Preserve non-chord parentheses like "(x2)", "(2)", "(ஆ.....ஆ)" in lyrics.
-4. SECTION STRUCTURE & HEADERS:
+5. SECTION STRUCTURE & HEADERS:
    - Respect and preserve section headers like "[Chorus]", "[Verse 1]", "[Verse 2]", "[Bridge]", "[Intro]", "[Outro]", "[Pre-Chorus]", "[Ending]".
    - Keep sections in sequential order. If the same section is repeated (e.g. multiple "[Chorus]" blocks), output each section block in order.
-5. PRESERVE ORIGINAL LYRICS & MULTI-LANGUAGE TRANSLITERATIONS:
+6. PRESERVE ORIGINAL LYRICS & MULTI-LANGUAGE TRANSLITERATIONS:
    - Do NOT translate, summarize, or rewrite lyric words.
    - Preserve Hindi, Tamil, Telugu, and English transliterated words, punctuation, and repetition markers (e.g. "Pani Pe Chalta Hai", "Krus Ko Uthaya Hai", "...X2", "(2)", "-2").
-6. MUSICAL KEY:
-   - Detect the root musical key (e.g. "E", "D", "Dm", "C", "G", "F", "A", "Em").
-7. STYLE IDENTIFICATION:
+7. MUSICAL KEY:
+   - Detect the root musical key (e.g. "E", "D", "Dm", "C", "G", "F", "A", "Em", "Cm", "Eb", "Bb").
+8. STYLE IDENTIFICATION:
    - If a distinct style (e.g. "Indian -> Dandiya", "Indian -> Bhajan", "Pop & Rock -> 8Beat", "Ballad -> PianoBallad", "Worship -> Contemporary") is recognizable, provide it.
-8. DEEP NOISE, EMOJI & CLUTTER PURGE:
+9. DEEP NOISE, EMOJI & CLUTTER PURGE:
    - Completely strip all emoji icons (e.g. 🏠, 🎵, 🎶, ✝️, 🎸, 👍, ❤️, 🙏, 🔔, ⭐, etc.).
    - Completely strip empty anchor brackets (e.g. "[]", "[ ]", "()"). Never output "[]" inside lyrics.
    - Completely strip website navigation, breadcrumbs, search bars, UI labels ("Lyrics", "Chords", "Home", "Share"), social media promotions ("Join WhatsApp group", "Subscribe to YouTube channel", "Follow on Instagram"), advertisement text, chord finger/tab diagrams, author credits, related songs lists, account menus, interactive chord editors, and page footers.

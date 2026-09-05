@@ -75,6 +75,9 @@ export function matchChordPrefix(text) {
   const maxLen = Math.min(12, normalized.length);
   for (let len = maxLen; len >= 1; len--) {
     const candidate = normalized.substring(0, len);
+    // Chord symbol itself must not end with whitespace
+    if (/\s$/.test(candidate)) continue;
+
     if (isChord(candidate, true)) {
       const remainder = normalized.substring(len);
       if (remainder.length === 0) {
