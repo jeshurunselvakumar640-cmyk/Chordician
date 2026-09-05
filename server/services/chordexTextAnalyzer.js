@@ -18,7 +18,7 @@ CRITICAL RULES:
      Kaun Hai, Kaun Hai Rajao Ka Raja
      - Faithfully pair each chord line with its matching lyric line.
      - Calculate the exact 0-based character horizontal offset where each chord begins above the lyrics (e.g. 'E' at 0, 'A' at 19 above 'Rajao').
-     - Handle slash chords (e.g. "E/G#", "C/E", "G/B", "D/F#", "F#/A#") as single chord units.
+     - Handle slash chords and composite/alternative chords (e.g. "C7/Am", "G/Em", "E/G#", "C/E", "G/B", "D/F#", "F#/A#") as single chord units in the chords line (do NOT split them or push either chord into lyrics).
      - Handle trailing/leading chords (e.g. "                 E  E/G#  A  B" above "Toh Karo Jai Jai Kar").
 2. ATTACHED / TOUCHING CHORDS:
    - When chords are glued directly to words without spaces due to bad formatting:

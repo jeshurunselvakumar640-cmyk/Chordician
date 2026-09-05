@@ -86,7 +86,7 @@ IMPORTANT RULES:
 16. If something is uncertain, lower its confidence rather than inventing information.
 
 Musical chord examples include:
-C, Cm, C#, C#m, D, Dm, D7, Dmaj7, E, Em, F, Fm, F#, G, Gm, G7, A, Am, A7, B, Bm, Bb, and slash chords such as C/E, G/B and D/F#.
+C, Cm, C#, C#m, D, Dm, D7, Dmaj7, E, Em, F, Fm, F#, G, Gm, G7, A, Am, A7, B, Bm, Bb, and slash / composite chords such as C/E, G/B, D/F#, E/G#, and C7/Am.
 
 OUTPUT FORMAT:
 Return valid JSON adhering to this exact schema:

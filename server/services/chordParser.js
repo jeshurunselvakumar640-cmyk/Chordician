@@ -2,11 +2,14 @@
  * Chord detection, recognition, and alignment engine for Chordician.
  */
 
-// Comprehensive Chord Regex matching standard, extended, and slash chords (strictly capital root)
-export const CHORD_REGEX = /^[A-G](?:#|b)?(?:m|min|minor|maj|major|dim|dim7|aug|sus2|sus4|sus|add9|add11|add2|add4|5|2|4|6|m6|6\/9|7|maj7|maj9|maj11|maj13|m7|min7|m9|m11|m13|7sus4|7b5|7#5|7b9|7#9|9|11|13)?(?:\/[A-G](?:#|b)?)?$/;
+// Base chord building block (strictly capital root note A-G)
+const BASE_CHORD_PATTERN = '[A-G](?:#|b)?(?:m|min|minor|maj|major|dim|dim7|aug|sus2|sus4|sus|add9|add11|add2|add4|5|2|4|6|m6|6\\/9|7|maj7|maj9|maj11|maj13|m7|min7|m9|m11|m13|7sus4|7b5|7#5|7b9|7#9|9|11|13)?';
+
+// Comprehensive Chord Regex matching standard, extended, slash, and composite chords (e.g. C, Dm, E/G#, C7/Am, G/Em, D/F#)
+export const CHORD_REGEX = new RegExp(`^${BASE_CHORD_PATTERN}(?:\\/${BASE_CHORD_PATTERN})?$`);
 
 // Regex for extracting chords with positions within a line
-export const CHORD_FIND_REGEX = /\b[A-G](?:#|b)?(?:m|min|minor|maj|major|dim|dim7|aug|sus2|sus4|sus|add9|add11|add2|add4|5|2|4|6|m6|6\/9|7|maj7|maj9|maj11|maj13|m7|min7|m9|m11|m13|7sus4|7b5|7#5|7b9|7#9|9|11|13)?(?:\/[A-G](?:#|b)?)?\b/g;
+export const CHORD_FIND_REGEX = new RegExp(`\\b${BASE_CHORD_PATTERN}(?:\\/${BASE_CHORD_PATTERN})?\\b`, 'g');
 
 // Words that frequently appear in lyrics and might falsely match a chord token
 const COMMON_NON_CHORD_WORDS = new Set([
@@ -46,8 +49,8 @@ export function isChordLine(line) {
   const trimmed = line.trim();
   if (!trimmed) return false;
 
-  // Split tokens by whitespace or chord bar symbols '|'
-  const tokens = trimmed.split(/[\s|/\\-]+/).filter(t => t.length > 0);
+  // Split tokens by whitespace or chord bar symbols '|' (do not split on '/' to preserve slash chords)
+  const tokens = trimmed.split(/[\s|]+/).filter(t => t.length > 0);
   if (tokens.length === 0) return false;
 
   let chordCount = 0;
