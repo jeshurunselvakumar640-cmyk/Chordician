@@ -114,6 +114,43 @@ export default function PerformanceModal({
     };
   }, [isScrolling, scrollSpeed]);
 
+  // Touch Gesture Swipe Navigation in Performance Mode
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+
+  const handleTouchStart = (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now()
+    };
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!e.changedTouches || e.changedTouches.length !== 1) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const deltaX = endX - touchStartRef.current.x;
+    const deltaY = endY - touchStartRef.current.y;
+    const deltaTime = Date.now() - touchStartRef.current.time;
+
+    // Must be predominantly horizontal swipe and fast (< 650ms)
+    if (deltaTime < 650 && Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
+      const target = e.target;
+      if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target?.tagName)) {
+        return;
+      }
+
+      if (deltaX < 0 && canGoNext) {
+        // Swiped Left -> Next Song
+        onNextSong();
+      } else if (deltaX > 0 && canGoPrev) {
+        // Swiped Right -> Previous Song
+        onPrevSong();
+      }
+    }
+  };
+
   if (!isOpen || !transposedSong) return null;
 
   const {
@@ -129,7 +166,12 @@ export default function PerformanceModal({
   } = transposedSong;
 
   return (
-    <div className="performance-overlay" ref={scrollContainerRef}>
+    <div
+      className="performance-overlay"
+      ref={scrollContainerRef}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Performance Top Sticky Toolbar */}
       <div className="performance-toolbar">
         {/* Left: Title & Key Info */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Music, Plus, Search, Heart, Sparkles } from 'lucide-react';
+import { Music, Plus, Search, Heart, Sparkles, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function EmptyState({
@@ -8,7 +8,9 @@ export default function EmptyState({
   description,
   actionText,
   actionLink,
-  onAction
+  onAction,
+  onContact,
+  contactText = 'Contact Jeshurun'
 }) {
   let defaultIcon = <Music size={32} />;
   let defaultTitle = 'Your songbook is empty';
@@ -48,16 +50,35 @@ export default function EmptyState({
       <h3 className="empty-state-title">{finalTitle}</h3>
       <p className="empty-state-desc">{finalDesc}</p>
       
-      {actionLink ? (
-        <Link to={actionLink} className="btn btn-primary">
-          <Plus size={16} />
-          {finalBtnText}
-        </Link>
-      ) : onAction ? (
-        <button type="button" onClick={onAction} className="btn btn-secondary">
-          {finalBtnText}
-        </button>
-      ) : null}
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
+        {actionLink ? (
+          <Link to={actionLink} className="btn btn-primary">
+            <Plus size={16} />
+            {finalBtnText}
+          </Link>
+        ) : onAction ? (
+          <button type="button" onClick={onAction} className="btn btn-secondary">
+            {finalBtnText}
+          </button>
+        ) : null}
+
+        {onContact && (
+          <button
+            type="button"
+            onClick={onContact}
+            className="btn btn-primary"
+            style={{
+              background: 'linear-gradient(135deg, var(--color-primary) 0%, #8b5cf6 100%)',
+              border: 'none',
+              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)'
+            }}
+          >
+            <Mail size={16} />
+            <span>{contactText}</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
+

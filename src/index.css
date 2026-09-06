@@ -7326,4 +7326,17 @@ body.desktop-mode-forced {
   grid-template-columns: repeat(4, 1fr) !important;
 }
 
+/* ==========================================================================
+   CONTACT JESHURUN & SONG REQUEST MODAL
+   ========================================================================== */
+.contact-modal-content {
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
+}
+
+.song-details-page {
+  touch-action: pan-y pinch-zoom;
+}
+
+
 

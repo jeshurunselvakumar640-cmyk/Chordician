@@ -11,6 +11,7 @@ import SongCard from '../components/SongCard/SongCard';
 import SearchBar from '../components/SearchBar/SearchBar';
 import EmptyState from '../components/UI/EmptyState';
 import BatchExportModal from '../components/Modal/BatchExportModal';
+import ContactModal from '../components/Modal/ContactModal';
 import { SongCardSkeleton } from '../components/UI/SkeletonLoader';
 import { ALL_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../utils/musicConstants.js';
 import { getStoredViewMode, setStoredViewMode } from '../services/storage.js';
@@ -33,6 +34,7 @@ export default function Songs({
   const [sortBy, setSortBy] = useState('updated_desc');
   const [viewMode, setViewMode] = useState(() => getStoredViewMode());
   const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   // Keep state in sync with URL search params
   useEffect(() => {
@@ -334,9 +336,11 @@ export default function Songs({
           <EmptyState
             type="search"
             title="No matching songs found"
-            description="No songs matched your current search filters. Try clearing your filters or searching a different term."
+            description={`No songs matched your current search "${searchQuery}". You can clear your filters or request Jeshurun to add this song!`}
             actionText="Clear All Filters"
             onAction={handleResetFilters}
+            onContact={() => setIsContactOpen(true)}
+            contactText="Request Song from Jeshurun"
           />
         ) : (
           <EmptyState
@@ -345,6 +349,8 @@ export default function Songs({
             description="Add your first song with chords and lyrics to start building your piano repertoire."
             actionText="+ Add Song"
             actionLink="/add-song"
+            onContact={() => setIsContactOpen(true)}
+            contactText="Contact Jeshurun"
           />
         )
       ) : viewMode === 'grid' ? (
@@ -380,6 +386,14 @@ export default function Songs({
         songs={filteredSongs.length > 0 ? filteredSongs : songs}
         title="Export Songs to PDF"
         subtitle="Chordician Personal Songbook"
+      />
+
+      {/* Contact & Song Request Modal */}
+      <ContactModal
+        isOpen={isContactOpen}
+        onClose={() => setIsContactOpen(false)}
+        initialSongTitle={searchQuery}
+        initialType="Song Request"
       />
     </div>
   );

@@ -17,13 +17,16 @@ import {
   User,
   LogIn,
   LogOut,
-  Eye
+  Eye,
+  Mail,
+  MessageSquare
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePWA } from '../context/PWAContext.jsx';
 import { useDeviceMode } from '../context/DeviceModeContext.jsx';
 import { useAuth, OWNER_DEFAULT_NAME } from '../context/AuthContext.jsx';
+import ContactModal from '../components/Modal/ContactModal.jsx';
 import { addSong, runFirebaseDiagnostics } from '../firebase/songs.js';
 import { firebaseConfig } from '../firebase/config.js';
 import { DEMO_PRESETS } from '../services/aiSongParser.js';
@@ -36,6 +39,7 @@ export default function Settings({ onSongAdded }) {
   const { currentUser, userProfile, isOwner, canEdit, logout, openAuthModal } = useAuth();
 
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   // Diagnostics state
   const [isRunningDiag, setIsRunningDiag] = useState(false);
@@ -395,6 +399,42 @@ export default function Settings({ onSongAdded }) {
           </div>
         </div>
       </div>
+
+      {/* Contact Jeshurun & Song Requests */}
+      <div className="card settings-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <h2 className="settings-section-title" style={{ marginBottom: '4px' }}>
+              <Mail size={20} style={{ color: 'var(--color-primary)' }} />
+              Contact Jeshurun & Song Requests
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', margin: 0 }}>
+              Need a new song added to Chordician? Have suggestions or need assistance? Reach out directly.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setIsContactOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, var(--color-primary) 0%, #8b5cf6 100%)',
+              border: 'none',
+              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)'
+            }}
+          >
+            <MessageSquare size={16} />
+            <span>Contact Jeshurun</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Contact Modal */}
+      <ContactModal
+        isOpen={isContactOpen}
+        onClose={() => setIsContactOpen(false)}
+        initialType="Song Request"
+      />
     </div>
   );
 }

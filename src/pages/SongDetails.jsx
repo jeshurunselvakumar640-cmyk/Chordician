@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -21,7 +21,8 @@ import {
   Share2,
   Eye,
   Crown,
-  Wine
+  Wine,
+  Mail
 } from 'lucide-react';
 import { getSongById } from '../firebase/songs.js';
 import { transposeSong } from '../services/transposer.js';
@@ -36,6 +37,7 @@ import SongViewer from '../components/SongView/SongViewer';
 import PerformanceModal from '../components/Modal/PerformanceModal';
 import ConfirmModal from '../components/Modal/ConfirmModal';
 import ShareModal from '../components/Modal/ShareModal';
+import ContactModal from '../components/Modal/ContactModal';
 import { SongDetailsSkeleton } from '../components/UI/SkeletonLoader';
 
 export default function SongDetails({
@@ -59,6 +61,7 @@ export default function SongDetails({
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   // Zoom Level state for songbook view mode (persisted to localStorage)
   const [zoomLevel, setZoomLevel] = useState(() => {
@@ -119,12 +122,18 @@ export default function SongDetails({
       } else if (e.key === '0' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         handleResetZoom();
+      } else if (e.key === '[' || (e.altKey && e.key === 'ArrowLeft')) {
+        e.preventDefault();
+        handlePrevSong();
+      } else if (e.key === ']' || (e.altKey && e.key === 'ArrowRight')) {
+        e.preventDefault();
+        handleNextSong();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  });
 
   // Immediately hydrate from cachedSongs when id or cachedSongs changes
   useEffect(() => {
@@ -200,15 +209,79 @@ export default function SongDetails({
   const adjacentInfo = song ? getAdjacentSongs(song.id, cachedSongs) : null;
   const inSundaySetlist = Boolean(adjacentInfo && adjacentInfo.currentIndex !== -1);
 
+  // General library navigation fallback when not in Sunday setlist
+  const libraryIndex = useMemo(() => {
+    return cachedSongs.findIndex((s) => s.id === id);
+  }, [cachedSongs, id]);
+
+  const nextSong = useMemo(() => {
+    if (adjacentInfo?.nextSong) return adjacentInfo.nextSong;
+    if (libraryIndex >= 0 && libraryIndex < cachedSongs.length - 1) {
+      return cachedSongs[libraryIndex + 1];
+    }
+    return null;
+  }, [adjacentInfo, libraryIndex, cachedSongs]);
+
+  const prevSong = useMemo(() => {
+    if (adjacentInfo?.prevSong) return adjacentInfo.prevSong;
+    if (libraryIndex > 0) {
+      return cachedSongs[libraryIndex - 1];
+    }
+    return null;
+  }, [adjacentInfo, libraryIndex, cachedSongs]);
+
   const handleNextSong = () => {
-    if (adjacentInfo?.nextSong) {
-      navigate(`/songs/${adjacentInfo.nextSong.id}`);
+    if (nextSong) {
+      navigate(`/songs/${nextSong.id}`);
+      showToast(`Next: ${nextSong.title}`, 'info', 1200);
+    } else {
+      showToast('You have reached the last song', 'info', 1200);
     }
   };
 
   const handlePrevSong = () => {
-    if (adjacentInfo?.prevSong) {
-      navigate(`/songs/${adjacentInfo.prevSong.id}`);
+    if (prevSong) {
+      navigate(`/songs/${prevSong.id}`);
+      showToast(`Previous: ${prevSong.title}`, 'info', 1200);
+    } else {
+      showToast('You are at the first song', 'info', 1200);
+    }
+  };
+
+  // Touch Gesture Swipe Navigation (Left swipe -> Next Song, Right swipe -> Previous Song)
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+
+  const handleTouchStart = (e) => {
+    if (!e.touches || e.touches.length !== 1) return;
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now()
+    };
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!e.changedTouches || e.changedTouches.length !== 1) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const deltaX = endX - touchStartRef.current.x;
+    const deltaY = endY - touchStartRef.current.y;
+    const deltaTime = Date.now() - touchStartRef.current.time;
+
+    // Must be predominantly horizontal swipe and fast (< 650ms)
+    if (deltaTime < 650 && Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
+      const target = e.target;
+      if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target?.tagName)) {
+        return;
+      }
+
+      if (deltaX < 0) {
+        // Swiped Left -> Next Song
+        handleNextSong();
+      } else {
+        // Swiped Right -> Previous Song
+        handlePrevSong();
+      }
     }
   };
 
@@ -250,10 +323,30 @@ export default function SongDetails({
         <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
           {error || 'The song you requested does not exist or has been removed.'}
         </p>
-        <Link to="/songs" className="btn btn-primary">
-          <ArrowLeft size={16} />
-          Return to Songs Library
-        </Link>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link to="/songs" className="btn btn-secondary">
+            <ArrowLeft size={16} />
+            Return to Songs Library
+          </Link>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setIsContactOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, var(--color-primary) 0%, #8b5cf6 100%)',
+              border: 'none'
+            }}
+          >
+            <Mail size={16} />
+            <span>Contact Jeshurun to Add Song</span>
+          </button>
+        </div>
+
+        <ContactModal
+          isOpen={isContactOpen}
+          onClose={() => setIsContactOpen(false)}
+          initialType="Song Request"
+        />
       </div>
     );
   }
@@ -262,7 +355,11 @@ export default function SongDetails({
   const isTransposed = activeKey !== originalKey;
 
   return (
-    <div className="song-details-page">
+    <div
+      className="song-details-page"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Top Navigation & Action Row */}
       <div className="song-details-top-bar">
         <button
@@ -556,8 +653,8 @@ export default function SongDetails({
         onClose={() => setIsPerformanceOpen(false)}
         transposedSong={transposedSong}
         onChangeKey={setActiveKey}
-        setlistSongs={inSundaySetlist ? adjacentInfo.setlistSongs : []}
-        currentIndex={inSundaySetlist ? adjacentInfo.currentIndex : -1}
+        setlistSongs={inSundaySetlist ? adjacentInfo.setlistSongs : cachedSongs}
+        currentIndex={inSundaySetlist ? adjacentInfo.currentIndex : libraryIndex}
         onNextSong={handleNextSong}
         onPrevSong={handlePrevSong}
       />
@@ -579,6 +676,14 @@ export default function SongDetails({
         isLoading={isDeleting}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setIsDeleteModalOpen(false)}
+      />
+
+      {/* Contact & Song Request Modal */}
+      <ContactModal
+        isOpen={isContactOpen}
+        onClose={() => setIsContactOpen(false)}
+        initialSongTitle={song?.title || ''}
+        initialType="Song Request"
       />
     </div>
   );
