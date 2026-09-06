@@ -173,10 +173,16 @@ export function searchSongsWithFuzzy(songs = [], query = '') {
   // 1. Direct / Exact Substring Search
   const exactMatches = songs.filter((song) => {
     const title = (song.title || '').toLowerCase();
+    const secondaryTitle = (song.secondaryTitle || '').toLowerCase();
     const artist = (song.artist || '').toLowerCase();
     const category = (song.category || '').toLowerCase();
 
-    if (title.includes(q) || artist.includes(q) || category.includes(q)) {
+    if (
+      title.includes(q) ||
+      secondaryTitle.includes(q) ||
+      artist.includes(q) ||
+      category.includes(q)
+    ) {
       return true;
     }
 
@@ -202,9 +208,11 @@ export function searchSongsWithFuzzy(songs = [], query = '') {
 
   for (const song of songs) {
     const title = song.title || '';
+    const secondaryTitle = song.secondaryTitle || '';
     const artist = song.artist || '';
 
     const titleScore = calculateSimilarity(q, title);
+    const secondaryTitleScore = secondaryTitle ? calculateSimilarity(q, secondaryTitle) : 0;
     const artistScore = calculateSimilarity(q, artist);
 
     // Also check lyric lines for close phonetic / word matches
@@ -218,15 +226,15 @@ export function searchSongsWithFuzzy(songs = [], query = '') {
       }
     }
 
-    const maxScore = Math.max(titleScore, artistScore * 0.95, bestLyricScore * 0.9);
+    const maxScore = Math.max(titleScore, secondaryTitleScore, artistScore * 0.95, bestLyricScore * 0.9);
 
     // If more than 50% match (>= 0.50), include the song card
     if (maxScore >= 0.50) {
       scored.push({
         song,
         score: maxScore,
-        matchedTitle: title,
-        titleScore
+        matchedTitle: secondaryTitleScore > titleScore && secondaryTitle ? `${title} (${secondaryTitle})` : title,
+        titleScore: Math.max(titleScore, secondaryTitleScore)
       });
     }
   }
