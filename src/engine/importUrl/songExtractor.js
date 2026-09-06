@@ -6,6 +6,7 @@ import * as cheerio from 'cheerio';
 import { validateUrl } from './urlSecurity.js';
 import { fetchHtml } from './htmlFetcher.js';
 import { extractFromDom } from './siteAdapters/index.js';
+import { extractSongContent } from './songContentExtractor.js';
 import { parseSong } from '../core/songParser.js';
 import { normalizeToChordicianSong } from '../normalizer/songNormalizer.js';
 import { evaluateConfidence } from '../confidence/confidenceScorer.js';
@@ -43,7 +44,10 @@ export async function extractSongFromUrl(targetUrl) {
     const $ = cheerio.load(html);
     const extracted = extractFromDom($, finalUrl);
 
-    if (!extracted.rawText || extracted.rawText.trim().length < 15) {
+    // Apply isolated song content extraction layer to filter out all website noise
+    const cleanRawText = extractSongContent(extracted.rawText || '');
+
+    if (!cleanRawText || cleanRawText.trim().length < 15) {
       return {
         success: false,
         song: null,
@@ -54,7 +58,7 @@ export async function extractSongFromUrl(targetUrl) {
       };
     }
 
-    const parsed = parseSong(extracted.rawText, {
+    const parsed = parseSong(cleanRawText, {
       title: extracted.title,
       artist: extracted.artist,
       originalKey: extracted.originalKey,

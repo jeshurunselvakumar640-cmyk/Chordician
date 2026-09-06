@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { isChord, isChordLine, parseInlineBracketedChords } from './chordParser.js';
+import { extractSongContent } from '../../src/engine/importUrl/songContentExtractor.js';
 
 /**
  * Extracts clean song metadata (title, artist, key) and structured raw content from webpage HTML.
@@ -44,13 +45,13 @@ export function extractSongFromHtml(html, sourceUrl = '') {
   // 5. Smart Song Content Container Detection with Scoring
   let songContent = extractBestSongContainerText($, html);
 
-  // 6. Post-process to remove unrelated social headers, chromatic scales, and noise
-  songContent = cleanExtractedSongText(songContent);
+  // 6. Post-process to isolate and extract only clean song lyrics & chords (zero regression)
+  songContent = extractSongContent(songContent, { metadata });
 
   // 7. Fallback to full body text if specific container was too empty
   if (!songContent || songContent.trim().length < 15) {
     const rawBody = getNodeFormattedText($('body'), $);
-    songContent = cleanExtractedSongText(rawBody);
+    songContent = extractSongContent(rawBody, { metadata });
   }
 
   if (!songContent || songContent.trim().length === 0) {

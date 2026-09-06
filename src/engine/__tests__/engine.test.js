@@ -510,10 +510,348 @@ assert(leadRowsInSec2[0].content.includes('GAABC#'), 'Sec 2 lead 1 contains GAAB
 assert(leadRowsInSec2[1].content.includes('C#C#C#DEEF#F#F#EDEDC#'), 'Sec 2 lead 2 contains long note run');
 assert(leadRowsInSec2[2].content.includes('EEA') && leadRowsInSec2[2].content.includes('C#C#BAGA'), 'Sec 2 lead 3 contains notes');
 
+// --- Test 21: Import URL Content Extractor - Tamil Christian Songs (Example 1) ---
+console.log('\n--- Test 21: Import URL Content Extractor - Tamil Christian Songs ---');
+const ex1Raw = `Tamil Christian Songs .IN
+
+Lyrics
+Chords
+Bible
+
+A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+
+Advertisement
+
+Lyrics
+4/4
+D
+
+# பாவங்கள் போக்கவே சாபங்கள் Chords
+
+Tamil English
+
+Transpose
+
+1-2-3
+
+Print
+
+Dபாவங்கள் போGக்கவே சாபங்Dகள்Emநீக்கவே பூDலோகம் வந்Gதாரய்யாDDமனிதனை மீட்கGவே பரலோகம்D சேர்க்கவேEmDசிலுவையை சுமந்Gதாரய்யா – Dகண்ணீரைGதுடைத்தாரய்யா Emசந்தோஷம் தந்தாரAய்யா
+
+Dஎந்தன் இGயேசுAவே BmDஎந்தன் இGயேசுAவேBmDஎந்தன் இGயேசுAவேBmAஎந்தன் இயேசுவே–D 4
+
+Dதங்கத்தை கேட்Gகவில்லை வைரத்தைDEmகேட்கவில்லை உள்ளDத்தை கேட்டாரய்GயாDDஆஸ்தியை கேட்கGவில்லை அந்தஸ்தைDEmகேட்கவில்லை உள்ளDத்தை கேட்டாரGய்யாDDநான் தேடிபோகGவில்லைEmEmஎன்னை தேடி வந்தாAரய்யா
+
+Related
+
+God Is Good All The Time
+Enthan Nambikkai Neere
+Lift up the Name of Jesus
+
+Chord Diagrams
+
+D
+G
+Em
+A
+Bm
+
+e|-2---3---0---0---2---|
+B|-3---0---0---2---3---|
+
+Top Artists
+
+Languages
+
+Browse
+
+Footer
+
+© 2026 Tamil Christian Songs .IN`;
+
+const { extractSongContent } = await import('../importUrl/songContentExtractor.js');
+const ex1Extracted = extractSongContent(ex1Raw);
+
+assert(!ex1Extracted.includes('Tamil Christian Songs .IN'), 'Ex 1: Header site title stripped');
+assert(!ex1Extracted.includes('A B C D E F G'), 'Ex 1: Alphabet search stripped');
+assert(!ex1Extracted.includes('Transpose') && !ex1Extracted.includes('Print'), 'Ex 1: Player controls stripped');
+assert(!ex1Extracted.includes('Related') && !ex1Extracted.includes('Chord Diagrams') && !ex1Extracted.includes('© 2026'), 'Ex 1: Trailing noise stripped');
+assert(ex1Extracted.includes('Dபாவங்கள் போGக்கவே') && ex1Extracted.includes('Dஎந்தன் இGயேசுAவே') && ex1Extracted.includes('Dதங்கத்தை கேட்Gகவில்லை'), 'Ex 1: All 3 Tamil song stanzas preserved');
+
+const ex1Sp = parseSmartPaste(ex1Extracted);
+assert(ex1Sp.success, 'Ex 1: Smart Paste parsed cleanly');
+assertEqual(ex1Sp.song.sections.length, 3, 'Ex 1: Exactly 3 sections generated');
+
+// --- Test 22: Import URL Content Extractor - Ultimate Guitar (Example 2) ---
+console.log('\n--- Test 22: Import URL Content Extractor - Ultimate Guitar ---');
+const ex2Raw = `Ultimate Guitar
+
+Tabs
+Courses
+Songbooks
+Articles
+Forums
+
+# Paavangal Pokkavae Chords
+
+by Misc Praise Songs
+
+20,467 views
+
+Difficulty: Beginner
+Tuning: E A D G B E
+Key: D
+Capo: No capo
+
+Author: perfectpraveen
+
+## Chords
+
+D
+G
+A
+Bm
+
+## Strumming
+
+There is no strumming pattern.
+
+[Verse 1]
+
+D         G
+
+Paavangal Pokkavae
+
+D         A
+
+Saapangal Neekkavae
+
+D        G           D
+
+Boolokam Vanthaaraiyyaa
+
+D          G
+
+Manithanai Meetkavae
+
+D         A
+
+Paralokam Thirakavae
+
+D          G            D
+
+Siluvaiyai Sumanthaaraiyyaa
+
+
+[Pre-chorus 1]
+
+D           G                              D
+
+Kannnneerai Thutaiththaaraiyyaa Santhosham Thanthaaraiyyaa
+
+D           G                              D
+
+Kannnneerai Thutaiththaaraiyyaa Santhosham Thanthaaraiyyaa
+
+
+[Chorus]
+
+  D      G  A    Bm
+
+  Enthan Ye...suvae
+
+         G  A    Bm
+
+  Enthan Ye...suvae
+
+  D      G  A    Bm
+
+  Enthan Ye...suvae
+
+         A     D
+
+  Enthan Yesuvae
+
+Advertisement
+
+Please rate this tab
+
+Comments
+
+More Versions
+
+Footer
+
+Privacy Policy
+
+Terms of Service
+
+© 2026 Ultimate Guitar`;
+
+const ex2Extracted = extractSongContent(ex2Raw);
+assert(ex2Extracted.startsWith('[Verse 1]'), 'Ex 2: Starts with [Verse 1]');
+assert(!ex2Extracted.includes('Ultimate Guitar') && !ex2Extracted.includes('20,467 views'), 'Ex 2: Views/Title stripped');
+assert(!ex2Extracted.includes('Difficulty') && !ex2Extracted.includes('Tuning') && !ex2Extracted.includes('Strumming'), 'Ex 2: Tuning/Strumming stripped');
+assert(!ex2Extracted.includes('Advertisement') && !ex2Extracted.includes('Please rate this tab') && !ex2Extracted.includes('Comments'), 'Ex 2: Comments & footer stripped');
+assert(ex2Extracted.includes('Boolokam Vanthaaraiyyaa') && ex2Extracted.includes('Enthan Ye...suvae'), 'Ex 2: All chord and lyric lines preserved');
+
+const ex2Sp = parseSmartPaste(ex2Extracted);
+assert(ex2Sp.success, 'Ex 2: Smart Paste parsed cleanly');
+assert(ex2Sp.song.sections.length >= 3, 'Ex 2: Sections parsed cleanly');
+
+// --- Test 23: Import URL Content Extractor - Chordsver with Duplicate Lyrics (Example 3) ---
+console.log('\n--- Test 23: Import URL Content Extractor - Chordsver ---');
+const ex3Raw = `Home
+Chords & Tabs
+Artists
+Events
+Submit Chords
+Request a Song
+Login
+Register
+
+Tamil
+Malayalam
+Hindi
+Kannada
+Telugu
+
+# Pavangal Pokkavae Lyrics & Chords
+
+by Raju
+
+Difficulty: Novice
+Language: Tamil
+
+BPM
+
+Font Size
+
+Hide Chords
+
+Dark Mode
+
+Select Key / Transpose
+
+Speed: 1.0
+
+KEY: D | [140 BPM]
+
+D         G
+Paavangal Pokkavae
+D         A
+Saapangal Neekkavae
+D        G           D
+Poolokam Vanthaaraiyyaa
+D          G
+Manithanai Meetkavae
+D         A
+Paralokam Thirakkavae
+D          G            D
+Siluvaiyai Sumanthaaraiyyaa (2)
+
+D           G
+Kannnneerai Thutaiththaaraiyyaa
+           D
+Santhosham Thanthaaraiyyaa (2)
+
+  D       A  Bm
+  Enthan Yesuvae
+         G  A D
+  Enthan Ye...suvae
+  D       A  Bm
+  Enthan Yesuvae
+         A     D
+  Enthan Yesuvae
+
+TAMIL LYRICS
+
+பாவங்கள் போக்கவே சாபங்கள் நீக்கவே
+
+SONGWRITER: Raju
+
+Artist Info
+
+Song Title on Youtube
+
+Facebook Comments
+
+Languages
+
+Footer
+
+© 2026 chordsver`;
+
+const ex3Extracted = extractSongContent(ex3Raw);
+assert(ex3Extracted.startsWith('D         G'), 'Ex 3: Starts with first chord line');
+assert(!ex3Extracted.includes('Chords & Tabs') && !ex3Extracted.includes('Dark Mode') && !ex3Extracted.includes('KEY: D'), 'Ex 3: UI controls stripped');
+assert(!ex3Extracted.includes('TAMIL LYRICS') && !ex3Extracted.includes('பாவங்கள் போக்கவே'), 'Ex 3: Duplicate Tamil lyrics section excluded');
+assert(!ex3Extracted.includes('SONGWRITER') && !ex3Extracted.includes('Facebook Comments'), 'Ex 3: Trailing info stripped');
+
+const ex3Sp = parseSmartPaste(ex3Extracted);
+assert(ex3Sp.success, 'Ex 3: Smart Paste parsed cleanly');
+
+// --- Test 24: Hindi / Devanagari Lyrics & Smart Paste Integration ---
+console.log('\n--- Test 24: Hindi / Devanagari Lyrics ---');
+const ex4Raw = `Website Header
+Key: E | 4/4
+
+E              A          B
+यीशु तेरा नाम, सबसे ऊंचा है
+E              C#m        B        E
+यीशु तेरा नाम, सारे जग में फैला है (2)
+
+Related Hindi Songs`;
+const ex4Extracted = extractSongContent(ex4Raw);
+assert(ex4Extracted.includes('यीशु तेरा नाम'), 'Ex 4: Devanagari lyrics preserved');
+assert(ex4Extracted.includes('C#m') && ex4Extracted.includes('E              A'), 'Ex 4: Chords and spacing preserved');
+const ex4Sp = parseSmartPaste(ex4Extracted);
+assert(ex4Sp.success, 'Ex 4: Smart Paste parsed cleanly');
+
+// --- Test 25: Malayalam & Telugu Unicode Lyrics ---
+console.log('\n--- Test 25: Malayalam & Telugu Unicode Lyrics ---');
+const ex5Raw = `Home > Malayalam
+Dm             Gm
+ദൈவമേ ഞങ്ങളെ കാത്തുകൊള്ളേണമേ
+C              F          A7
+ദിവസവും കൃപയാൽ നിറയ്ക്കേണമേ
+Footer`;
+const ex5Extracted = extractSongContent(ex5Raw);
+assert(ex5Extracted.includes('ദൈவമേ ഞങ്ങളെ') && ex5Extracted.includes('Dm             Gm'), 'Ex 5: Malayalam song extracted');
+
+// --- Test 26: Complex Chord Variations (Maj7, Sus4, Add9, Slash Chords) ---
+console.log('\n--- Test 26: Complex Chord Variations ---');
+const ex6Raw = `Navigation
+[Verse 1]
+Dmaj7         Dsus4          D/F#
+You are the Lord of all creation
+Cadd9         Bm7            A2       D
+Your grace extends to every nation
+Comments`;
+const ex6Extracted = extractSongContent(ex6Raw);
+assert(ex6Extracted.includes('Dmaj7') && ex6Extracted.includes('D/F#') && ex6Extracted.includes('Cadd9'), 'Ex 6: Complex chords preserved');
+
+// --- Test 27: Sharps, Flats, Repetition & Ellipsis ---
+console.log('\n--- Test 27: Sharps, Flats, Repetition & Ellipsis ---');
+const ex7Raw = `Header
+F#m            C#m
+Enthan Nambikkai Neere...
+D              A
+Enthan Kottaiyum Neere (x2)
+
+Bb             Eb
+Ummai Naan Nambuven...
+Ab             Db
+Enakkaaga Yaavaiyum Seithu Mudippeer - 2
+Footer`;
+const ex7Extracted = extractSongContent(ex7Raw);
+assert(ex7Extracted.includes('F#m') && ex7Extracted.includes('Bb') && ex7Extracted.includes('Neere...') && ex7Extracted.includes('(x2)'), 'Ex 7: Sharps, flats, ellipsis, repetition preserved');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
 }
+
 
 
 

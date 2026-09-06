@@ -16,6 +16,7 @@ export * from './smartPaste/smartPasteParser.js';
 export * from './importUrl/urlSecurity.js';
 export * from './importUrl/htmlFetcher.js';
 export * from './importUrl/domAnalyzer.js';
+export * from './importUrl/songContentExtractor.js';
 export * from './importUrl/songExtractor.js';
 export * from './importUrl/siteAdapters/index.js';
 
