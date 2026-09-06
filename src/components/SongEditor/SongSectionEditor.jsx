@@ -4,7 +4,8 @@ import {
   Trash2,
   ChevronUp,
   ChevronDown,
-  Layers
+  Layers,
+  Combine
 } from 'lucide-react';
 import SongRowEditor from './SongRowEditor';
 import { COMMON_SECTION_NAMES } from '../../utils/musicConstants.js';
@@ -16,7 +17,9 @@ export default function SongSectionEditor({
   onChange,
   onDelete,
   onMoveUp,
-  onMoveDown
+  onMoveDown,
+  onMergeUp,
+  onMergeDown
 }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -109,6 +112,17 @@ export default function SongSectionEditor({
         </div>
 
         <div className="editor-section-controls">
+          {index > 0 && onMergeUp && (
+            <button
+              type="button"
+              className="btn-ghost editor-icon-btn"
+              onClick={onMergeUp}
+              title="Merge with section above"
+              aria-label="Merge with section above"
+            >
+              <Combine size={18} />
+            </button>
+          )}
           <button
             type="button"
             className="btn-ghost editor-icon-btn"

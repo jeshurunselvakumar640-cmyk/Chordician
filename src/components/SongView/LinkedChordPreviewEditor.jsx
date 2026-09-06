@@ -8,14 +8,92 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
-  Info
+  Info,
+  Combine,
+  Layers
 } from 'lucide-react';
-import { splitLinkedLine, mergeLinkedLines } from '../../utils/linkedChordEditorHelper.js';
+import { splitLinkedLine, mergeLinkedLines, mergeSections } from '../../utils/linkedChordEditorHelper.js';
 
 export default function LinkedChordPreviewEditor({ song, onSongChange }) {
   if (!song || !song.sections) return null;
 
   const [activeEditingId, setActiveEditingId] = useState(null);
+
+  // Helper to merge a section into the previous section
+  const handleMergeWithPrevious = (sectionIndex) => {
+    if (sectionIndex <= 0) return;
+    const updatedSections = mergeSections(song.sections, sectionIndex - 1, sectionIndex);
+    onSongChange({
+      ...song,
+      sections: updatedSections
+    });
+  };
+
+  // Helper to merge the next section into this section
+  const handleMergeWithNext = (sectionIndex) => {
+    if (sectionIndex >= song.sections.length - 1) return;
+    const updatedSections = mergeSections(song.sections, sectionIndex, sectionIndex + 1);
+    onSongChange({
+      ...song,
+      sections: updatedSections
+    });
+  };
+
+  // Helper to update section name
+  const handleSectionNameChange = (sectionIndex, newName) => {
+    const updatedSections = song.sections.map((sec, sIdx) => {
+      if (sIdx !== sectionIndex) return sec;
+      return { ...sec, name: newName };
+    });
+    onSongChange({
+      ...song,
+      sections: updatedSections
+    });
+  };
+
+  // Helper to delete an entire section
+  const handleDeleteSection = (sectionIndex) => {
+    if (song.sections.length <= 1) return;
+    const updatedSections = song.sections.filter((_, sIdx) => sIdx !== sectionIndex);
+    onSongChange({
+      ...song,
+      sections: updatedSections
+    });
+  };
+
+  // Helper to move a section up or down
+  const handleMoveSection = (sectionIndex, direction) => {
+    const targetIndex = sectionIndex + direction;
+    if (targetIndex < 0 || targetIndex >= song.sections.length) return;
+    const updated = [...song.sections];
+    const temp = updated[sectionIndex];
+    updated[sectionIndex] = updated[targetIndex];
+    updated[targetIndex] = temp;
+    onSongChange({
+      ...song,
+      sections: updated
+    });
+  };
+
+  // Helper to add a new empty section below
+  const handleAddSection = (afterIndex) => {
+    const nextNum = song.sections.length + 1;
+    const newSec = {
+      id: `sec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      name: `Section ${nextNum}`,
+      rows: [
+        { id: `row_${Date.now()}_c`, type: 'chords', content: '' },
+        { id: `row_${Date.now()}_l`, type: 'lyrics', content: '' }
+      ]
+    };
+    const updated = [...song.sections];
+    updated.splice(afterIndex + 1, 0, newSec);
+    onSongChange({
+      ...song,
+      sections: updated
+    });
+  };
+
 
   // Updates a specific row content in a section
   const handleUpdateRow = (sectionIndex, rowIndex, newContent) => {
@@ -348,7 +426,75 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
           return (
             <div key={section.id || sIdx} className="linked-section-block">
               <div className="linked-section-header">
-                <span className="linked-section-tag">{section.name || `Section ${sIdx + 1}`}</span>
+                <div className="linked-section-title-group">
+                  <Layers size={16} className="linked-section-icon" />
+                  <input
+                    type="text"
+                    className="linked-section-name-input"
+                    value={section.name || ''}
+                    placeholder={`Section ${sIdx + 1}`}
+                    onChange={(e) => handleSectionNameChange(sIdx, e.target.value)}
+                    title="Edit section name"
+                  />
+                </div>
+
+                <div className="linked-section-actions">
+                  {sIdx > 0 && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-xs linked-merge-action-btn"
+                      onClick={() => handleMergeWithPrevious(sIdx)}
+                      title={`Merge "${section.name || 'Section ' + (sIdx + 1)}" with "${song.sections[sIdx - 1]?.name || 'Section ' + sIdx}" above`}
+                    >
+                      <Combine size={13} />
+                      <span>Merge with Above</span>
+                    </button>
+                  )}
+
+                  {sIdx < song.sections.length - 1 && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-xs linked-merge-action-btn"
+                      onClick={() => handleMergeWithNext(sIdx)}
+                      title={`Merge "${song.sections[sIdx + 1]?.name || 'Section ' + (sIdx + 2)}" into "${section.name || 'Section ' + (sIdx + 1)}"`}
+                    >
+                      <Combine size={13} />
+                      <span>Merge with Below</span>
+                    </button>
+                  )}
+
+                  <div className="linked-section-reorder-group">
+                    <button
+                      type="button"
+                      className="btn-ghost linked-action-icon-btn"
+                      onClick={() => handleMoveSection(sIdx, -1)}
+                      disabled={sIdx === 0}
+                      title="Move section up"
+                    >
+                      <ChevronUp size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost linked-action-icon-btn"
+                      onClick={() => handleMoveSection(sIdx, 1)}
+                      disabled={sIdx === song.sections.length - 1}
+                      title="Move section down"
+                    >
+                      <ChevronDown size={15} />
+                    </button>
+                  </div>
+
+                  {song.sections.length > 1 && (
+                    <button
+                      type="button"
+                      className="btn-ghost text-danger linked-action-icon-btn"
+                      onClick={() => handleDeleteSection(sIdx)}
+                      title="Delete section"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="linked-pairs-list">
@@ -517,7 +663,7 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
                 })}
               </div>
 
-              {/* Add Line Pair Button */}
+              {/* Section Footer Actions */}
               <div className="linked-section-footer">
                 <button
                   type="button"
@@ -525,7 +671,16 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
                   onClick={() => handleAddLinePair(sIdx)}
                 >
                   <Plus size={14} />
-                  <span>Add Line to {section.name}</span>
+                  <span>Add Line</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => handleAddSection(sIdx)}
+                  title="Insert a new section below"
+                >
+                  <Plus size={14} />
+                  <span>Add Section Below</span>
                 </button>
               </div>
             </div>

@@ -205,3 +205,91 @@ export function mergeLinkedLines(line1, line2) {
     mergeOffset
   };
 }
+
+/**
+ * Merges two sections in a song structure.
+ * Appends rows from source section into target section, keeping target section's name,
+ * and smartly adjusts subsequent numbered section headers (e.g. Verse 3 -> Verse 2).
+ *
+ * @param {Array<object>} sections - Array of song sections
+ * @param {number} targetIndex - Index of the section that will absorb the content
+ * @param {number} sourceIndex - Index of the section that will be merged and removed
+ * @returns {Array<object>} - Updated sections array
+ */
+export function mergeSections(sections, targetIndex, sourceIndex) {
+  if (!Array.isArray(sections) || sections.length < 2) return sections;
+  if (targetIndex < 0 || targetIndex >= sections.length) return sections;
+  if (sourceIndex < 0 || sourceIndex >= sections.length) return sections;
+  if (targetIndex === sourceIndex) return sections;
+
+  const targetSec = sections[targetIndex];
+  const sourceSec = sections[sourceIndex];
+
+  const mergedRows = [
+    ...(targetSec.rows || []).map((r) => ({ ...r })),
+    ...(sourceSec.rows || []).map((r) => ({ ...r }))
+  ];
+
+  const mergedSection = {
+    ...targetSec,
+    name: targetSec.name || `Section ${targetIndex + 1}`,
+    rows: mergedRows
+  };
+
+  // Build new array with target merged and source removed
+  const result = [];
+  for (let i = 0; i < sections.length; i++) {
+    if (i === targetIndex) {
+      result.push(mergedSection);
+    } else if (i === sourceIndex) {
+      // Skip source section as it is merged
+      continue;
+    } else {
+      result.push({ ...sections[i] });
+    }
+  }
+
+  // Check if target and source shared a numbered prefix (e.g., "Verse 1" and "Verse 2")
+  const targetName = (targetSec.name || '').trim();
+  const sourceName = (sourceSec.name || '').trim();
+
+  // Pattern matches: "Verse 1", "Chorus 2", "Section 3", "Stanza 1", "Part 2", "V1", "C2", etc.
+  const numPattern = /^(.+?)\s*(\d+)$/i;
+  const targetMatch = targetName.match(numPattern);
+  const sourceMatch = sourceName.match(numPattern);
+
+  if (targetMatch && sourceMatch) {
+    const targetPrefix = targetMatch[1].trim().toLowerCase();
+    const sourcePrefix = sourceMatch[1].trim().toLowerCase();
+    const targetNum = parseInt(targetMatch[2], 10);
+    const sourceNum = parseInt(sourceMatch[2], 10);
+
+    // If they have the same prefix and consecutive numbers (e.g. Verse 1 and Verse 2)
+    if (targetPrefix === sourcePrefix && sourceNum === targetNum + 1) {
+      // Renumber subsequent sections of the same prefix starting after the merged index
+      const startIndex = Math.min(targetIndex, sourceIndex) + 1;
+      for (let j = startIndex; j < result.length; j++) {
+        const sec = result[j];
+        const secName = (sec.name || '').trim();
+        const m = secName.match(numPattern);
+        if (m) {
+          const prefix = m[1].trim().toLowerCase();
+          const num = parseInt(m[2], 10);
+          if (prefix === targetPrefix && num > targetNum) {
+            const origPrefix = m[1].trim();
+            const hasSpace = /\s/.test(m[0]);
+            const sep = hasSpace ? ' ' : '';
+            const newNum = num - 1;
+            result[j] = {
+              ...sec,
+              name: `${origPrefix}${sep}${newNum}`
+            };
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
