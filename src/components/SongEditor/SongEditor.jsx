@@ -26,6 +26,7 @@ export default function SongEditor({
   const navigate = useNavigate();
 
   const [title, setTitle] = useState(initialSong?.title || '');
+  const [secondaryTitle, setSecondaryTitle] = useState(initialSong?.secondaryTitle || '');
   const [artist, setArtist] = useState(initialSong?.artist || '');
   const [originalKey, setOriginalKey] = useState(initialSong?.originalKey || 'C');
   const [category, setCategory] = useState(initialSong?.category || 'Worship');
@@ -111,6 +112,7 @@ export default function SongEditor({
 
     const songData = {
       title: title.trim(),
+      secondaryTitle: secondaryTitle.trim() || null,
       artist: artist.trim(),
       originalKey,
       category,
@@ -203,6 +205,20 @@ export default function SongEditor({
               placeholder="e.g. Amazing Grace"
               required
               autoFocus
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="song-secondary-title">
+              Secondary Title <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>(Optional - not shown on cards)</span>
+            </label>
+            <input
+              id="song-secondary-title"
+              type="text"
+              className="form-input"
+              value={secondaryTitle}
+              onChange={(e) => setSecondaryTitle(e.target.value)}
+              placeholder="e.g. Yeshu Hai Sachcha Gadariya"
             />
           </div>
 

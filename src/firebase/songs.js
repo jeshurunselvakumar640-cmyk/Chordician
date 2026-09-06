@@ -139,6 +139,7 @@ export async function addSong(songData) {
   try {
     const cleanData = {
       title: (songData.title || '').trim(),
+      secondaryTitle: songData.secondaryTitle ? songData.secondaryTitle.trim() : null,
       artist: (songData.artist || '').trim(),
       originalKey: songData.originalKey || 'C',
       category: songData.category || 'Other',
@@ -178,6 +179,7 @@ export async function updateSong(id, songData) {
     const docRef = doc(db, SONGS_COLLECTION, id);
     const cleanData = {
       title: (songData.title || '').trim(),
+      secondaryTitle: songData.secondaryTitle ? songData.secondaryTitle.trim() : null,
       artist: (songData.artist || '').trim(),
       originalKey: songData.originalKey || 'C',
       category: songData.category || 'Other',

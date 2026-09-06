@@ -351,7 +351,7 @@ export default function SongDetails({
     );
   }
 
-  const { title, artist, originalKey, category, style, favorite } = song;
+  const { title, secondaryTitle, artist, originalKey, category, style, favorite } = song;
   const isTransposed = activeKey !== originalKey;
 
   return (
@@ -566,6 +566,11 @@ export default function SongDetails({
             <h1 className="song-details-title">
               {title}
             </h1>
+            {secondaryTitle && (
+              <div className="song-details-secondary-title" style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', marginTop: '2px', fontWeight: 500 }}>
+                {secondaryTitle}
+              </div>
+            )}
             <div className="song-details-artist-row">
               <span className="song-details-artist">
                 <User size={14} style={{ opacity: 0.7 }} />
