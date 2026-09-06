@@ -6,6 +6,7 @@ import { ToastProvider, useToast } from './context/ToastContext';
 import { ThisSundayProvider } from './context/ThisSundayContext';
 import { CommunionProvider } from './context/CommunionContext';
 import { AuthProvider } from './context/AuthContext';
+import { DeviceModeProvider } from './context/DeviceModeContext';
 import Layout from './components/Layout/Layout';
 import ReloadPrompt from './components/UI/ReloadPrompt';
 import Dashboard from './pages/Dashboard';
@@ -252,19 +253,21 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <PWAProvider>
-        <ToastProvider>
-          <AuthProvider>
-            <ThisSundayProvider>
-              <CommunionProvider>
-                <BrowserRouter>
-                  <AppContent />
-                </BrowserRouter>
-              </CommunionProvider>
-            </ThisSundayProvider>
-          </AuthProvider>
-        </ToastProvider>
-      </PWAProvider>
+      <DeviceModeProvider>
+        <PWAProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <ThisSundayProvider>
+                <CommunionProvider>
+                  <BrowserRouter>
+                    <AppContent />
+                  </BrowserRouter>
+                </CommunionProvider>
+              </ThisSundayProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </PWAProvider>
+      </DeviceModeProvider>
     </ThemeProvider>
   );
 }

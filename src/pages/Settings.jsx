@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import {
   Sun,
   Moon,
-  ShieldCheck,
   Database,
   Check,
-  Copy,
   Sliders,
   Piano,
   Activity,
@@ -14,6 +12,7 @@ import {
   Lock,
   Download,
   Smartphone,
+  Monitor,
   Crown,
   User,
   LogIn,
@@ -23,7 +22,8 @@ import {
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePWA } from '../context/PWAContext.jsx';
-import { useAuth, OWNER_EMAIL, OWNER_DEFAULT_NAME } from '../context/AuthContext.jsx';
+import { useDeviceMode } from '../context/DeviceModeContext.jsx';
+import { useAuth, OWNER_DEFAULT_NAME } from '../context/AuthContext.jsx';
 import { addSong, runFirebaseDiagnostics } from '../firebase/songs.js';
 import { firebaseConfig } from '../firebase/config.js';
 import { DEMO_PRESETS } from '../services/aiSongParser.js';
@@ -32,42 +32,14 @@ export default function Settings({ onSongAdded }) {
   const { theme, setTheme, isDark } = useTheme();
   const { showToast } = useToast();
   const { canInstall, isStandalone, installApp } = usePWA();
+  const { isDesktopMode, setDesktopMode } = useDeviceMode();
   const { currentUser, userProfile, isOwner, canEdit, logout, openAuthModal } = useAuth();
 
-  const [copiedRules, setCopiedRules] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
 
   // Diagnostics state
   const [isRunningDiag, setIsRunningDiag] = useState(false);
   const [diagResult, setDiagResult] = useState(null);
-
-  const securityRulesText = `rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Chordician Songbook Root Collection
-    // Public visitors can view all songs; Only Owner can create, edit, or delete
-    match /songs/{songId} {
-      allow read: if true;
-      allow write: if request.auth != null && (
-        request.auth.token.email == '${OWNER_EMAIL}' ||
-        request.auth.token.email_verified == true
-      );
-    }
-
-    // User Profiles
-    match /users/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}`;
-
-  const handleCopyRules = (textToCopy = securityRulesText) => {
-    navigator.clipboard.writeText(textToCopy);
-    setCopiedRules(true);
-    showToast('Firestore Security Rules copied to clipboard!', 'info');
-    setTimeout(() => setCopiedRules(false), 2500);
-  };
 
   const handleRunDiagnostics = async () => {
     setIsRunningDiag(true);
@@ -373,30 +345,55 @@ service cloud.firestore {
         </div>
       </div>
 
-      {/* Security Rules Reference */}
+      {/* Mobile & Viewport Layout Options */}
       <div className="card settings-card">
-        <div className="settings-rules-header">
-          <h2 className="settings-section-title">
-            <ShieldCheck size={20} style={{ color: 'var(--color-primary)' }} />
-            Firestore Security Rules Configuration
-          </h2>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => handleCopyRules(securityRulesText)}
-          >
-            {copiedRules ? <Check size={14} /> : <Copy size={14} />}
-            <span>{copiedRules ? 'Copied' : 'Copy Rules'}</span>
-          </button>
-        </div>
-
-        <p className="settings-rules-desc">
-          To allow Chordician to read and write songs in your Firestore database (Project: <strong className="font-mono-input">{firebaseConfig.projectId}</strong>), paste these rules into your <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> tab:
+        <h2 className="settings-section-title">
+          <Monitor size={20} style={{ color: 'var(--color-primary)' }} />
+          Layout & Viewport Mode
+        </h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginTop: '4px', marginBottom: '16px' }}>
+          Choose whether mobile devices use the touch-optimized mobile interface or simulate the full desktop widescreen layout.
         </p>
 
-        <pre className="settings-rules-pre">
-          {securityRulesText}
-        </pre>
+        <div className="settings-theme-grid">
+          <div
+            onClick={() => {
+              setDesktopMode(false);
+              showToast('Switched to Mobile Touch Mode', 'info');
+            }}
+            className={`settings-theme-option ${!isDesktopMode ? 'selected' : ''}`}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="settings-theme-info">
+              <Smartphone size={20} style={{ color: 'var(--color-primary)' }} />
+              <div>
+                <div className="settings-theme-name">Mobile Touch Mode (Default)</div>
+                <div className="settings-theme-desc">Touch-friendly bottom bar & responsive flow</div>
+              </div>
+            </div>
+            {!isDesktopMode && <Check size={18} style={{ color: 'var(--color-primary)' }} />}
+          </div>
+
+          <div
+            onClick={() => {
+              setDesktopMode(true);
+              showToast('Switched to Full Desktop Mode', 'info');
+            }}
+            className={`settings-theme-option ${isDesktopMode ? 'selected' : ''}`}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="settings-theme-info">
+              <Monitor size={20} style={{ color: '#10b981' }} />
+              <div>
+                <div className="settings-theme-name">Desktop Mode for Mobile</div>
+                <div className="settings-theme-desc">Full widescreen sidebar & wide chord charts</div>
+              </div>
+            </div>
+            {isDesktopMode && <Check size={18} style={{ color: 'var(--color-primary)' }} />}
+          </div>
+        </div>
       </div>
     </div>
   );

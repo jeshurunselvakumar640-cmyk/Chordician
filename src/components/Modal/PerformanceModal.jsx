@@ -165,7 +165,7 @@ export default function PerformanceModal({
 
           {/* Font Size Selector */}
           <div className="perf-control-group perf-font-group">
-            <Type size={15} style={{ margin: '0 2px', color: '#94a3b8' }} />
+            <Type size={15} style={{ margin: '0 2px', color: 'var(--text-muted)' }} />
             {['small', 'normal', 'large', 'xlarge'].map((size) => (
               <button
                 key={size}
@@ -281,7 +281,7 @@ export default function PerformanceModal({
       {/* Main Performance Sheet (Scalable Responsive Typography) */}
       <div className={`performance-content perf-font-${fontSize}`} style={{ paddingBottom: hasSetlist ? '80px' : '40px' }}>
         {sections.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
             <Music size={40} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
             <p>No musical sections to display.</p>
           </div>
@@ -302,13 +302,13 @@ export default function PerformanceModal({
           left: '50%',
           transform: 'translateX(-50%)',
           backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-focus)',
+          border: '1px solid var(--border-medium)',
           borderRadius: '30px',
           padding: '6px 14px',
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4)',
+          boxShadow: 'var(--shadow-xl)',
           zIndex: 100,
           backdropFilter: 'blur(12px)'
         }}>

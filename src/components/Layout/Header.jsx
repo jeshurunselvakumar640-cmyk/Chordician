@@ -90,25 +90,25 @@ export default function Header({
           className="btn-icon mobile-search-toggle"
           onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
           aria-label={mobileSearchOpen ? 'Close search' : 'Open search'}
+          title={mobileSearchOpen ? 'Close search' : 'Search songs'}
         >
           {mobileSearchOpen ? <X size={18} /> : <Search size={18} />}
-        </button>
-
-        {/* Mobile Quick Refresh / Sync Trigger */}
-        <button
-          type="button"
-          className="btn-icon mobile-refresh-toggle"
-          onClick={handleQuickRefresh}
-          title="Refresh library"
-          aria-label="Refresh library"
-          disabled={isRefreshing}
-        >
-          <RefreshCw size={17} className={isRefreshing ? 'animate-spin' : ''} />
         </button>
 
         {/* Desktop Quick Actions (Owner Only) */}
         {canEdit && (
           <>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm desktop-only-action"
+              onClick={handleQuickRefresh}
+              title="Refresh library from cloud"
+              disabled={isRefreshing}
+            >
+              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+              Sync
+            </button>
+
             <Link
               to="/import"
               className="btn btn-secondary btn-sm desktop-only-action"

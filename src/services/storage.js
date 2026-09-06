@@ -53,3 +53,22 @@ export function setStoredFontSize(size) {
     console.error('Failed to store font size', e);
   }
 }
+
+const DESKTOP_MODE_KEY = 'chordician_desktop_mode';
+
+export function getStoredDesktopMode() {
+  try {
+    return localStorage.getItem(DESKTOP_MODE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setStoredDesktopMode(enabled) {
+  try {
+    localStorage.setItem(DESKTOP_MODE_KEY, String(Boolean(enabled)));
+  } catch (e) {
+    console.error('Failed to store desktop mode preference', e);
+  }
+}
+

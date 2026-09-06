@@ -3,17 +3,21 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   CalendarDays,
+  Wine,
   Music,
   Plus,
   Heart,
   Settings
 } from 'lucide-react';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
+import { useCommunion } from '../../context/CommunionContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function BottomNav({ totalSongs = 0, favoriteCount = 0 }) {
   const { songIds } = useThisSunday();
   const thisSundayCount = songIds ? songIds.length : 0;
+  const { songIds: communionSongIds } = useCommunion();
+  const communionCount = communionSongIds ? communionSongIds.length : 0;
   const { canEdit, openAuthModal } = useAuth();
 
   const handleCenterClick = (e) => {
@@ -31,7 +35,7 @@ export default function BottomNav({ totalSongs = 0, favoriteCount = 0 }) {
         className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
         aria-label="Dashboard"
       >
-        <LayoutDashboard size={20} />
+        <LayoutDashboard size={19} />
         <span className="bottom-nav-label">Home</span>
       </NavLink>
 
@@ -41,12 +45,26 @@ export default function BottomNav({ totalSongs = 0, favoriteCount = 0 }) {
         aria-label="This Sunday"
       >
         <div className="bottom-nav-icon-wrapper">
-          <CalendarDays size={20} />
+          <CalendarDays size={19} />
           {thisSundayCount > 0 && (
             <span className="bottom-nav-badge">{thisSundayCount}</span>
           )}
         </div>
         <span className="bottom-nav-label">Sunday</span>
+      </NavLink>
+
+      <NavLink
+        to="/communion"
+        className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+        aria-label="Communion Songs"
+      >
+        <div className="bottom-nav-icon-wrapper">
+          <Wine size={19} />
+          {communionCount > 0 && (
+            <span className="bottom-nav-badge">{communionCount}</span>
+          )}
+        </div>
+        <span className="bottom-nav-label">Communion</span>
       </NavLink>
 
       {/* Highlighted Center Add Action */}
