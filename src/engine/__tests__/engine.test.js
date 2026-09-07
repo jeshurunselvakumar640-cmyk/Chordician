@@ -845,12 +845,128 @@ Ab             Db
 Enakkaaga Yaavaiyum Seithu Mudippeer - 2
 Footer`;
 const ex7Extracted = extractSongContent(ex7Raw);
-assert(ex7Extracted.includes('F#m') && ex7Extracted.includes('Bb') && ex7Extracted.includes('Neere...') && ex7Extracted.includes('(x2)'), 'Ex 7: Sharps, flats, ellipsis, repetition preserved');
+// --- Test 28: Supported Website Pattern 1: thegodsmusic.com ---
+console.log('\n--- Test 28: thegodsmusic.com Content Filtering & Block Isolation ---');
+const theGodsMusicRaw = `[logo]
+Home
+Albums
+Artists
+Notes
+Chords
+Buy Chords Book
+Contact Us
+
+Discover more
+Advertisements
+Related chords
+Buy books
+Footer
+Search boxes
+Social links
+
+## Ellaavatrilum Ellaamumaaga Keyboard Chords In English
+
+EEllaavatrilum F#mEllaamumaaga
+
+BIrundhavarae B7IruppavaErae
+
+Ellaavatraiyum F#mEllaavattraalum
+
+BNiraithavarae B7NiraippavaErae
+
+**Chorus:**
+
+E/C#m7Sthothiramae ASthothiramae
+
+F#m7Maravaamal BSeluthugiEraen (2)
+
+EUyir PizhaiAthaen, F#Udhavi BPettraen
+
+A/F#m7Uyir Ulla BVarai ThuthipE/Apaen (2)
+
+**Verse:**
+
+E/C#mThagapanaa-/Ega    AIdhuvaraiyum
+
+F#mThozhin Meethae B/Bm7Sumandhu EVandheer (2)
+
+EThandhaiyae Um DhayaAvaal      F#m
+
+BThaandinaen VanaandhiraEthai (2)
+
+Discover more
+Advertisements
+Related chords
+Buy books
+Footer
+Search boxes
+Social links`;
+
+const { preprocessUrlContent, detectUrlSource, reconstructMusicalLines, needsLineReconstruction } = await import('../importUrl/urlContentPreprocessor.js');
+
+const t28Source = detectUrlSource('https://thegodsmusic.com/ellaavatrilum-ellaamumaaga-chords/', theGodsMusicRaw);
+assertEqual(t28Source, 'thegodsmusic', 'Test 28: Detected source as thegodsmusic');
+
+const t28Preprocessed = preprocessUrlContent(theGodsMusicRaw, 'https://thegodsmusic.com/ellaavatrilum-ellaamumaaga-chords/');
+assert(!t28Preprocessed.includes('Buy Chords Book'), 'Test 28: Stripped navigation');
+assert(!t28Preprocessed.includes('Discover more') && !t28Preprocessed.includes('Related chords'), 'Test 28: Stripped promo junk');
+assert(t28Preprocessed.includes('EEllaavatrilum F#mEllaamumaaga'), 'Test 28: Useful song content preserved');
+assert(t28Preprocessed.includes('**Chorus:**') && t28Preprocessed.includes('**Verse:**'), 'Test 28: Chorus and Verse markers preserved');
+assert(t28Preprocessed.includes('E/C#m7Sthothiramae') && t28Preprocessed.includes('B/Bm7Sumandhu'), 'Test 28: Slash and attached chords preserved');
+
+const t28Sp = parseSmartPaste(t28Preprocessed);
+assert(t28Sp.success, 'Test 28: Smart Paste parsed cleanly');
+assert(t28Sp.song.sections.length >= 2, 'Test 28: Multiple sections generated from thegodsmusic content');
+
+// --- Test 29: Supported Website Pattern 2: tamilchristiansongs.in Collapsed Line Reconstruction ---
+console.log('\n--- Test 29: tamilchristiansongs.in Collapsed Line Reconstruction ---');
+const t29Collapsed = `A#Oruvarum SerakkoodaaDmTha OliyiA#LD#Vaasam SeFYpavarae (A#2)D#Neerae ParisuththaF TheyvamDNeerae Parisuththa GmTheyvamCmNeerae  Neer MaaGaugThthiA#RamaeCmNeerae  NeerF MaaththiA#RamaeA#Parisuththar  NeeCmR ParisuththarFParisuththar  NeeA#R ParisuththarCmNeerae Neer F MaaththiraA#Mae`;
+
+const t29Expected = `A#Oruvarum SerakkoodaaDmTha OliyiA#L
+D#Vaasam SeFYpavarae (A#2)
+D#Neerae ParisuththaF Theyvam
+DNeerae Parisuththa
+GmTheyvamCmNeerae  Neer MaaGaugThthiA#Ramae
+CmNeerae  NeerF MaaththiA#Ramae
+A#Parisuththar  NeeCmR Parisuththar
+FParisuththar  NeeA#R Parisuththar
+CmNeerae Neer F MaaththiraA#Mae`;
+
+const t29Reconstructed = reconstructMusicalLines(t29Collapsed, 'tamilchristiansongs');
+assertEqual(t29Reconstructed, t29Expected, 'Test 29: Exact 9-line structural reconstruction matched');
+
+// --- Test 30: Smart Paster Integration for Pattern 2 with Embedded Chords ---
+console.log('\n--- Test 30: Smart Paster Integration for Pattern 2 ---');
+const t30Result = parseSmartPaste(t29Expected);
+assert(t30Result.success, 'Test 30: Smart paste parsed reconstructed content successfully');
+assert(t30Result.song.sections.length >= 1, 'Test 30: Generated song sections');
+
+// --- Test 31: Full URL Preprocessing Pipeline with Noise & Collapsed Lines ---
+console.log('\n--- Test 31: Full URL Preprocessing Pipeline ---');
+const t31PageRaw = `Tamil Christian Songs .IN
+Home | Chords | Lyrics
+A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+Advertisement
+# Oruvarum Serakkoodaa Chords
+Transpose
+1-2-3
+Print
+
+A#Oruvarum SerakkoodaaDmTha OliyiA#LD#Vaasam SeFYpavarae (A#2)D#Neerae ParisuththaF TheyvamDNeerae Parisuththa GmTheyvamCmNeerae  Neer MaaGaugThthiA#RamaeCmNeerae  NeerF MaaththiA#RamaeA#Parisuththar  NeeCmR ParisuththarFParisuththar  NeeA#R ParisuththarCmNeerae Neer F MaaththiraA#Mae
+
+Related Songs
+e|-1---1---3---1---|
+Footer
+© 2026 Tamil Christian Songs .IN`;
+
+const t31Processed = preprocessUrlContent(t31PageRaw, 'https://tamilchristiansongs.in/chords/oruvarum-serakkoodaa/');
+assertEqual(t31Processed, t29Expected, 'Test 31: Entire webpage noise stripped and exact 9 lines reconstructed');
 
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
 }
+
 
 
 

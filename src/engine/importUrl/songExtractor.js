@@ -45,7 +45,7 @@ export async function extractSongFromUrl(targetUrl) {
     const extracted = extractFromDom($, finalUrl);
 
     // Apply isolated song content extraction layer to filter out all website noise
-    const cleanRawText = extractSongContent(extracted.rawText || '');
+    const cleanRawText = extractSongContent(extracted.rawText || '', { sourceUrl: finalUrl });
 
     if (!cleanRawText || cleanRawText.trim().length < 15) {
       return {

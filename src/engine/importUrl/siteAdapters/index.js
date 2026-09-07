@@ -5,6 +5,7 @@
 import { extractWithGenericAdapter } from './genericAdapter.js';
 import { extractWithTamilChristianSongsAdapter } from './tamilChristianSongsAdapter.js';
 import { extractWithWorshipTogetherAdapter } from './worshipTogetherAdapter.js';
+import { extractWithTheGodsMusicAdapter } from './theGodsMusicAdapter.js';
 
 /**
  * @param {string} url
@@ -12,6 +13,10 @@ import { extractWithWorshipTogetherAdapter } from './worshipTogetherAdapter.js';
 export function getSiteAdapter(url) {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
+
+    if (hostname.includes('thegodsmusic')) {
+      return extractWithTheGodsMusicAdapter;
+    }
 
     if (hostname.includes('tamilchristiansongs') || hostname.includes('gospelchords') || hostname.includes('tamilchristianlyrics')) {
       return extractWithTamilChristianSongsAdapter;

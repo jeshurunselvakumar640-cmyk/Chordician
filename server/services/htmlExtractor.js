@@ -46,12 +46,12 @@ export function extractSongFromHtml(html, sourceUrl = '') {
   let songContent = extractBestSongContainerText($, html);
 
   // 6. Post-process to isolate and extract only clean song lyrics & chords (zero regression)
-  songContent = extractSongContent(songContent, { metadata });
+  songContent = extractSongContent(songContent, { metadata, sourceUrl });
 
   // 7. Fallback to full body text if specific container was too empty
   if (!songContent || songContent.trim().length < 15) {
     const rawBody = getNodeFormattedText($('body'), $);
-    songContent = extractSongContent(rawBody, { metadata });
+    songContent = extractSongContent(rawBody, { metadata, sourceUrl });
   }
 
   if (!songContent || songContent.trim().length === 0) {

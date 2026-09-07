@@ -2,11 +2,13 @@
  * Site Adapter for Indian & Tamil Christian Chord sites (e.g. tamilchristiansongs.in, gospelchords.in).
  */
 
-import { cleanDom, getNodeFormattedText, findBestSongContainer } from '../domAnalyzer.js';
+import { cleanDom, findBestSongContainer } from '../domAnalyzer.js';
+import { extractRelevantSongBlock, removeWebsiteNoise } from '../urlContentPreprocessor.js';
 
 /**
  * @param {import('cheerio').CheerioAPI} $
  * @param {string} sourceUrl
+ * @returns {{ title: string, artist: string, originalKey?: string, rawText: string, source: string }}
  */
 export function extractWithTamilChristianSongsAdapter($, sourceUrl) {
   cleanDom($);
@@ -33,12 +35,15 @@ export function extractWithTamilChristianSongsAdapter($, sourceUrl) {
   }
 
   // Prioritize dedicated chord displays
-  const rawText = findBestSongContainer($);
+  let rawText = findBestSongContainer($);
+  rawText = extractRelevantSongBlock(rawText, 'tamilchristiansongs');
+  rawText = removeWebsiteNoise(rawText);
 
   return {
     title: title || 'Tamil Christian Song',
     artist: artist || '',
     originalKey,
-    rawText
+    rawText,
+    source: 'tamilchristiansongs'
   };
 }

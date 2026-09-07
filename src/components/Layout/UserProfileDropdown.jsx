@@ -74,12 +74,12 @@ export default function UserProfileDropdown() {
           borderRadius: '20px',
           border: isOwner
             ? '1px solid rgba(245, 158, 11, 0.4)'
-            : '1px solid var(--color-border)',
+            : '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
           background: isOwner
             ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.05))'
-            : 'var(--color-surface)',
+            : 'var(--bg-card, #121a2d)',
           cursor: 'pointer',
-          color: 'var(--color-text)',
+          color: 'var(--text-main, #f8fafc)',
           transition: 'all 0.2s ease'
         }}
         aria-label="User profile menu"
@@ -94,8 +94,8 @@ export default function UserProfileDropdown() {
               ? 'linear-gradient(135deg, #f59e0b, #d97706)'
               : currentUser
               ? 'linear-gradient(135deg, var(--color-primary), #8b5cf6)'
-              : 'var(--color-surface-subtle)',
-            color: isOwner || currentUser ? '#ffffff' : 'var(--color-text-muted)',
+              : 'var(--bg-card-secondary, #172036)',
+            color: isOwner || currentUser ? '#ffffff' : 'var(--text-muted, #94a3b8)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -120,7 +120,7 @@ export default function UserProfileDropdown() {
           {isOwner ? 'Owner' : currentUser ? (displayName || 'Viewer') : 'Sign In'}
         </span>
 
-        <ChevronDown size={13} style={{ color: 'var(--color-text-muted)', opacity: 0.7 }} />
+        <ChevronDown size={13} style={{ color: 'var(--text-muted, #94a3b8)', opacity: 0.7 }} />
       </button>
 
       {/* Dropdown Menu */}
@@ -132,10 +132,11 @@ export default function UserProfileDropdown() {
             top: 'calc(100% + 8px)',
             right: 0,
             width: '260px',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
+            backgroundColor: 'var(--bg-card, #121a2d)',
+            background: 'var(--bg-card, #121a2d)',
+            border: '1px solid var(--border-medium, rgba(255, 255, 255, 0.14))',
             borderRadius: '12px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            boxShadow: 'var(--shadow-xl, 0 10px 25px -5px rgba(0, 0, 0, 0.5))',
             padding: '12px',
             zIndex: 1000,
             animation: 'dropdownFadeIn 0.15s ease-out'
@@ -150,7 +151,7 @@ export default function UserProfileDropdown() {
                   alignItems: 'flex-start',
                   gap: '10px',
                   paddingBottom: '10px',
-                  borderBottom: '1px solid var(--color-border)',
+                  borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
                   marginBottom: '10px'
                 }}
               >
@@ -179,7 +180,7 @@ export default function UserProfileDropdown() {
                     style={{
                       fontWeight: 700,
                       fontSize: '0.88rem',
-                      color: 'var(--color-text)',
+                      color: 'var(--text-main, #f8fafc)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis'
@@ -190,7 +191,7 @@ export default function UserProfileDropdown() {
                   <div
                     style={{
                       fontSize: '0.75rem',
-                      color: 'var(--color-text-muted)',
+                      color: 'var(--text-muted, #94a3b8)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -211,9 +212,12 @@ export default function UserProfileDropdown() {
                   padding: '6px 10px',
                   borderRadius: '6px',
                   background: isOwner
-                    ? 'rgba(245, 158, 11, 0.12)'
-                    : 'rgba(99, 102, 241, 0.1)',
-                  color: isOwner ? '#f59e0b' : 'var(--color-primary)',
+                    ? 'rgba(245, 158, 11, 0.15)'
+                    : 'rgba(99, 102, 241, 0.15)',
+                  border: isOwner
+                    ? '1px solid rgba(245, 158, 11, 0.3)'
+                    : '1px solid rgba(99, 102, 241, 0.25)',
+                  color: isOwner ? '#f59e0b' : 'var(--color-primary, #6366f1)',
                   fontSize: '0.78rem',
                   fontWeight: 600,
                   marginBottom: '10px'
@@ -283,8 +287,8 @@ export default function UserProfileDropdown() {
                     width: '40px',
                     height: '40px',
                     borderRadius: '50%',
-                    background: 'var(--color-surface-subtle)',
-                    color: 'var(--color-text-muted)',
+                    background: 'var(--bg-card-secondary, #172036)',
+                    color: 'var(--text-muted, #94a3b8)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -293,10 +297,10 @@ export default function UserProfileDropdown() {
                 >
                   <Eye size={20} />
                 </div>
-                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--color-text)' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-main, #f8fafc)' }}>
                   View-Only Mode
                 </div>
-                <p style={{ margin: '4px 0 10px', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                <p style={{ margin: '4px 0 10px', fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
                   All visitors can view chords, lyrics, transpose keys, and export PDF.
                 </p>
               </div>

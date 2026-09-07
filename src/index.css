@@ -7464,5 +7464,52 @@ body.desktop-mode-forced {
   touch-action: pan-y pinch-zoom;
 }
 
+/* ==========================================================================
+   USER PROFILE NAVBAR DROPDOWN
+   ========================================================================== */
+.user-profile-wrapper {
+  position: relative;
+}
 
+.user-profile-badge-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
 
+.user-profile-badge-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.user-profile-dropdown-card {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 270px;
+  background-color: var(--bg-card, #121a2d) !important;
+  background: var(--bg-card, #121a2d) !important;
+  border: 1px solid var(--border-medium, rgba(255, 255, 255, 0.14)) !important;
+  border-radius: var(--radius-md, 12px) !important;
+  box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.6)) !important;
+  padding: 12px;
+  z-index: 1000;
+  animation: dropdownFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

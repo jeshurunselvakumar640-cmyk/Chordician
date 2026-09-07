@@ -11,6 +11,7 @@
 
 import { isChord, isChordLine, matchChordPrefix, extractChordsFromLine } from '../core/chordDetector.js';
 import { isSectionHeader, isLyricText, removeEmojis } from '../core/lyricDetector.js';
+import { preprocessUrlContent } from './urlContentPreprocessor.js';
 
 // Single chord token regex (e.g. D, G, Em, A, Bm, F#m, C#m, Dmaj7, D/F#, etc.)
 const SINGLE_CHORD_REGEX = /^[A-G][#b♭♯]?(?:maj|min|m|M|dim|aug|sus[24]?|add[0-9]+|b5|#5|#9|b9|#11|7|9|11|13)?(?:\/[A-G][#b♭♯]?(?:m|maj|min)?[0-9]*)?$/i;
@@ -219,7 +220,11 @@ export function extractSongContent(rawWebsiteContent, options = {}) {
     return '';
   }
 
-  const rawLines = rawWebsiteContent.split(/\r?\n/);
+  // Phase 0: Run isolated URL content preprocessor
+  const preprocessed = preprocessUrlContent(rawWebsiteContent, options.sourceUrl || '');
+  const contentToProcess = preprocessed || rawWebsiteContent;
+
+  const rawLines = contentToProcess.split(/\r?\n/);
   const processed = [];
 
   // Phase 1: Normalize and remove emojis & empty brackets
