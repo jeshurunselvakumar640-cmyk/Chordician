@@ -4,6 +4,7 @@ import { safeFetchHtml } from '../services/urlFetcher.js';
 import { parseHtmlToSong } from '../parsers/genericParser.js';
 import { analyzeSongTextWithChordexAI } from '../services/chordexTextAnalyzer.js';
 import { normalizeSongData } from '../services/songNormalizer.js';
+import { searchSongAcrossInternet } from '../services/internetSongCrawler.js';
 
 const router = Router();
 
@@ -168,4 +169,43 @@ router.post('/chordex/analyze-text', async (req, res) => {
   }
 });
 
+/**
+ * Endpoint for "Import from Internet" multi-source prioritized fallback crawler.
+ * Searches strictly across the 6 allowlisted sources in order.
+ */
+router.post('/import-internet/search', async (req, res) => {
+  const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
+
+  if (!checkRateLimit(clientIp)) {
+    return res.status(429).json({
+      success: false,
+      error: 'Too many search requests. Please wait a moment and try again.',
+      code: 'RATE_LIMITED'
+    });
+  }
+
+  const { query } = req.body || {};
+
+  if (!query || typeof query !== 'string' || !query.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: 'Please enter a song title to search.',
+      code: 'EMPTY_QUERY'
+    });
+  }
+
+  try {
+    const result = await searchSongAcrossInternet(query.trim());
+    return res.json(result);
+  } catch (err) {
+    console.error('[Import Internet Search Error]:', err.message || err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Failed to search across internet sources.',
+      code: 'SEARCH_FAILED'
+    });
+  }
+});
+
 export default router;
+

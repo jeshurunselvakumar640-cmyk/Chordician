@@ -7541,3 +7541,36 @@ body.desktop-mode-forced {
   border: 1px solid rgba(99, 102, 241, 0.25);
 }
 
+/* ==========================================================================
+   IMPORT FROM INTERNET MODAL & STYLES
+   ========================================================================== */
+.import-internet-modal {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-xl), 0 0 24px rgba(99, 102, 241, 0.15);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 4px;
+  background-color: rgba(99, 102, 241, 0.12);
+  color: var(--color-primary);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  font-family: var(--font-mono);
+}
+
+.import-internet-preview-card {
+  padding: 14px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+}
+
+

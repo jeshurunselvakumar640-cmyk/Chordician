@@ -35,6 +35,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import SectionViewer from '../components/SongView/SectionViewer';
 import LinkedChordPreviewEditor from '../components/SongView/LinkedChordPreviewEditor';
 import KeyBadge from '../components/UI/KeyBadge';
+import ImportInternetModal from '../components/Modal/ImportInternetModal';
 
 export default function ImportSong() {
   const navigate = useNavigate();
@@ -42,6 +43,9 @@ export default function ImportSong() {
 
   // Active Import Tab: 'url' | 'paste' | 'image'
   const [activeTab, setActiveTab] = useState('url');
+
+  // Internet Search & Import Modal State
+  const [isInternetModalOpen, setIsInternetModalOpen] = useState(false);
 
   // URL Import State
   const [urlInput, setUrlInput] = useState('');
@@ -229,6 +233,68 @@ export default function ImportSong() {
     setAnalysisResult(null);
   };
 
+  // --- Handoff from Internet Import to Smart Paster ---
+  const handlePassToSmartPaster = async (data) => {
+    if (!data?.rawContent) return;
+    setActiveTab('paste');
+    setTextInput(data.rawContent);
+    if (data.title) setTextTitle(data.title);
+    if (data.artist) setTextArtist(data.artist);
+    setSelectedTextPreset(null);
+    setAnalysisResult(null);
+
+    // Automatically reconstruct with existing Smart Paster
+    setIsAnalyzingText(true);
+    setPasteLoadingStep(1);
+    setPasteLoadingMessage('Reading and preprocessing imported chord sheet...');
+
+    const timer1 = setTimeout(() => {
+      setPasteLoadingStep(2);
+      setPasteLoadingMessage('Scanning chord patterns & separating attached syllables...');
+    }, 500);
+
+    const timer2 = setTimeout(() => {
+      setPasteLoadingStep(3);
+      setPasteLoadingMessage('Chordex AI reconstructing stanzas, chords & alignments...');
+    }, 1300);
+
+    const timer3 = setTimeout(() => {
+      setPasteLoadingStep(4);
+      setPasteLoadingMessage('Formatting musical sections and preparing song sheet...');
+    }, 2200);
+
+    try {
+      const res = await restructureSongTextWithChordexAI(
+        data.rawContent,
+        { title: data.title || '', artist: data.artist || '' },
+        null
+      );
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      setIsAnalyzingText(false);
+
+      if (res.success && res.song) {
+        setAnalysisResult({
+          sourceType: 'paste',
+          sourceUrl: data.sourceUrl || data.sourceName || 'Internet Import',
+          song: res.song,
+          warnings: res.warnings || []
+        });
+        showToast(`✓ Chords from ${data.sourceName || 'Internet'} reconstructed with Chordex AI!`, 'success');
+      } else {
+        showToast(res.error || 'Loaded text into Smart Paster. Click Restructure with Chordex.', 'info');
+      }
+    } catch (err) {
+      console.error(err);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      setIsAnalyzingText(false);
+      showToast(err.message || 'Loaded text into Smart Paster.', 'info');
+    }
+  };
+
   // --- Handlers for Image / Vision Import ---
   const handleFile = (file) => {
     if (!file) return;
@@ -347,38 +413,50 @@ export default function ImportSong() {
         </p>
       </div>
 
-      {/* Segmented Tab Bar */}
+      {/* Segmented Tab Bar & Internet Import Action */}
       {!analysisResult && (
-        <div className="import-tab-bar" role="tablist">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '24px' }}>
+          <div className="import-tab-bar" role="tablist" style={{ marginBottom: 0, flex: '1 1 auto' }}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'url'}
+              className={`import-tab-btn ${activeTab === 'url' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('url'); setAnalysisResult(null); }}
+            >
+              <Globe size={18} />
+              <span>Import from URL</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'paste'}
+              className={`import-tab-btn ${activeTab === 'paste' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('paste'); setAnalysisResult(null); }}
+            >
+              <ClipboardPaste size={18} />
+              <span>Smart Paste</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'image'}
+              className={`import-tab-btn ${activeTab === 'image' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('image'); setAnalysisResult(null); }}
+            >
+              <Sparkles size={18} />
+              <span>AI Vision (Screenshot)</span>
+            </button>
+          </div>
+
           <button
             type="button"
-            role="tab"
-            aria-selected={activeTab === 'url'}
-            className={`import-tab-btn ${activeTab === 'url' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('url'); setAnalysisResult(null); }}
+            className="btn btn-primary"
+            onClick={() => setIsInternetModalOpen(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', minHeight: '42px' }}
           >
-            <Globe size={18} />
-            <span>Import from URL</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'paste'}
-            className={`import-tab-btn ${activeTab === 'paste' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('paste'); setAnalysisResult(null); }}
-          >
-            <ClipboardPaste size={18} />
-            <span>Smart Paste</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'image'}
-            className={`import-tab-btn ${activeTab === 'image' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('image'); setAnalysisResult(null); }}
-          >
-            <Sparkles size={18} />
-            <span>AI Vision (Screenshot)</span>
+            <Globe size={16} />
+            <span>Import from Internet</span>
           </button>
         </div>
       )}
@@ -621,14 +699,25 @@ export default function ImportSong() {
       {/* --- TAB 2: SMART PASTE TEXT --- */}
       {activeTab === 'paste' && !analysisResult && (
         <div className="card import-card">
-          <div className="import-section-header">
-            <h2 className="import-section-title">
-              <ClipboardPaste size={20} style={{ color: 'var(--color-primary)' }} />
-              Paste Chords & Lyrics Text
-            </h2>
-            <p className="import-section-subtitle">
-              Paste raw chords sheet text. Chordex AI separates attached chords (e.g. <code>DmMaravaamal</code>), reconstructs horizontal alignments, and detects sections.
-            </p>
+          <div className="import-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 className="import-section-title">
+                <ClipboardPaste size={20} style={{ color: 'var(--color-primary)' }} />
+                Paste Chords & Lyrics Text
+              </h2>
+              <p className="import-section-subtitle">
+                Paste raw chords sheet text. Chordex AI separates attached chords (e.g. <code>DmMaravaamal</code>), reconstructs horizontal alignments, and detects sections.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsInternetModalOpen(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}
+            >
+              <Globe size={16} style={{ color: 'var(--color-primary)' }} />
+              <span>Import from Internet</span>
+            </button>
           </div>
 
           <div className="smart-paste-wrapper">
@@ -1094,6 +1183,13 @@ export default function ImportSong() {
           )}
         </div>
       )}
+
+      {/* Internet Search & Import Modal */}
+      <ImportInternetModal
+        isOpen={isInternetModalOpen}
+        onClose={() => setIsInternetModalOpen(false)}
+        onPassToSmartPaster={handlePassToSmartPaster}
+      />
     </div>
   );
 }
