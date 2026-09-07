@@ -14,6 +14,7 @@ import ThemeToggle from '../ThemeToggle/ThemeToggle';
 import UserProfileDropdown from './UserProfileDropdown';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { APP_VERSION } from '../../config/version.js';
 
 export default function Header({
   onToggleMobile,
@@ -70,6 +71,7 @@ export default function Header({
             <Piano size={20} />
           </div>
           <span className="mobile-brand-title">Chordician</span>
+          <span className="app-version-badge" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>v{APP_VERSION}</span>
         </Link>
 
         {/* Desktop Search Bar */}

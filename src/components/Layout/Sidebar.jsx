@@ -19,6 +19,7 @@ import { useThisSunday } from '../../context/ThisSundayContext.jsx';
 import { useCommunion } from '../../context/CommunionContext.jsx';
 import { usePWA } from '../../context/PWAContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { APP_VERSION } from '../../config/version.js';
 
 export default function Sidebar({
   mobileOpen = false,
@@ -81,9 +82,12 @@ export default function Sidebar({
             <Piano size={22} />
           </Link>
           <div className="brand-info">
-            <Link to="/" className="brand-name" onClick={onCloseMobile}>
-              Chordician
-            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Link to="/" className="brand-name" onClick={onCloseMobile}>
+                Chordician
+              </Link>
+              <span className="app-version-badge" title={`Chordician v${APP_VERSION}`}>v{APP_VERSION}</span>
+            </div>
             <span className="brand-tagline">Your chords. Your key.</span>
           </div>
 

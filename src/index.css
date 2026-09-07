@@ -7513,3 +7513,31 @@ body.desktop-mode-forced {
     transform: translateY(0) scale(1);
   }
 }
+
+/* ==========================================================================
+   APP VERSION BADGE
+   ========================================================================== */
+.app-version-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  border-radius: 20px;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--color-primary);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  letter-spacing: 0.02em;
+  user-select: none;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+[data-theme='light'] .app-version-badge {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+

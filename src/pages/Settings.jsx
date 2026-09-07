@@ -19,7 +19,9 @@ import {
   LogOut,
   Eye,
   Mail,
-  MessageSquare
+  MessageSquare,
+  Sparkles,
+  Info
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -30,6 +32,7 @@ import ContactModal from '../components/Modal/ContactModal.jsx';
 import { addSong, runFirebaseDiagnostics } from '../firebase/songs.js';
 import { firebaseConfig } from '../firebase/config.js';
 import { DEMO_PRESETS } from '../services/aiSongParser.js';
+import { APP_VERSION, APP_VERSION_TAG, APP_RELEASE_NAME, APP_LAST_UPDATED } from '../config/version.js';
 
 export default function Settings({ onSongAdded }) {
   const { theme, setTheme, isDark } = useTheme();
@@ -426,6 +429,54 @@ export default function Settings({ onSongAdded }) {
             <MessageSquare size={16} />
             <span>Contact Jeshurun</span>
           </button>
+        </div>
+      </div>
+
+      {/* App Version & System Info */}
+      <div className="card settings-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.1))',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                color: 'var(--color-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Piano size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)' }}>Chordician</span>
+                <span className="app-version-badge">{APP_VERSION_TAG}</span>
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '2px 0 0' }}>
+                {APP_RELEASE_NAME} • Updated {APP_LAST_UPDATED}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: '#10b981',
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                borderRadius: '20px',
+                padding: '4px 10px',
+                fontWeight: 600
+              }}
+            >
+              ● Up to date
+            </span>
+          </div>
         </div>
       </div>
 
