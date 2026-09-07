@@ -1,6 +1,15 @@
+import { transliterateTamilToEnglish } from '../transliteration/tamilToEnglish.js';
+
 /**
- * Fuzzy Search & Spell Correction Engine for Chordician.
- * Provides typo tolerance, phonetic/transliteration matching, and "Did you mean?" suggestions.
+ * Fuzzy Search & Spell Correction Engine for Chordician (v2.1).
+ *
+ * Prioritization Hierarchy:
+ * 1. Primary/Main Title (100% exact match down to 80% descending by ~5% bands)
+ * 2. Secondary Title (100% match down to 80% descending, appearing after 80% Primary Title)
+ * 3. Primary Title partial/fuzzy matches (79% down to 50%)
+ * 4. Secondary Title partial/fuzzy matches (79% down to 50%)
+ * 5. Artist Name matches (100% down to 50%)
+ * 6. Song Content / Lyrics / Chords / Notes matches (100% down to 50%)
  */
 
 /**
@@ -64,7 +73,7 @@ export function wordLetterSimilarity(w1, w2) {
   if (b.includes(a) || a.includes(b)) {
     const lenRatio = minLen / maxLen;
     if (lenRatio >= 0.6) {
-      return Math.max(0.80, lenRatio);
+      return Math.max(0.85, lenRatio);
     }
   }
 
@@ -73,33 +82,108 @@ export function wordLetterSimilarity(w1, w2) {
 }
 
 /**
+ * Normalizes text for robust comparisons (strips accents, punctuation, extra spaces).
+ * @param {string} text
+ * @returns {string}
+ */
+function normalizeSearchText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Calculates similarity ratio between 0.0 and 1.0 comparing user query against target text.
- * Measures character/letter match across full string, word sequences, and individual tokens.
+ * Measures exact equality, prefixes, word boundaries, substrings, and phonetic/Levenshtein similarity.
  *
  * @param {string} query
  * @param {string} target
  * @returns {number}
  */
 export function calculateSimilarity(query, target) {
-  const q = String(query || '').toLowerCase().trim();
-  const t = String(target || '').toLowerCase().trim();
+  const qRaw = String(query || '').trim();
+  const tRaw = String(target || '').trim();
 
-  if (!q || !t) return 0;
-  if (q === t) return 1.0;
-  if (t.includes(q)) return 1.0;
+  if (!qRaw || !tRaw) return 0;
 
-  const qClean = q.replace(/[^a-z0-9\s]/gi, '');
-  const tClean = t.replace(/[^a-z0-9\s]/gi, '');
-  if (tClean.includes(qClean) && qClean.length >= 3) return 1.0;
+  const qClean = normalizeSearchText(qRaw);
+  const tClean = normalizeSearchText(tRaw);
+
+  if (!qClean || !tClean) return 0;
+
+  // 1. Exact string match (100%)
+  if (qClean === tClean) return 1.0;
+
+  // Also check without any spaces (e.g. 'uthavivarum' === 'uthavi varum')
+  const qCompact = qClean.replace(/\s+/g, '');
+  const tCompact = tClean.replace(/\s+/g, '');
+  if (qCompact === tCompact) return 1.0;
+
+  // 2. Starts with / Prefix match (95% - 99%)
+  if (tClean.startsWith(qClean)) {
+    const ratio = qClean.length / tClean.length;
+    return Math.max(0.95, 0.95 + 0.04 * ratio);
+  }
+  if (tCompact.startsWith(qCompact)) {
+    const ratio = qCompact.length / tCompact.length;
+    return Math.max(0.95, 0.95 + 0.04 * ratio);
+  }
 
   const qWords = qClean.split(/\s+/).filter(Boolean);
   const tWords = tClean.split(/\s+/).filter(Boolean);
-  if (qWords.length === 0 || tWords.length === 0) return 0;
 
-  // 1. Direct full string letter similarity
+  // 3. First word exact prefix or word boundary match (92% - 96%)
+  if (tWords.length > 0 && qWords.length > 0) {
+    if (tWords[0].startsWith(qWords[0]) && qWords[0].length >= 3) {
+      const wRatio = qWords[0].length / tWords[0].length;
+      if (qWords.length === 1) {
+        return Math.max(0.92, 0.90 + 0.06 * wRatio);
+      }
+    }
+  }
+
+  // 4. Substring phrase inclusion (88% - 95%)
+  if (tClean.includes(qClean) && qClean.length >= 3) {
+    const ratio = qClean.length / tClean.length;
+    return Math.max(0.88, 0.88 + 0.08 * ratio);
+  }
+  if (tCompact.includes(qCompact) && qCompact.length >= 4) {
+    const ratio = qCompact.length / tCompact.length;
+    return Math.max(0.88, 0.88 + 0.07 * ratio);
+  }
+
+  // 5. Transliteration Check (Tamil -> English phonetic)
+  let translitScore = 0;
+  try {
+    const tTranslit = normalizeSearchText(transliterateTamilToEnglish(tRaw));
+    if (tTranslit && tTranslit !== tClean) {
+      if (tTranslit === qClean) return 1.0;
+      if (tTranslit.startsWith(qClean)) {
+        translitScore = Math.max(translitScore, 0.95);
+      } else if (tTranslit.includes(qClean)) {
+        translitScore = Math.max(translitScore, 0.90);
+      } else {
+        const dist = levenshteinDistance(qClean, tTranslit);
+        const sc = 1 - (dist / Math.max(qClean.length, tTranslit.length));
+        if (sc > translitScore) translitScore = sc;
+      }
+    }
+  } catch (e) {
+    // Ignore transliteration errors
+  }
+
+  if (qWords.length === 0 || tWords.length === 0) {
+    return Math.max(translitScore, 0);
+  }
+
+  // 6. Direct full string letter similarity via Levenshtein
   const fullScore = 1 - (levenshteinDistance(qClean, tClean) / Math.max(qClean.length, tClean.length));
 
-  // 2. Token-level best match alignment (compares each query word to target words)
+  // 7. Token-level best match alignment
   let tokenScoreSum = 0;
   let matchedWordCount = 0;
   for (const qw of qWords) {
@@ -120,7 +204,7 @@ export function calculateSimilarity(query, target) {
     ? tokenScoreSum / qWords.length
     : 0;
 
-  // 3. Exact phrase window slice match (for multi-word queries like 'mere jevan' vs 'Mere Jeevan')
+  // 8. Exact phrase window slice match (for multi-word queries)
   let phraseScore = 0;
   if (qWords.length > 1 && tWords.length >= qWords.length) {
     for (let i = 0; i <= tWords.length - qWords.length; i++) {
@@ -133,21 +217,155 @@ export function calculateSimilarity(query, target) {
     }
   }
 
-  // 4. Compact string match (e.g. 'uthavivarum' vs 'uthavivarumkanmalai')
-  let compactScore = 0;
-  if (qWords.length === 1 && tWords.length > 1) {
-    const compactTarget = tWords.join('');
-    if (compactTarget.includes(qClean)) {
-      compactScore = 1.0;
-    }
-  }
-
-  return Math.max(fullScore, tokenScore, phraseScore, compactScore);
+  return Math.max(fullScore, tokenScore, phraseScore, translitScore, 0);
 }
 
 /**
- * Searches a list of songs with exact matching and intelligent fuzzy spell fallback.
- * If > 50% letters match the title or song content, returns the song card.
+ * Computes the best similarity score for a query across all content rows in a song.
+ * Checks lyrics, chords, notes, lead sheets, and bass lines.
+ *
+ * @param {Object} song
+ * @param {string} query
+ * @returns {number} 0.0 to 1.0
+ */
+export function computeSongContentScore(song, query) {
+  if (!song || !query || !Array.isArray(song.sections)) return 0;
+
+  let maxScore = 0;
+  const qClean = normalizeSearchText(query);
+
+  for (const sec of song.sections) {
+    for (const row of sec.rows || []) {
+      const content = row.content || '';
+      if (!content) continue;
+
+      const cClean = normalizeSearchText(content);
+      if (!cClean) continue;
+
+      // Substring match in lyric/content line
+      if (cClean.includes(qClean) && qClean.length >= 3) {
+        const ratio = qClean.length / cClean.length;
+        const subScore = Math.max(0.90, 0.90 + 0.10 * ratio);
+        if (subScore > maxScore) maxScore = subScore;
+        continue;
+      }
+
+      // Fuzzy check
+      const score = calculateSimilarity(query, content);
+      if (score > maxScore) {
+        maxScore = score;
+      }
+    }
+  }
+
+  return maxScore;
+}
+
+/**
+ * Calculates hierarchical relevance score for a song based on the user-specified priority:
+ *
+ * 1. Primary Title >= 80% (100% -> 95% -> 90% -> 85% -> 80%) [Tier 1: 20000 - 22000]
+ * 2. Secondary Title >= 80% (100% -> 95% -> 90% -> 85% -> 80%) [Tier 2: 18000 - 19800]
+ * 3. Primary Title 50% - 79% [Tier 3: 14000 - 16900]
+ * 4. Secondary Title 50% - 79% [Tier 4: 10000 - 12320]
+ * 5. Artist Name >= 50% [Tier 5: 6000 - 9000]
+ * 6. Song Content / Lyrics >= 50% [Tier 6: 2000 - 4000]
+ *
+ * @param {Object} song
+ * @param {string} query
+ * @returns {{
+ *   finalScore: number,
+ *   primaryScore: number,
+ *   secondaryScore: number,
+ *   artistScore: number,
+ *   contentScore: number,
+ *   matchType: string
+ * }}
+ */
+export function calculateSongRelevance(song, query) {
+  if (!song || !query) {
+    return {
+      finalScore: 0,
+      primaryScore: 0,
+      secondaryScore: 0,
+      artistScore: 0,
+      contentScore: 0,
+      matchType: 'none'
+    };
+  }
+
+  const primaryScore = calculateSimilarity(query, song.title || '') * 100;
+  const secondaryScore = song.secondaryTitle ? calculateSimilarity(query, song.secondaryTitle) * 100 : 0;
+  const artistScore = song.artist ? calculateSimilarity(query, song.artist) * 100 : 0;
+  const contentScore = computeSongContentScore(song, query) * 100;
+  const categoryScore = song.category ? calculateSimilarity(query, song.category) * 100 : 0;
+
+  let tierBase = 0;
+  let matchType = 'none';
+
+  // Tier 1: Primary Title >= 80%
+  if (primaryScore >= 80) {
+    tierBase = 20000 + (primaryScore - 80) * 100;
+    matchType = 'primary_title';
+  }
+  // Tier 2: Secondary Title >= 80% (appears strictly after 80% Primary Title)
+  else if (secondaryScore >= 80) {
+    tierBase = 18000 + (secondaryScore - 80) * 90;
+    matchType = 'secondary_title';
+  }
+  // Tier 3: Primary Title 50% - 79%
+  else if (primaryScore >= 50) {
+    tierBase = 14000 + (primaryScore - 50) * 100;
+    matchType = 'primary_title_fuzzy';
+  }
+  // Tier 4: Secondary Title 50% - 79%
+  else if (secondaryScore >= 50) {
+    tierBase = 10000 + (secondaryScore - 50) * 80;
+    matchType = 'secondary_title_fuzzy';
+  }
+  // Tier 5: Artist Match >= 50%
+  else if (artistScore >= 50) {
+    tierBase = 6000 + (artistScore - 50) * 60;
+    matchType = 'artist';
+  }
+  // Tier 6: Song Content / Lyrics >= 50%
+  else if (contentScore >= 50) {
+    tierBase = 2000 + (contentScore - 50) * 40;
+    matchType = 'content';
+  }
+  // Fallback: Category match
+  else if (categoryScore >= 85) {
+    tierBase = 1000 + (categoryScore - 85) * 20;
+    matchType = 'category';
+  }
+
+  if (tierBase === 0) {
+    return {
+      finalScore: 0,
+      primaryScore,
+      secondaryScore,
+      artistScore,
+      contentScore,
+      matchType: 'none'
+    };
+  }
+
+  // Subtle multi-field tiebreaker bonuses
+  const tiebreaker = (primaryScore * 0.05) + (secondaryScore * 0.04) + (artistScore * 0.02) + (contentScore * 0.01);
+  const finalScore = tierBase + tiebreaker;
+
+  return {
+    finalScore,
+    primaryScore,
+    secondaryScore,
+    artistScore,
+    contentScore,
+    matchType
+  };
+}
+
+/**
+ * Searches a list of songs with prioritized multi-tier matching and intelligent fuzzy spell correction.
  *
  * @param {Array<Object>} songs
  * @param {string} query
@@ -159,7 +377,7 @@ export function calculateSimilarity(query, target) {
  * }}
  */
 export function searchSongsWithFuzzy(songs = [], query = '') {
-  const q = String(query || '').toLowerCase().trim();
+  const q = String(query || '').trim();
 
   if (!q) {
     return {
@@ -170,95 +388,64 @@ export function searchSongsWithFuzzy(songs = [], query = '') {
     };
   }
 
-  // 1. Direct / Exact Substring Search
-  const exactMatches = songs.filter((song) => {
-    const title = (song.title || '').toLowerCase();
-    const secondaryTitle = (song.secondaryTitle || '').toLowerCase();
-    const artist = (song.artist || '').toLowerCase();
-    const category = (song.category || '').toLowerCase();
-
-    if (
-      title.includes(q) ||
-      secondaryTitle.includes(q) ||
-      artist.includes(q) ||
-      category.includes(q)
-    ) {
-      return true;
-    }
-
-    // Search lyrics content
-    return (song.sections || []).some((sec) =>
-      (sec.rows || []).some((row) =>
-        row.type === 'lyrics' && (row.content || '').toLowerCase().includes(q)
-      )
-    );
-  });
-
-  if (exactMatches.length > 0) {
-    return {
-      results: exactMatches,
-      didYouMean: null,
-      isFuzzyMatch: false,
-      matchedTarget: null
-    };
-  }
-
-  // 2. Fuzzy Spell Correction & Similarity Matching (>= 50% letter match)
   const scored = [];
+  let bestFuzzyTitleCandidate = null;
+  let bestFuzzyTitleScore = 0;
 
   for (const song of songs) {
-    const title = song.title || '';
-    const secondaryTitle = song.secondaryTitle || '';
-    const artist = song.artist || '';
+    const rel = calculateSongRelevance(song, q);
 
-    const titleScore = calculateSimilarity(q, title);
-    const secondaryTitleScore = secondaryTitle ? calculateSimilarity(q, secondaryTitle) : 0;
-    const artistScore = calculateSimilarity(q, artist);
-
-    // Also check lyric lines for close phonetic / word matches
-    let bestLyricScore = 0;
-    for (const sec of song.sections || []) {
-      for (const row of sec.rows || []) {
-        if (row.type === 'lyrics' && row.content) {
-          const lScore = calculateSimilarity(q, row.content);
-          if (lScore > bestLyricScore) bestLyricScore = lScore;
-        }
-      }
-    }
-
-    const maxScore = Math.max(titleScore, secondaryTitleScore, artistScore * 0.95, bestLyricScore * 0.9);
-
-    // If more than 50% match (>= 0.50), include the song card
-    if (maxScore >= 0.50) {
+    if (rel.finalScore > 0) {
       scored.push({
         song,
-        score: maxScore,
-        matchedTitle: secondaryTitleScore > titleScore && secondaryTitle ? `${title} (${secondaryTitle})` : title,
-        titleScore: Math.max(titleScore, secondaryTitleScore)
+        relevance: rel
       });
+    }
+
+    // Keep track of the closest title for "Did you mean?" suggestions
+    const titleSim = Math.max(rel.primaryScore, rel.secondaryScore);
+    if (titleSim > bestFuzzyTitleScore) {
+      bestFuzzyTitleScore = titleSim;
+      bestFuzzyTitleCandidate = rel.secondaryScore > rel.primaryScore && song.secondaryTitle
+        ? song.secondaryTitle
+        : song.title;
     }
   }
 
-  // Sort by highest similarity score
-  scored.sort((a, b) => b.score - a.score);
+  // Sort by highest relevance score descending
+  scored.sort((a, b) => b.relevance.finalScore - a.relevance.finalScore);
 
   if (scored.length > 0) {
-    const bestCandidate = scored[0];
-    const topSongs = scored.map((s) => s.song);
+    const topSong = scored[0].song;
+    const topRel = scored[0].relevance;
+
+    // Check if the top result was an exact substring or exact string match
+    const qClean = normalizeSearchText(q);
+    const topTitleClean = normalizeSearchText(topSong.title || '');
+    const topSecClean = normalizeSearchText(topSong.secondaryTitle || '');
+    const isExactOrSubstring =
+      topTitleClean.includes(qClean) ||
+      topSecClean.includes(qClean) ||
+      (topSong.artist && normalizeSearchText(topSong.artist).includes(qClean));
+
+    const isFuzzyMatch = !isExactOrSubstring && topRel.finalScore > 0;
+    const didYouMean = isFuzzyMatch && bestFuzzyTitleCandidate && bestFuzzyTitleScore >= 50
+      ? bestFuzzyTitleCandidate
+      : null;
 
     return {
-      results: topSongs,
-      didYouMean: bestCandidate.song.title,
-      isFuzzyMatch: true,
-      matchedTarget: bestCandidate.matchedTitle
+      results: scored.map((s) => s.song),
+      didYouMean,
+      isFuzzyMatch,
+      matchedTarget: topRel.matchType
     };
   }
 
-  // No exact or fuzzy matches found
+  // No matches found
   return {
     results: [],
-    didYouMean: null,
-    isFuzzyMatch: false,
+    didYouMean: bestFuzzyTitleCandidate && bestFuzzyTitleScore >= 50 ? bestFuzzyTitleCandidate : null,
+    isFuzzyMatch: Boolean(bestFuzzyTitleCandidate && bestFuzzyTitleScore >= 50),
     matchedTarget: null
   };
 }

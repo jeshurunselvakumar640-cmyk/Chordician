@@ -26,12 +26,14 @@ export default function Songs({
   const [searchParams, setSearchParams] = useSearchParams();
   const urlQuery = searchParams.get('q') || '';
   const urlCategory = searchParams.get('category') || 'ALL';
+  const urlArtist = searchParams.get('artist') || 'ALL';
 
   const [searchQuery, setSearchQuery] = useState(urlQuery);
   const [selectedKey, setSelectedKey] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState(urlCategory);
+  const [selectedArtist, setSelectedArtist] = useState(urlArtist);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [sortBy, setSortBy] = useState('updated_desc');
+  const [sortBy, setSortBy] = useState('relevance');
   const [viewMode, setViewMode] = useState(() => getStoredViewMode());
   const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
@@ -40,6 +42,8 @@ export default function Songs({
   useEffect(() => {
     const cat = searchParams.get('category');
     setSelectedCategory(cat || 'ALL');
+    const art = searchParams.get('artist');
+    setSelectedArtist(art || 'ALL');
     const q = searchParams.get('q');
     if (q !== null) {
       setSearchQuery(q);
@@ -56,6 +60,7 @@ export default function Songs({
     const newParams = {};
     if (query.trim()) newParams.q = query;
     if (selectedCategory !== 'ALL') newParams.category = selectedCategory;
+    if (selectedArtist !== 'ALL') newParams.artist = selectedArtist;
     setSearchParams(newParams);
   };
 
@@ -64,6 +69,16 @@ export default function Songs({
     const newParams = {};
     if (searchQuery.trim()) newParams.q = searchQuery;
     if (cat !== 'ALL') newParams.category = cat;
+    if (selectedArtist !== 'ALL') newParams.artist = selectedArtist;
+    setSearchParams(newParams);
+  };
+
+  const handleArtistSelect = (artist) => {
+    setSelectedArtist(artist);
+    const newParams = {};
+    if (searchQuery.trim()) newParams.q = searchQuery;
+    if (selectedCategory !== 'ALL') newParams.category = selectedCategory;
+    if (artist !== 'ALL') newParams.artist = artist;
     setSearchParams(newParams);
   };
 
@@ -71,10 +86,23 @@ export default function Songs({
     setSearchQuery('');
     setSelectedKey('ALL');
     setSelectedCategory('ALL');
+    setSelectedArtist('ALL');
     setFavoritesOnly(false);
-    setSortBy('updated_desc');
+    setSortBy('relevance');
     setSearchParams({});
   };
+
+  // Dynamic Artist list extracted from all user songs in library
+  const allArtists = useMemo(() => {
+    const artistSet = new Set();
+    for (const s of songs) {
+      const a = (s.artist || '').trim();
+      if (a && a.toLowerCase() !== 'unknown' && a.toLowerCase() !== 'unknown artist') {
+        artistSet.add(a);
+      }
+    }
+    return Array.from(artistSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }, [songs]);
 
   // Language & category counts
   const categoryCounts = useMemo(() => {
@@ -87,14 +115,17 @@ export default function Songs({
     return counts;
   }, [songs]);
 
-  // Filter & Sort Songs with Fuzzy Spell Resilience
+  // Filter & Sort Songs with Prioritized Multi-Tier Search & Fuzzy Resilience
   const { filteredSongs, didYouMean, isFuzzyMatch } = useMemo(() => {
-    // 1. First filter by Key, Category, and Favorites
+    // 1. First filter by Key, Category, Artist, and Favorites
     const baseList = songs.filter((song) => {
       if (selectedKey !== 'ALL' && song.originalKey !== selectedKey) {
         return false;
       }
       if (selectedCategory !== 'ALL' && (song.category || '').toLowerCase() !== selectedCategory.toLowerCase()) {
+        return false;
+      }
+      if (selectedArtist !== 'ALL' && (song.artist || '').trim().toLowerCase() !== selectedArtist.trim().toLowerCase()) {
         return false;
       }
       if (favoritesOnly && !song.favorite) {
@@ -103,14 +134,18 @@ export default function Songs({
       return true;
     });
 
-    // 2. Perform exact or fuzzy search
+    // 2. Perform prioritized hierarchical search
     let searchResult = { results: baseList, didYouMean: null, isFuzzyMatch: false };
     if (searchQuery.trim()) {
       searchResult = searchSongsWithFuzzy(baseList, searchQuery);
     }
 
-    // 3. Sort matching songs
+    // 3. Sort matching songs: If searching and sortBy is 'relevance', maintain search tier ranking
     const sorted = [...searchResult.results].sort((a, b) => {
+      if (searchQuery.trim() && sortBy === 'relevance') {
+        // searchSongsWithFuzzy already sorted strictly by user priority algorithm
+        return 0;
+      }
       if (sortBy === 'title_asc') {
         return (a.title || '').localeCompare(b.title || '');
       }
@@ -122,9 +157,12 @@ export default function Songs({
         const dateB = new Date(b.createdAt || 0).getTime();
         return dateB - dateA;
       }
-      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
-      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
-      return dateB - dateA;
+      if (sortBy === 'updated_desc') {
+        const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return dateB - dateA;
+      }
+      return 0;
     });
 
     return {
@@ -132,9 +170,9 @@ export default function Songs({
       didYouMean: searchResult.didYouMean,
       isFuzzyMatch: searchResult.isFuzzyMatch
     };
-  }, [songs, searchQuery, selectedKey, selectedCategory, favoritesOnly, sortBy]);
+  }, [songs, searchQuery, selectedKey, selectedCategory, selectedArtist, favoritesOnly, sortBy]);
 
-  const hasActiveFilters = searchQuery.trim() || selectedKey !== 'ALL' || selectedCategory !== 'ALL' || favoritesOnly;
+  const hasActiveFilters = searchQuery.trim() || selectedKey !== 'ALL' || selectedCategory !== 'ALL' || selectedArtist !== 'ALL' || favoritesOnly;
 
   return (
     <div className="songs-page">
@@ -273,6 +311,21 @@ export default function Songs({
             </optgroup>
           </select>
 
+          {/* Artist Filter (Dynamic) */}
+          <select
+            className="form-select filter-select"
+            value={selectedArtist}
+            onChange={(e) => handleArtistSelect(e.target.value)}
+            aria-label="Filter by artist"
+          >
+            <option value="ALL">All Artists ({allArtists.length})</option>
+            {allArtists.map((artist) => (
+              <option key={artist} value={artist}>
+                {artist}
+              </option>
+            ))}
+          </select>
+
           {/* Sort By */}
           <select
             className="form-select filter-select"
@@ -280,6 +333,7 @@ export default function Songs({
             onChange={(e) => setSortBy(e.target.value)}
             aria-label="Sort songs"
           >
+            {searchQuery.trim() && <option value="relevance">Relevance (Best Match)</option>}
             <option value="updated_desc">Recently Updated</option>
             <option value="created_desc">Recently Added</option>
             <option value="title_asc">Title (A to Z)</option>
