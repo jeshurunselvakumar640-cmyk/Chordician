@@ -14,50 +14,64 @@ const MAX_HTML_BYTES = 5 * 1024 * 1024; // 5 MB
  * @returns {Promise<{ html: string, finalUrl: string }>}
  */
 export async function fetchHtml(targetUrl) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
+  // 1. Direct browser fetch attempt
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     const response = await fetch(targetUrl, {
       method: 'GET',
       headers: {
-        'User-Agent': DEFAULT_USER_AGENT,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9,ta;q=0.8,hi;q=0.7',
-        'Cache-Control': 'no-cache'
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
       },
-      signal: controller.signal,
-      redirect: 'follow'
+      signal: controller.signal
     });
 
     clearTimeout(timer);
 
-    if (!response.ok) {
-      throw new Error(`Webpage returned HTTP status ${response.status}: ${response.statusText}`);
+    if (response.ok) {
+      const html = await response.text();
+      if (html && html.length > 50) {
+        return {
+          html,
+          finalUrl: response.url || targetUrl
+        };
+      }
     }
-
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('text/html') && !contentType.includes('application/xhtml+xml') && !contentType.includes('text/plain')) {
-      throw new Error(`The provided URL did not return HTML content (Content-Type: ${contentType}).`);
-    }
-
-    const html = await response.text();
-
-    if (html.length > MAX_HTML_BYTES) {
-      throw new Error('Webpage HTML is too large to process safely (exceeds 5MB limit).');
-    }
-
-    return {
-      html,
-      finalUrl: response.url || targetUrl
-    };
-  } catch (err) {
-    clearTimeout(timer);
-    if (err.name === 'AbortError') {
-      const error = new Error('Request to fetch the webpage timed out (10s). The website may be slow or unreachable.');
-      error.code = 'FETCH_TIMEOUT';
-      throw error;
-    }
-    throw err;
+  } catch {
+    // Direct browser fetch blocked by CORS; proceed to reliable proxies below
   }
+
+  // 2. Fallback via reliable CORS proxies
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+    `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`
+  ];
+
+  for (const proxyUrl of proxies) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+      const response = await fetch(proxyUrl, {
+        signal: controller.signal
+      });
+
+      clearTimeout(timer);
+
+      if (response.ok) {
+        const html = await response.text();
+        if (html && html.length > 50) {
+          return {
+            html,
+            finalUrl: targetUrl
+          };
+        }
+      }
+    } catch {
+      // Continue to next proxy
+    }
+  }
+
+  throw new Error('Unable to connect to this webpage or fetch its content. Please paste the song text into Smart Paste.');
 }

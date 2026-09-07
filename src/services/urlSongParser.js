@@ -3,7 +3,7 @@
  * Powered by Chordician's unified Parsing Engine.
  */
 import { fetchWithRetry } from '../utils/apiClient.js';
-import { parseSmartPaste } from '../engine/index.js';
+import { parseSmartPaste, extractSongFromUrl } from '../engine/index.js';
 
 export const SAMPLE_URL_PRESETS = [
   {
@@ -86,6 +86,7 @@ export async function importSongFromUrl(urlString) {
     };
   }
 
+  // 1. Primary Attempt: Serverless / Backend with Chordex AI Gemini
   try {
     const response = await fetchWithRetry('/api/import-url', {
       method: 'POST',
@@ -93,32 +94,51 @@ export async function importSongFromUrl(urlString) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ url: validation.url })
-    }, 2, 800);
+    }, 1, 800);
 
     const result = await response.json();
 
-    if (!response.ok || !result.success) {
+    if (response.ok && result.success && result.song) {
       return {
-        success: false,
-        error: result.error || 'Failed to extract chords and lyrics from this webpage.',
-        code: result.code || 'PARSER_FAILED'
+        success: true,
+        sourceUrl: result.sourceUrl,
+        song: result.song,
+        warnings: result.warnings || []
+      };
+    }
+  } catch (err) {
+    console.warn('[URL Import] Backend API attempt unreachable or timed out, activating client-side engine fallback:', err);
+  }
+
+  // 2. Resilient Fallback: Client-Side Engine (CORS Proxies + Unified Parsing Engine)
+  try {
+    console.log('[URL Import] Running client-side parsing engine fallback for:', validation.url);
+    const localResult = await extractSongFromUrl(validation.url);
+    if (localResult.success && localResult.song) {
+      return {
+        success: true,
+        sourceUrl: localResult.sourceUrl || validation.url,
+        song: localResult.song,
+        warnings: [...(localResult.warnings || []), 'Processed via Client Parsing Engine']
       };
     }
 
-    return {
-      success: true,
-      sourceUrl: result.sourceUrl,
-      song: result.song,
-      warnings: result.warnings || []
-    };
-  } catch (err) {
-    console.error('URL import request failed:', err);
-    return {
-      success: false,
-      error: 'Unable to reach the Chordician backend server. Please check your network connection.',
-      code: 'NETWORK_ERROR'
-    };
+    if (localResult.error) {
+      return {
+        success: false,
+        error: localResult.error,
+        code: localResult.code || 'PARSER_FAILED'
+      };
+    }
+  } catch (clientErr) {
+    console.error('[URL Import] Client engine fallback failed:', clientErr);
   }
+
+  return {
+    success: false,
+    error: 'Unable to reach the webpage. Please check the URL or paste the song text directly into Smart Paste.',
+    code: 'NETWORK_ERROR'
+  };
 }
 
 export const SAMPLE_TEXT_PRESETS = [

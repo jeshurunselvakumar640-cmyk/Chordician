@@ -2,7 +2,7 @@ import { validateUrl } from './urlValidator.js';
 
 const MAX_REDIRECTS = 5;
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024; // 5 MB
-const DEFAULT_TIMEOUT_MS = 10000; // 10 seconds
+const DEFAULT_TIMEOUT_MS = 15000; // 15 seconds
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 /**

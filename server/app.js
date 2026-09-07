@@ -171,11 +171,7 @@ async function analyzeChordSheetWithGemini(imageBuffer, mimeType) {
 
   const modelNames = [
     'gemini-3.5-flash-lite',
-    'gemini-3.7-flash',
-    'gemini-flash-lite-latest',
-    'gemini-3.5-flash',
-    'gemini-3.6-flash',
-    'gemini-flash-latest'
+    'gemini-3.7-flash'
   ];
   let lastError = null;
 

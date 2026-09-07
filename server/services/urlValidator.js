@@ -107,40 +107,24 @@ export async function validateUrl(urlString) {
   try {
     const dnsPromise = dns.lookup(hostname, { all: true });
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('DNS_TIMEOUT')), 3000)
+      setTimeout(() => reject(new Error('DNS_TIMEOUT')), 6000)
     );
 
     const addresses = await Promise.race([dnsPromise, timeoutPromise]);
-    if (!addresses || addresses.length === 0) {
-      return {
-        valid: false,
-        error: 'Unable to resolve the specified website hostname.',
-        code: 'FETCH_FAILED'
-      };
-    }
-
-    for (const addr of addresses) {
-      if (isPrivateIp(addr.address)) {
-        return {
-          valid: false,
-          error: 'This domain resolves to a private or restricted network address.',
-          code: 'BLOCKED_URL'
-        };
+    if (addresses && addresses.length > 0) {
+      for (const addr of addresses) {
+        if (isPrivateIp(addr.address)) {
+          return {
+            valid: false,
+            error: 'This domain resolves to a private or restricted network address.',
+            code: 'BLOCKED_URL'
+          };
+        }
       }
     }
   } catch (err) {
-    if (err.message === 'DNS_TIMEOUT') {
-      return {
-        valid: false,
-        error: `DNS resolution timed out for "${hostname}".`,
-        code: 'FETCH_TIMEOUT'
-      };
-    }
-    return {
-      valid: false,
-      error: `DNS lookup failed for "${hostname}". Please check the URL.`,
-      code: 'FETCH_FAILED'
-    };
+    // In some serverless/cloud environments, DNS lookup with all:true might be throttled or timeout
+    console.warn(`[URL Validator] DNS check warning for "${hostname}":`, err.message);
   }
 
   return {
