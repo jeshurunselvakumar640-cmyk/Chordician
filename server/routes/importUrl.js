@@ -31,7 +31,7 @@ function checkRateLimit(ip) {
 /**
  * Endpoint for URL extraction + Chordex AI reconstruction
  */
-router.post('/import-url', async (req, res) => {
+router.post(['/import-url', '/api/import-url'], async (req, res) => {
   const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
 
   if (!checkRateLimit(clientIp)) {
@@ -108,7 +108,7 @@ router.post('/import-url', async (req, res) => {
 /**
  * Endpoint for direct raw text / smart paste chord restructuring
  */
-router.post('/chordex/analyze-text', async (req, res) => {
+router.post(['/chordex/analyze-text', '/api/chordex/analyze-text'], async (req, res) => {
   const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
 
   if (!checkRateLimit(clientIp)) {
@@ -173,7 +173,7 @@ router.post('/chordex/analyze-text', async (req, res) => {
  * Endpoint for "Import from Internet" multi-source prioritized fallback crawler.
  * Searches strictly across the 6 allowlisted sources in order.
  */
-router.post('/import-internet/search', async (req, res) => {
+router.post(['/import-internet/search', '/api/import-internet/search'], async (req, res) => {
   const clientIp = req.ip || req.connection?.remoteAddress || 'unknown';
 
   if (!checkRateLimit(clientIp)) {

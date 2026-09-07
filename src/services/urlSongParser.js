@@ -52,9 +52,13 @@ export function validateClientUrl(urlString) {
     return { valid: false, error: 'Please enter a webpage URL.' };
   }
 
-  const trimmed = urlString.trim();
+  let trimmed = urlString.trim();
   if (!trimmed) {
     return { valid: false, error: 'Please enter a webpage URL.' };
+  }
+
+  if (!/^https?:\/\//i.test(trimmed)) {
+    trimmed = `https://${trimmed}`;
   }
 
   try {
@@ -69,7 +73,7 @@ export function validateClientUrl(urlString) {
 
     return { valid: true, url: parsed.toString() };
   } catch {
-    return { valid: false, error: 'Please enter a valid complete URL starting with http:// or https://' };
+    return { valid: false, error: 'Please enter a valid complete URL.' };
   }
 }
 

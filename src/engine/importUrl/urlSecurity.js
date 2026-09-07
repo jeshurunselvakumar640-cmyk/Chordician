@@ -21,9 +21,13 @@ export function validateUrl(rawUrl) {
     return { valid: false, error: 'Please enter a webpage URL.', code: 'INVALID_URL' };
   }
 
-  const trimmed = rawUrl.trim();
+  let trimmed = rawUrl.trim();
   if (!trimmed) {
     return { valid: false, error: 'Please enter a webpage URL.', code: 'INVALID_URL' };
+  }
+
+  if (!/^https?:\/\//i.test(trimmed)) {
+    trimmed = `https://${trimmed}`;
   }
 
   try {

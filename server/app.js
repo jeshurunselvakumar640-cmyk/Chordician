@@ -24,17 +24,21 @@ app.use(express.urlencoded({ extended: true, limit: '30mb' }));
 
 // Vercel Serverless & Express route normalizer middleware
 app.use((req, res, next) => {
-  const matchedPath = req.headers['x-vercel-matched-path'] || req.headers['x-matched-path'] || req.headers['x-forwarded-uri'];
-  if (matchedPath && (req.url === '/api' || req.url === '/' || req.url === '')) {
-    req.url = matchedPath;
+  // If behind Vercel or cloud reverse proxy, restore the original URI if present
+  const originalUri = req.headers['x-forwarded-uri'] || req.headers['x-vercel-forwarded-for-url'];
+  if (originalUri && (req.url === '/' || req.url === '/api' || req.url === '/api/index.js')) {
+    try {
+      const parsed = new URL(originalUri, 'http://localhost');
+      req.url = parsed.pathname + parsed.search;
+    } catch {
+      // Keep existing req.url
+    }
   }
-  if (req.url.startsWith('/api') || req.url.startsWith('/chordex') || req.url.startsWith('/import-url')) {
-    console.log(`[HTTP API] ${req.method} ${req.url}`);
-  }
+  console.log(`[HTTP API] ${req.method} ${req.url}`);
   next();
 });
 
-// Register URL and Text routes under /api and root fallback
+// Register URL, Text and Internet search routes
 app.use('/api', importUrlRouter);
 app.use('/', importUrlRouter);
 
