@@ -3,11 +3,10 @@
  *
  * Versioning Policy:
  * - Base version starts at 2.0.
- * - Increments by +0.1 with every feature update and release (e.g. 2.0 -> 2.1 -> 2.2 ...).
+ * - Increments with every major/feature update and release (e.g. 2.0 -> 2.9 -> 3.0).
  */
-export const APP_VERSION = '2.9';
-export const APP_VERSION_TAG = 'v2.9';
+export const APP_VERSION = '3.0';
+export const APP_VERSION_TAG = 'v3.0';
 export const APP_NAME = 'Chordician';
-export const APP_RELEASE_NAME = 'Enhanced Recall & Zero-Loss Chordex Reconstructor';
+export const APP_RELEASE_NAME = 'Lead Transposition & Regional Transliteration Engine';
 export const APP_LAST_UPDATED = 'September 2026';
-

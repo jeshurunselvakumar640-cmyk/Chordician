@@ -21,7 +21,8 @@ import {
   Mail,
   MessageSquare,
   Sparkles,
-  Info
+  Info,
+  Languages
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -29,7 +30,7 @@ import { usePWA } from '../context/PWAContext.jsx';
 import { useDeviceMode } from '../context/DeviceModeContext.jsx';
 import { useAuth, OWNER_DEFAULT_NAME } from '../context/AuthContext.jsx';
 import ContactModal from '../components/Modal/ContactModal.jsx';
-import { addSong, runFirebaseDiagnostics } from '../firebase/songs.js';
+import { addSong, runFirebaseDiagnostics, transliterateAllRegionalSongsInDb } from '../firebase/songs.js';
 import { firebaseConfig } from '../firebase/config.js';
 import { DEMO_PRESETS } from '../services/aiSongParser.js';
 import { APP_VERSION, APP_VERSION_TAG, APP_RELEASE_NAME, APP_LAST_UPDATED } from '../config/version.js';
@@ -42,6 +43,7 @@ export default function Settings({ onSongAdded }) {
   const { currentUser, userProfile, isOwner, canEdit, logout, openAuthModal } = useAuth();
 
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isTransliteratingDb, setIsTransliteratingDb] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
 
   // Diagnostics state
@@ -80,6 +82,27 @@ export default function Settings({ onSongAdded }) {
       if (onSongAdded) onSongAdded();
     } else {
       showToast('Failed to seed sample songs.', 'error');
+    }
+  };
+
+  const handleTransliterateDatabase = async () => {
+    setIsTransliteratingDb(true);
+    try {
+      const res = await transliterateAllRegionalSongsInDb();
+      if (res.success) {
+        if (res.totalTransliterated > 0) {
+          showToast(`Transliterated ${res.totalTransliterated} regional song(s) to English in database!`, 'success', 4000);
+          if (onSongAdded) onSongAdded();
+        } else {
+          showToast(`Checked ${res.totalProcessed} song(s) - all songs are already in English!`, 'info', 3000);
+        }
+      } else {
+        showToast(res.errors[0] || 'Transliteration failed', 'error');
+      }
+    } catch (err) {
+      showToast('Transliteration failed: ' + err.message, 'error');
+    } finally {
+      setIsTransliteratingDb(false);
     }
   };
 
@@ -310,6 +333,34 @@ export default function Settings({ onSongAdded }) {
             >
               <Piano size={16} />
               <span>{isSeeding ? 'Seeding...' : 'Add Sample Songs'}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Regional Script Transliteration (Tamil & Hindi -> English) */}
+        {canEdit && (
+          <div className="settings-seed-box" style={{ marginTop: '12px' }}>
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Languages size={16} style={{ color: 'var(--color-primary)' }} />
+                <span>Transliterate Regional Lyrics in Database</span>
+              </div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                Batch convert all Tamil and Hindi script lyrics in Firestore to natural English phonetics while preserving chords and structures.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleTransliterateDatabase}
+              disabled={isTransliteratingDb}
+            >
+              {isTransliteratingDb ? (
+                <RefreshCw size={16} className="animate-spin" />
+              ) : (
+                <Languages size={16} />
+              )}
+              <span>{isTransliteratingDb ? 'Transliterating...' : 'Transliterate All Songs'}</span>
             </button>
           </div>
         )}

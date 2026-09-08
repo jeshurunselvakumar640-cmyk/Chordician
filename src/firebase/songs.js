@@ -11,6 +11,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db, auth, ensureAuthReady, firebaseConfig } from './config.js';
+import { transliterateSong } from '../transliteration/index.js';
 
 const SONGS_COLLECTION = 'songs';
 
@@ -274,4 +275,64 @@ export async function runFirebaseDiagnostics() {
 
   return result;
 }
+
+/**
+ * Transliterates all regional language (Tamil, Hindi) songs stored in the Firestore database to English phonetics.
+ * Updates the Firestore documents in place while preserving chords, structures, and metadata.
+ */
+export async function transliterateAllRegionalSongsInDb() {
+  await ensureAuthReady();
+  const path = SONGS_COLLECTION;
+
+  try {
+    const songsRef = collection(db, SONGS_COLLECTION);
+    const snapshot = await getDocs(songsRef);
+
+    let totalProcessed = 0;
+    let totalTransliterated = 0;
+    const modifiedSongs = [];
+    const errors = [];
+
+    for (const docSnap of snapshot.docs) {
+      totalProcessed++;
+      const songData = { id: docSnap.id, ...docSnap.data() };
+      
+      const { song: updatedSong, modified } = transliterateSong(songData);
+
+      if (modified) {
+        try {
+          const docRef = doc(db, SONGS_COLLECTION, docSnap.id);
+          await updateDoc(docRef, {
+            title: updatedSong.title || songData.title,
+            secondaryTitle: updatedSong.secondaryTitle || songData.secondaryTitle || null,
+            sections: updatedSong.sections || [],
+            updatedAt: serverTimestamp()
+          });
+          totalTransliterated++;
+          modifiedSongs.push({ id: docSnap.id, title: updatedSong.title });
+        } catch (updateErr) {
+          errors.push({ id: docSnap.id, error: updateErr.message });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      totalProcessed,
+      totalTransliterated,
+      modifiedSongs,
+      errors
+    };
+  } catch (err) {
+    logFirestoreDiagnostic('transliterateAllRegionalSongsInDb', path, err);
+    return {
+      success: false,
+      totalProcessed: 0,
+      totalTransliterated: 0,
+      modifiedSongs: [],
+      errors: [formatFirestoreError(err, 'transliterateAllRegionalSongsInDb')]
+    };
+  }
+}
+
 

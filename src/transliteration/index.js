@@ -53,11 +53,25 @@ export function transliterateLyricToEnglish(line) {
  * @returns {{ song: object, modified: boolean }}
  */
 export function transliterateSong(song) {
-  if (!song || !song.sections) return { song, modified: false };
+  if (!song) return { song, modified: false };
 
   let modified = false;
+  let newTitle = song.title;
+  let newSecondaryTitle = song.secondaryTitle;
 
-  const newSections = song.sections.map((section) => {
+  // Transliterate title if it contains regional script
+  if (song.title && typeof song.title === 'string' && hasRegionalScript(song.title)) {
+    const transliteratedTitle = transliterateLyricToEnglish(song.title);
+    if (transliteratedTitle !== song.title) {
+      if (!newSecondaryTitle) {
+        newSecondaryTitle = song.title;
+      }
+      newTitle = transliteratedTitle;
+      modified = true;
+    }
+  }
+
+  const newSections = (song.sections || []).map((section) => {
     let sectionChanged = false;
 
     const newRows = (section.rows || []).map((row) => {
@@ -91,6 +105,8 @@ export function transliterateSong(song) {
   return {
     song: {
       ...song,
+      title: newTitle,
+      secondaryTitle: newSecondaryTitle,
       sections: newSections
     },
     modified: true
