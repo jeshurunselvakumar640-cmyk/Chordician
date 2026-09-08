@@ -1,43 +1,51 @@
-import * as cheerio from 'cheerio';
-import { extractFromDom } from '../../src/engine/importUrl/siteAdapters/index.js';
-import { extractSongContent } from '../../src/engine/importUrl/songContentExtractor.js';
+import { extractSongFromHtml } from '../services/htmlExtractor.js';
+import { normalizeSongData } from '../services/songNormalizer.js';
+import { analyzeSongTextWithChordexAI } from '../services/chordexTextAnalyzer.js';
 import { parseSmartPaste } from '../../src/engine/smartPaste/smartPasteParser.js';
 
 /**
- * Unified HTML Song Parser for backend & serverless execution.
- * Executes the exact same canonical reconstruction pipeline using Smart Paster.
+ * HTML Song Parser powered by Chordex AI Intelligence.
+ * Extracts webpage content and uses Gemini to reconstruct clean chord-above-lyrics formatting,
+ * with direct fallback to Smart Paster.
  */
 export async function parseHtmlToSong(html, sourceUrl = '') {
-  if (!html || typeof html !== 'string') {
-    throw new Error('Empty HTML content provided.');
+  const extracted = extractSongFromHtml(html, sourceUrl);
+
+  let song = null;
+  const warnings = [];
+
+  // 1. Primary: Chordex AI reconstruction with Gemini if API key is available
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      console.log('[Chordex AI] Running intelligent chord sheet reconstruction with Gemini...');
+      song = await analyzeSongTextWithChordexAI(extracted.rawText, {
+        title: extracted.title,
+        artist: extracted.artist,
+        originalKey: extracted.originalKey,
+        sourceUrl
+      });
+    } catch (aiErr) {
+      console.warn('[Chordex AI] AI text reconstruction error, falling back to Smart Paster:', aiErr.message);
+      warnings.push('AI parsing encountered an issue; used Smart Paster fallback.');
+    }
   }
 
-  const $ = cheerio.load(html);
-  const extracted = extractFromDom($, sourceUrl);
+  // 2. High-precision fallback: Smart Paster dual inspection engine
+  if (!song) {
+    const smartPasteResult = parseSmartPaste(extracted.rawText, {
+      title: extracted.title,
+      artist: extracted.artist,
+      originalKey: extracted.originalKey,
+      sourceUrl
+    });
 
-  const cleanRawText = extractSongContent(extracted.rawText || '', {
-    metadata: extracted,
-    sourceUrl
-  });
-
-  if (!cleanRawText || cleanRawText.trim().length < 15) {
-    throw new Error('No readable song lyrics or chord structure could be found on this webpage. Please paste the song text directly into the editor or try another URL.');
+    if (smartPasteResult.success && smartPasteResult.song) {
+      song = smartPasteResult.song;
+      if (smartPasteResult.warnings) warnings.push(...smartPasteResult.warnings);
+    } else {
+      song = normalizeSongData(extracted, sourceUrl);
+    }
   }
-
-  // Pass directly into Smart Paster for dual-inspection chord extraction & formatting!
-  const smartPasteResult = parseSmartPaste(cleanRawText, {
-    title: extracted.title,
-    artist: extracted.artist,
-    originalKey: extracted.originalKey,
-    sourceUrl
-  });
-
-  if (!smartPasteResult.success || !smartPasteResult.song) {
-    throw new Error(smartPasteResult.error || 'Failed to parse song chords from webpage.');
-  }
-
-  const song = smartPasteResult.song;
-  const warnings = [...(smartPasteResult.warnings || [])];
 
   const totalChords = (song.sections || []).reduce((acc, sec) => {
     return acc + (sec.rows || []).filter(r => r.type === 'chords' && r.content.trim().length > 0).length;
@@ -52,3 +60,4 @@ export async function parseHtmlToSong(html, sourceUrl = '') {
     warnings
   };
 }
+

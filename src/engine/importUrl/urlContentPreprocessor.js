@@ -348,7 +348,8 @@ export function reconstructMusicalLines(block, source = 'generic') {
     }
 
     // If line is short or a real section header, keep intact
-    if (trimmed.length < 90 || isSectionHeader(trimmed) || /^\*\*/.test(trimmed) || /^#{1,3}\s/.test(trimmed)) {
+    const hasPunctuationAndChords = trimmed.length >= 45 && /[?!]|\.\.\.|-2|\(2\)/.test(trimmed) && containsHighChordDensity(trimmed);
+    if ((trimmed.length < 90 && !hasPunctuationAndChords) || isSectionHeader(trimmed) || /^\*\*/.test(trimmed) || /^#{1,3}\s/.test(trimmed)) {
       reconstructed.push(trimmed);
       continue;
     }
@@ -394,6 +395,16 @@ function splitCollapsedLine(line) {
       currentChunk = '';
       i += (verseNumMatch[0].length - verseNumMatch[2].length);
       continue;
+    }
+
+    // 1c. Punctuation break check e.g. "யார்?B7வானத்திலும்" or "யார்?E?" or "...உமக்கொப்பானவர்"
+    const punctMatch = currentChunk.match(/(?:[?!]|\.\.\.|-2|\(2\))\s*$/);
+    if (punctMatch && currentChunk.trim().length >= 8) {
+      const chordAhead = findChordAt(line, i);
+      if (chordAhead) {
+        chunks.push(currentChunk.trim());
+        currentChunk = '';
+      }
     }
 
     // 2. Structural chord + word boundary check
