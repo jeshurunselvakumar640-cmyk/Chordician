@@ -27,7 +27,7 @@ export function normalizeChordString(chord) {
 
 // Regex for single chord token (e.g. C, Dm, F#m7, Bsus4, Cadd9, G13, C/E, C7/Am)
 const SINGLE_CHORD_REGEX =
-  /^[A-G][#b]?(?:maj|min|m|M|dim|aug|sus|add|\+|-|°|o)?[0-9]*(?:sus[24]?|add[0-9]+|b5|#5|#9|b9|#11)?(?:\/[A-G][#b]?(?:m|maj|min)?[0-9]*)?$/;
+  /^[A-G][#b]?(?:maj|min|m|M|dim|aug|sus|add|\+|-|°|ø)?[0-9]*(?:sus[24]?|add[0-9]+|b5|#5|#9|b9|#11)?(?:\/[A-G][#b]?(?:m|maj|min)?[0-9]*)?$/;
 
 /**
  * Validates whether a token string is a valid musical chord.
@@ -61,7 +61,9 @@ export function isChord(token, strict = false) {
  * Checks if a string starts with a valid chord prefix in attached/glued chord lines.
  * Example: "DmMaravaamal" -> { chord: "Dm", length: 2 }
  * Example: "Amazing" -> null (not chord "A" + "mazing")
+ * Example: "Come" -> null (not chord "Co" + "me" or "C" + "ome")
  * @param {string} text
+ * @param {string} [prevChar='']
  * @returns {{ chord: string, length: number } | null}
  */
 export function matchChordPrefix(text, prevChar = '') {
@@ -81,58 +83,33 @@ export function matchChordPrefix(text, prevChar = '') {
     if (isChord(candidate, true)) {
       const remainder = normalized.substring(len);
 
-      // Check boundary conditions:
-      // 1. If candidate is single letter root without accidental (e.g. "A", "C", "G"):
+      // RULE 1: If remainder starts with lowercase ASCII letter [a-z], this is part of a word (e.g. Come, Amazing, Father, Email, Down)
+      // Genuine attached chords are never followed immediately by lowercase letters without space/brackets.
+      if (/^[a-z]/.test(remainder)) {
+        continue;
+      }
+
+      // RULE 2: If candidate is single letter root without accidental (e.g. "A", "C", "E", "G"):
       if (/^[A-G]$/.test(candidate)) {
-        // If remainder starts with lowercase ASCII letters, this is an English word (e.g. "Amazing", "Grace", "Come")
-        if (/^[a-z]/.test(remainder)) {
-          continue;
-        }
-        // If preceded by a lowercase letter (e.g. "rajavukkE", "anbE"), single letter root attached to lowercase word is a transliteration vowel
+        // If preceded by a lowercase letter (e.g. "rajavukkE", "anbE", "iyEsu", "ennOtu"):
+        // Single letter root attached to lowercase word is a transliteration vowel UNLESS followed immediately by a Capital letter (e.g. "NanCRi") or Indic script
         if (/[a-z]/.test(prevChar)) {
-          // Unless followed immediately by a Capital letter (e.g. "NanCRi" -> C is chord before Ri) or Indic script
           if (!/^[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F]/.test(remainder)) {
             continue;
           }
         }
-        // Valid if remainder is empty, or followed by Capital letter (e.g. "CAmazing", "NanCRi"), Indic script, whitespace, or punctuation
-        if (remainder.length === 0 || /^[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F\s\[\]\(\)\-—.,!?:;]/.test(remainder)) {
-          return { chord: candidate, length: len };
-        }
-        continue;
       }
 
-      // 2. If candidate is minor (e.g. "Dm", "Am", "Em"):
-      if (/^[A-G]m$/.test(candidate)) {
-        // If followed by lowercase letters, it might be an English word like "Email", "Empty", "Ambassador"
-        if (/^[a-z]/.test(remainder)) {
-          continue;
-        }
-        if (remainder.length === 0) {
-          return { chord: candidate, length: len };
-        }
-        // Followed by Capital letter (e.g. "DmAmazing", "AmNinaiththeeraiyaa", "AmA#"), Indic, whitespace, or punctuation
-        if (/^[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F\s\[\]\(\)\-—.,!?:;]/.test(remainder)) {
-          return { chord: candidate, length: len };
-        }
-        // Or consecutive chord like "AmA#"
-        if (/^[A-G][#b]/.test(remainder)) {
-          return { chord: candidate, length: len };
-        }
-        continue;
-      }
-
-      // 3. If candidate ends in capital 'M' (e.g. "A#M", "CM") and remainder starts with lowercase letter (e.g. "anathaara"):
+      // RULE 3: If candidate ends in capital 'M' (e.g. "A#M", "CM") and remainder starts with lowercase letter:
       if (/M$/.test(candidate) && /^[a-z]/.test(remainder)) {
         continue;
       }
 
-      if (remainder.length === 0) {
-        return { chord: candidate, length: len };
-      }
-
-      // 4. For chords with accidental/quality/numbers (e.g. "A#", "Bb", "F#m", "Cadd9", "Gsus4", "C7/Am"):
-      if (/^[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F\s\[\]\(\)\-—.,!?:;a-z]/.test(remainder)) {
+      // Valid boundary: end of string, Capital letter, Indic script, whitespace, numbers, or punctuation
+      if (
+        remainder.length === 0 ||
+        /^[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F\s\[\]\(\)\-—.,!?:;0-9]/.test(remainder)
+      ) {
         return { chord: candidate, length: len };
       }
     }

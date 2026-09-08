@@ -981,6 +981,63 @@ assert(t32Chords.some(c => c.includes('F#m') && c.includes('B7') && c.includes('
 assert(t32Chords.some(c => c.includes('Gm') && c.includes('A#')), 'Line 4 contains Gm and A#');
 assert(t32Lyrics.some(l => l.includes('NeeRthaanaiyaa Enthan Thanjam')), 'Line 4 lyrics properly reconstructed from NeeGmRthaanaiyaa');
 
+// --- Test 33: Pure Lyrics Byte-for-Byte Preservation (No False Positive Chords) ---
+console.log('\n--- Test 33: Pure Lyrics Byte-for-Byte Preservation ---');
+const pureLyricsTests = [
+  'Amazing grace, how sweet the sound',
+  'Come thou fount of every blessing',
+  'Father, we praise You',
+  'God is good all the time',
+  'Before the throne of God above',
+  'Draw me close to You',
+  'Great is Thy faithfulness, O God my Father',
+  'en iyEsu rajavukkE',
+  'ennOtu vazhpavarkkE'
+];
+
+for (const lyricLine of pureLyricsTests) {
+  const tokenized = tokenizeLine(lyricLine);
+  assertEqual(tokenized.lyrics, lyricLine, `Pure lyric line byte-for-byte unchanged: "${lyricLine}"`);
+  assertEqual(tokenized.chords.length, 0, `Zero false-positive chords in pure lyric: "${lyricLine}"`);
+}
+
+// --- Test 34: Genuine Attached Chords & Zero-Loss Character Invariant ---
+console.log('\n--- Test 34: Genuine Attached Chords & Zero-Loss Character Invariant ---');
+const attachedChordTestCases = [
+  {
+    input: 'DmMaravaamal NinaiththeeraiyaaAmA#Manathaara',
+    expectedLyrics: 'Maravaamal NinaiththeeraiyaaManathaara',
+    expectedChords: ['Dm', 'Am', 'A#']
+  },
+  {
+    input: 'NanCRi Solvaen-2DmA#Iravum Pakalum',
+    expectedLyrics: 'NanRi Solvaen-2Iravum Pakalum',
+    expectedChords: ['C', 'Dm', 'A#']
+  },
+  {
+    input: 'NeeGmRthaanaiyaa',
+    expectedLyrics: 'NeeRthaanaiyaa',
+    expectedChords: ['Gm']
+  },
+  {
+    input: 'DmPelaveena NaeGmRangalilDmCPelan',
+    expectedLyrics: 'Pelaveena NaeRangalilPelan',
+    expectedChords: ['Dm', 'Gm', 'Dm', 'C']
+  }
+];
+
+for (const tc of attachedChordTestCases) {
+  const tokenized = tokenizeLine(tc.input);
+  assertEqual(tokenized.lyrics, tc.expectedLyrics, `Lyrics preserved cleanly for "${tc.input}"`);
+  const extractedChordNames = tokenized.chords.map(c => c.chord);
+  assertEqual(JSON.stringify(extractedChordNames), JSON.stringify(tc.expectedChords), `Exact chords extracted for "${tc.input}"`);
+  
+  // Character conservation invariant check
+  const totalChordLen = tokenized.chords.reduce((sum, c) => sum + c.chord.length, 0);
+  const totalLyricLen = tokenized.lyrics.length;
+  assertEqual(totalLyricLen + totalChordLen, tc.input.length, `Zero unexplained character loss for "${tc.input}"`);
+}
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
