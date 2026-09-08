@@ -7,12 +7,10 @@ import { validateUrl } from './urlSecurity.js';
 import { fetchHtml } from './htmlFetcher.js';
 import { extractFromDom } from './siteAdapters/index.js';
 import { extractSongContent } from './songContentExtractor.js';
-import { parseSong } from '../core/songParser.js';
-import { normalizeToChordicianSong } from '../normalizer/songNormalizer.js';
-import { evaluateConfidence } from '../confidence/confidenceScorer.js';
+import { parseSmartPaste } from '../smartPaste/smartPasteParser.js';
 
 /**
- * Extracts, parses, and normalizes a song from a webpage URL.
+ * Extracts, parses, and normalizes a song from a webpage URL using Smart Paster.
  * @param {string} targetUrl
  * @returns {Promise<{
  *   success: boolean,
@@ -44,7 +42,7 @@ export async function extractSongFromUrl(targetUrl) {
     const $ = cheerio.load(html);
     const extracted = extractFromDom($, finalUrl);
 
-    // Apply isolated song content extraction layer to filter out all website noise
+    // Apply isolated song content extraction layer to filter out all website noise & align lines
     const cleanRawText = extractSongContent(extracted.rawText || '', { sourceUrl: finalUrl });
 
     if (!cleanRawText || cleanRawText.trim().length < 15) {
@@ -58,31 +56,37 @@ export async function extractSongFromUrl(targetUrl) {
       };
     }
 
-    const parsed = parseSong(cleanRawText, {
+    // Pass the restructured clean content directly to Smart Paster for high-precision chord extraction
+    const smartPasteResult = parseSmartPaste(cleanRawText, {
       title: extracted.title,
       artist: extracted.artist,
       originalKey: extracted.originalKey,
-      inputType: 'url_import'
+      sourceUrl: finalUrl
     });
 
-    const confidenceEval = evaluateConfidence(parsed);
-    parsed.confidence = confidenceEval.confidence;
-    parsed.warnings = confidenceEval.warnings;
-
-    const chordicianSong = normalizeToChordicianSong(parsed, finalUrl);
+    if (!smartPasteResult.success || !smartPasteResult.song) {
+      return {
+        success: false,
+        song: null,
+        confidence: 0,
+        warnings: smartPasteResult.warnings || [],
+        error: smartPasteResult.error || 'Failed to parse song chords from webpage.',
+        code: 'PARSER_FAILED'
+      };
+    }
 
     return {
       success: true,
-      song: chordicianSong,
-      confidence: confidenceEval.confidence,
-      warnings: confidenceEval.warnings,
+      song: smartPasteResult.song,
+      confidence: smartPasteResult.confidence,
+      warnings: smartPasteResult.warnings,
       sourceUrl: finalUrl,
       debug: {
-        inputType: 'url_import',
-        detectedChords: parsed.debug?.detectedChords || 0,
-        detectedLyrics: parsed.debug?.detectedLyrics || 0,
-        sections: chordicianSong.sections.length,
-        confidence: confidenceEval.confidence
+        inputType: 'url_import_via_smart_paste',
+        detectedChords: smartPasteResult.debug?.detectedChords || 0,
+        detectedLyrics: smartPasteResult.debug?.detectedLyrics || 0,
+        sections: smartPasteResult.song.sections.length,
+        confidence: smartPasteResult.confidence
       }
     };
   } catch (err) {
