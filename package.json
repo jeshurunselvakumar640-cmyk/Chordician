@@ -1,7 +1,7 @@
 {
   "name": "chordician",
   "private": true,
-  "version": "2.5.0",
+  "version": "2.6.0",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"node server/index.js\" \"vite --host 0.0.0.0\"",

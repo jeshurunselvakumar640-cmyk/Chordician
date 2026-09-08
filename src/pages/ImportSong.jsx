@@ -722,13 +722,27 @@ export default function ImportSong() {
 
           <div className="smart-paste-wrapper">
             <textarea
+              id="smart-paste-textarea"
+              name="smartPasteContent"
               className="smart-paste-textarea"
               rows={8}
+              enterKeyHint="enter"
+              inputMode="text"
+              wrap="soft"
+              autoCapitalize="sentences"
+              autoCorrect="off"
+              spellCheck={false}
               placeholder={`Paste your song text here. Examples:\n\nDmMaravaamal NinaiththeeraiyaaAmA#Manathaara NanCRi Solvaen-2\nor\n[Dm]Maravaamal [Am]Ninaiththeeraiyaa [A#]Manathaara [C]Nanri Solvaen\nor\nDm                   Am\nMaravaamal Ninaiththeeraiyaa`}
               value={textInput}
               onChange={(e) => {
                 setTextInput(e.target.value);
                 setSelectedTextPreset(null);
+              }}
+              onKeyDown={(e) => {
+                // Ensure Enter creates a normal new line and prevents bubbling to parent forms/handlers
+                if (e.key === 'Enter') {
+                  e.stopPropagation();
+                }
               }}
               disabled={isAnalyzingText}
             />

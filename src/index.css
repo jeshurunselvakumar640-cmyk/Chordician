@@ -3820,7 +3820,8 @@ button:disabled {
   resize: vertical;
   outline: none;
   transition: all var(--transition-fast);
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 :root[data-theme='light'] .smart-paste-textarea {
