@@ -981,18 +981,29 @@ assert(t32Chords.some(c => c.includes('F#m') && c.includes('B7') && c.includes('
 assert(t32Chords.some(c => c.includes('Gm') && c.includes('A#')), 'Line 4 contains Gm and A#');
 assert(t32Lyrics.some(l => l.includes('NeeRthaanaiyaa Enthan Thanjam')), 'Line 4 lyrics properly reconstructed from NeeGmRthaanaiyaa');
 
-// --- Test 33: Pure Lyrics Byte-for-Byte Preservation (No False Positive Chords) ---
-console.log('\n--- Test 33: Pure Lyrics Byte-for-Byte Preservation ---');
+// --- Test 33: Aggressive Pure Lyrics Byte-for-Byte Preservation (No False Positive Chords) ---
+console.log('\n--- Test 33: Aggressive Pure Lyrics Byte-for-Byte Preservation ---');
 const pureLyricsTests = [
+  'Come and worship God',
+  'Amazing grace',
+  'Father God we praise You',
+  'Give thanks to the Lord',
+  'Before God I stand',
+  'Great is Thy faithfulness',
+  'Draw me close to You',
+  'God alone is worthy',
+  'Jesus is my King',
+  'O God my Father',
   'Amazing grace, how sweet the sound',
   'Come thou fount of every blessing',
-  'Father, we praise You',
-  'God is good all the time',
-  'Before the throne of God above',
-  'Draw me close to You',
-  'Great is Thy faithfulness, O God my Father',
   'en iyEsu rajavukkE',
-  'ennOtu vazhpavarkkE'
+  'ennOtu vazhpavarkkE',
+  'karththarA',
+  'anbE',
+  'Yesuvae Ummai Thozhugirom',
+  'Aaraathanai Umakkae En Yesuvae',
+  'Parisuththa Parisuththa Parisuththarae',
+  'Dhevane En Thanjame Ummai Saranadaigiraen'
 ];
 
 for (const lyricLine of pureLyricsTests) {
@@ -1001,8 +1012,8 @@ for (const lyricLine of pureLyricsTests) {
   assertEqual(tokenized.chords.length, 0, `Zero false-positive chords in pure lyric: "${lyricLine}"`);
 }
 
-// --- Test 34: Genuine Attached Chords & Zero-Loss Character Invariant ---
-console.log('\n--- Test 34: Genuine Attached Chords & Zero-Loss Character Invariant ---');
+// --- Test 34: Genuine Attached Chords & True Span Removal Invariant ---
+console.log('\n--- Test 34: Genuine Attached Chords & True Span Removal Invariant ---');
 const attachedChordTestCases = [
   {
     input: 'DmMaravaamal NinaiththeeraiyaaAmA#Manathaara',
@@ -1032,11 +1043,25 @@ for (const tc of attachedChordTestCases) {
   const extractedChordNames = tokenized.chords.map(c => c.chord);
   assertEqual(JSON.stringify(extractedChordNames), JSON.stringify(tc.expectedChords), `Exact chords extracted for "${tc.input}"`);
   
-  // Character conservation invariant check
-  const totalChordLen = tokenized.chords.reduce((sum, c) => sum + c.chord.length, 0);
-  const totalLyricLen = tokenized.lyrics.length;
-  assertEqual(totalLyricLen + totalChordLen, tc.input.length, `Zero unexplained character loss for "${tc.input}"`);
+  // True character preservation: removing chords from original must equal tokenized lyrics
+  let reconstructedByChordRemoval = tc.input;
+  for (const chord of extractedChordNames) {
+    reconstructedByChordRemoval = reconstructedByChordRemoval.replace(chord, '');
+  }
+  reconstructedByChordRemoval = reconstructedByChordRemoval.trimEnd();
+  assertEqual(reconstructedByChordRemoval, tokenized.lyrics, `True character and order conservation for "${tc.input}"`);
 }
+
+// --- Test 35: Full Unstructured Problematic Real-World Line ---
+console.log('\n--- Test 35: Full Problematic Unstructured Line with Transliteration Clusters ---');
+const t35Raw = 'DmMaravaamal NinaiththeeraiyaaAmA#Manathaara NanCRi Solvaen-2DmA#Iravum Pakalum EGNai NinainthuCIthuvarai Nadaththineerae-2F A7';
+const t35Tokenized = tokenizeLine(t35Raw);
+const t35ExpectedLyrics = 'Maravaamal NinaiththeeraiyaaManathaara NanRi Solvaen-2Iravum Pakalum EGNai NinainthuIthuvarai Nadaththineerae-2';
+const t35ExpectedChords = ['Dm', 'Am', 'A#', 'C', 'Dm', 'A#', 'C', 'F', 'A7'];
+
+assertEqual(t35Tokenized.lyrics, t35ExpectedLyrics, 'Full line lyrics preserved with EGNai intact and zero character corruption');
+const t35Chords = t35Tokenized.chords.map(c => c.chord);
+assertEqual(JSON.stringify(t35Chords), JSON.stringify(t35ExpectedChords), 'Full line exact chord sequence extracted');
 
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {

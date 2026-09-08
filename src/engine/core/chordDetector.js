@@ -98,6 +98,19 @@ export function matchChordPrefix(text, prevChar = '') {
             continue;
           }
         }
+
+        // If preceded by an uppercase letter (e.g. 'E' in 'EGNai', 'N' in 'eNGgal', 'D' in 'DHevan'):
+        // Single letter root glued inside an uppercase letter cluster is part of a transliterated word/digraph, NOT a chord.
+        if (/[A-Z]/.test(prevChar)) {
+          continue;
+        }
+
+        // Check for uppercase transliteration clusters in remainder (e.g. 'EGNai' where E is followed by G + N + ai):
+        // If remainder starts with multiple consecutive capital letters followed by lowercase (e.g. 'GNai' -> G + N + ai),
+        // this is a transliterated consonant cluster (like GN / TH / SH / CH), NOT a single letter chord.
+        if (/^[A-Z]{2,}[a-z]/.test(remainder)) {
+          continue;
+        }
       }
 
       // RULE 3: If candidate ends in capital 'M' (e.g. "A#M", "CM") and remainder starts with lowercase letter:
