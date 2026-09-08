@@ -57,6 +57,9 @@ export function isChord(token, strict = false) {
   return SINGLE_CHORD_REGEX.test(clean);
 }
 
+// Known Romanized Indic transliteration consonant digraphs / clusters
+const TRANSLIT_DIGRAPH_REGEX = /^(?:GN|NG|TH|DH|SH|ZH|CH|ND|NT)/;
+
 /**
  * Checks if a string starts with a valid chord prefix in attached/glued chord lines.
  * Example: "DmMaravaamal" -> { chord: "Dm", length: 2 }
@@ -89,27 +92,43 @@ export function matchChordPrefix(text, prevChar = '') {
         continue;
       }
 
-      // RULE 2: If candidate is single letter root without accidental (e.g. "A", "C", "E", "G"):
+      // RULE 2: Boundary conditions for single-letter roots without accidental (e.g. "A", "B", "C", "D", "E", "F", "G"):
       if (/^[A-G]$/.test(candidate)) {
-        // If preceded by a lowercase letter (e.g. "rajavukkE", "anbE", "iyEsu", "ennOtu"):
-        // Single letter root attached to lowercase word is a transliteration vowel UNLESS followed immediately by a Capital letter (e.g. "NanCRi") or Indic script
+        // Transliteration digraph check (e.g. 'CH' in 'CHiththam', 'DH' in 'DHevan', 'GN' in 'GNai'):
+        if (TRANSLIT_DIGRAPH_REGEX.test(candidate + remainder.substring(0, 3))) {
+          continue;
+        }
+
+        // If preceded by a character forming a transliteration cluster (e.g. 'N' before 'G' in 'eNGgal'):
+        if (TRANSLIT_DIGRAPH_REGEX.test(prevChar + candidate)) {
+          continue;
+        }
+
+        // If preceded by a lowercase letter:
         if (/[a-z]/.test(prevChar)) {
-          if (!/^[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F]/.test(remainder)) {
-            continue;
+          // A. For single-letter consonant roots (B, C, D, F, G):
+          // Allow if immediately followed by Capital letter/Indic script (e.g. "NanCRi") OR space + Capital letter/Indic script (e.g. "ParisuththaF Theyvam", "NeerF Maaththi")
+          if (/^[BCDFG]$/.test(candidate)) {
+            if (
+              !/^[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F]/.test(remainder) &&
+              !/^\s+[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F]/.test(remainder)
+            ) {
+              continue;
+            }
+          } else {
+            // B. For vowel roots (A, E): strictly require immediate Capital letter or Indic script (e.g. "SolvaenA Ninaiththeeraiyaa")
+            // Rejects trailing word vowels (e.g. "rajavukkE", "anbE", "karththarA", "iyEsu")
+            if (!/^[A-Z\u0B80-\u0BFF\u0900-\u097F\u0C00-\u0C7F\u0D00-\u0D7F]/.test(remainder)) {
+              continue;
+            }
           }
         }
 
-        // If preceded by an uppercase letter (e.g. 'E' in 'EGNai', 'N' in 'eNGgal', 'D' in 'DHevan'):
-        // Single letter root glued inside an uppercase letter cluster is part of a transliterated word/digraph, NOT a chord.
-        if (/[A-Z]/.test(prevChar)) {
-          continue;
-        }
-
-        // Check for uppercase transliteration clusters in remainder (e.g. 'EGNai' where E is followed by G + N + ai):
-        // If remainder starts with multiple consecutive capital letters followed by lowercase (e.g. 'GNai' -> G + N + ai),
-        // this is a transliterated consonant cluster (like GN / TH / SH / CH), NOT a single letter chord.
+        // If remainder starts with multiple uppercase letters that start with a transliteration digraph (e.g. 'GNai' in 'EGNai'):
         if (/^[A-Z]{2,}[a-z]/.test(remainder)) {
-          continue;
+          if (TRANSLIT_DIGRAPH_REGEX.test(remainder.substring(0, 3))) {
+            continue;
+          }
         }
       }
 

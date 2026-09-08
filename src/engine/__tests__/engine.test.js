@@ -1063,6 +1063,29 @@ assertEqual(t35Tokenized.lyrics, t35ExpectedLyrics, 'Full line lyrics preserved 
 const t35Chords = t35Tokenized.chords.map(c => c.chord);
 assertEqual(JSON.stringify(t35Chords), JSON.stringify(t35ExpectedChords), 'Full line exact chord sequence extracted');
 
+// --- Test 36: Consonant Chords Before Space + Capital Word & Adjacent Chord Roots ---
+console.log('\n--- Test 36: Consonant Chords Before Space and Adjacent Roots ---');
+const t36Cases = [
+  { input: 'ParisuththaF Theyvam', expC: ['F'], expL: 'Parisuththa Theyvam' },
+  { input: 'NeerF Maaththi', expC: ['F'], expL: 'Neer Maaththi' },
+  { input: 'CGPadaippiththa', expC: ['C', 'G'], expL: 'Padaippiththa' },
+  { input: 'GDVaanam', expC: ['G', 'D'], expL: 'Vaanam' }
+];
+
+for (const tc of t36Cases) {
+  const tokenized = tokenizeLine(tc.input);
+  assertEqual(tokenized.lyrics, tc.expL, `Lyrics preserved cleanly for "${tc.input}"`);
+  const actualChords = tokenized.chords.map(c => c.chord);
+  assertEqual(JSON.stringify(actualChords), JSON.stringify(tc.expC), `Exact chords extracted for "${tc.input}"`);
+
+  let reconstructed = tc.input;
+  for (const chord of actualChords) {
+    reconstructed = reconstructed.replace(chord, '');
+  }
+  reconstructed = reconstructed.trimEnd();
+  assertEqual(reconstructed, tokenized.lyrics, `True character and order conservation for "${tc.input}"`);
+}
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
