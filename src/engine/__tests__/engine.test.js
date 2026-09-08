@@ -962,6 +962,25 @@ Footer
 const t31Processed = preprocessUrlContent(t31PageRaw, 'https://tamilchristiansongs.in/chords/oruvarum-serakkoodaa/');
 assertEqual(t31Processed, t29Expected, 'Test 31: Entire webpage noise stripped and exact 9 lines reconstructed');
 
+// --- Test 32: Comprehensive Unstructured Embedded Chords Detection ---
+console.log('\n--- Test 32: Comprehensive Unstructured Embedded Chords Detection ---');
+const t32Raw = `DmMaravaamal NinaiththeeraiyaaAmA#Manathaara NanCRi Solvaen-2
+DmA#Iravum Pakalum EGNai NinainthuCIthuvarai Nadaththineerae-2F A7
+GmYeshu Tera Naam Sabse Uncha HaiC7F#mB7
+NeeGmRthaanaiyaa Enthan A#Thanjam`;
+
+const t32Result = parseSmartPaste(t32Raw);
+assert(t32Result.success, 'Test 32: Smart paste parsed unstructured embedded chords successfully');
+const t32Rows = t32Result.song.sections.flatMap(s => s.rows);
+const t32Chords = t32Rows.filter(r => r.type === 'chords').map(r => r.content);
+const t32Lyrics = t32Rows.filter(r => r.type === 'lyrics').map(r => r.content);
+
+assert(t32Chords.some(c => c.includes('Dm') && c.includes('Am') && c.includes('A#') && c.includes('C')), 'Line 1 contains Dm, Am, A#, C');
+assert(t32Lyrics.some(l => l.includes('Maravaamal Ninaiththeeraiyaa') && l.includes('NanRi Solvaen')), 'Line 1 lyrics cleanly extracted without chord letters');
+assert(t32Chords.some(c => c.includes('F#m') && c.includes('B7') && c.includes('C7')), 'Line 3 contains F#m, B7, C7');
+assert(t32Chords.some(c => c.includes('Gm') && c.includes('A#')), 'Line 4 contains Gm and A#');
+assert(t32Lyrics.some(l => l.includes('NeeRthaanaiyaa Enthan Thanjam')), 'Line 4 lyrics properly reconstructed from NeeGmRthaanaiyaa');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);

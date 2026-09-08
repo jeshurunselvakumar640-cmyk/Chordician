@@ -82,14 +82,10 @@ export function tokenizeLine(rawLine) {
       // If not a chord bracket, fall through to process char as lyric (preserves "(x2)", "(2)", etc.)
     }
 
-    // 3. Scan for attached / glued chords (e.g. Amஎல், DmMaravaamal, AmA#Manathaara)
-    const canBeChordStart =
-      i === 0 ||
-      i === lastChordEnd ||
-      !/[a-z]/.test(line[i - 1]);
-
+    // 3. Scan for attached / glued chords (e.g. Amஎல், DmMaravaamal, AmA#Manathaara, NanCRi, NinaiththeeraiyaaAm)
     const sub = line.substring(i);
-    const chordMatch = canBeChordStart ? matchChordPrefix(sub) : null;
+    const prevChar = i > 0 ? line[i - 1] : '';
+    const chordMatch = matchChordPrefix(sub, prevChar);
 
     if (chordMatch) {
       const chordValue = normalizeChordString(chordMatch.chord);
