@@ -40,6 +40,15 @@ const DUPLICATE_LYRICS_HEADER_REGEX =
 export function isUnrelatedHeaderLine(trimmed) {
   if (!trimmed) return false;
 
+  // Markdown link clusters (e.g. "[A](https://...)[B](https://...)" or "[Tamil Christian Songs .IN](...) [Lyrics](...)")
+  if (/^(?:\[[^\]]+\]\(https?:\/\/[^\)]+\)\s*){2,}$/i.test(trimmed)) {
+    return true;
+  }
+  // Single markdown links to navigation, scales, or breadcrumbs
+  if (/^\[[^\]]+\]\(https?:\/\/[^\)]+\)$/i.test(trimmed)) {
+    return true;
+  }
+
   // Alphabet search navigation: "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"
   if (/^(?:[A-Z]\s+){5,}[A-Z]$/i.test(trimmed)) {
     return true;
@@ -57,12 +66,16 @@ export function isUnrelatedHeaderLine(trimmed) {
     return true;
   }
 
-  // Navigation breadcrumbs: "Home > Songs > ..." or "Home / Chords & Tabs / ..."
-  if (/^(?:Home|Songs|Lyrics|Chords|Tabs|Artists|Events|Submit Chords|Request a Song|Login|Register)\s*[>»/|]\s*/i.test(trimmed)) {
-    return true;
-  }
-  if (/^(?:Home|Chords & Tabs|Artists|Events|Submit Chords|Request a Song|Login|Register|Tabs|Courses|Songbooks|Articles|Forums|Bible)$/i.test(trimmed)) {
-    return true;
+  // Navigation breadcrumbs (excluding duplicate lyric section headers like TAMIL LYRICS)
+  if (!DUPLICATE_LYRICS_HEADER_REGEX.test(trimmed)) {
+    if (/^(?:Home|Songs|Lyrics|Chords|Tabs|Artists|Events|Submit Chords|Request a Song|Login|Register|Discover more|Christian Song Lyrics|Christian|Worship Song Collections)\s*[>»/|•\-]?\s*/i.test(trimmed)) {
+      if (/^(?:Home|Songs|Lyrics|Chords|Tabs|Artists|Events|Submit Chords|Request a Song|Login|Register|Discover more|Christian Song Lyrics|Christian|Worship Song Collections)$/i.test(trimmed)) {
+        return true;
+      }
+    }
+    if (/^(?:Home|Chords & Tabs|Artists|Events|Submit Chords|Request a Song|Login|Register|Tabs|Courses|Songbooks|Articles|Forums|Bible|Discover more|Christian Song Lyrics|Christian|Worship Song Collections)$/i.test(trimmed)) {
+      return true;
+    }
   }
 
   // Views, difficulty, ratings: "20,467 views", "Difficulty: Beginner", "Difficulty: Novice"
@@ -115,9 +128,11 @@ export function isUnrelatedHeaderLine(trimmed) {
     return true;
   }
 
-  // Header Title / Instrument lines e.g. "# Paavangal Pokkavae Chords", "by Misc Praise Songs"
-  if (/^#{1,3}\s+.+?\s+(?:Chords|Lyrics|Tabs|Song)$/i.test(trimmed) || /^by\s+[A-Za-z0-9\s.,'&-]+$/i.test(trimmed)) {
-    return true;
+  // Header Title / Instrument lines (excluding duplicate lyrics section headers)
+  if (!DUPLICATE_LYRICS_HEADER_REGEX.test(trimmed)) {
+    if (/^(?:#{1,3}\s*)?.+?\s+(?:Chords|Lyrics|Tabs|Song)(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i.test(trimmed) || /^by\s+[A-Za-z0-9\s.,'&-]+$/i.test(trimmed)) {
+      return true;
+    }
   }
 
   // Generic UI words alone on a single line
@@ -138,13 +153,18 @@ export function isUnrelatedHeaderLine(trimmed) {
 export function isSongStartLine(raw, trimmed, nextTrimmed = null) {
   if (!trimmed) return false;
 
+  // Reject obvious unrelated headers/navigation
+  if (isUnrelatedHeaderLine(trimmed)) {
+    return false;
+  }
+
   // 1. Explicit Section Header: [Verse 1], [Chorus], Verse 1, Chorus, Pallavi, etc.
   if (isSectionHeader(trimmed)) {
     return true;
   }
 
-  // 2. Bracketed chord inline notation: "[D]Paavangal [G]Pokkavae" or "[Verse 1]"
-  if (/\[[A-G][#b]?[^\]\s]*\]/.test(trimmed) && isLyricText(trimmed)) {
+  // 2. Bracketed chord inline notation: "[D]Paavangal [G]Pokkavae" (must NOT be markdown link "[A](https://...)")
+  if (/\[[A-G][#b♭♯]?[^\]\s]*\](?!\()/.test(trimmed) && isLyricText(trimmed) && !trimmed.includes('http://') && !trimmed.includes('https://')) {
     return true;
   }
 
@@ -189,13 +209,19 @@ export function isSongStopLine(trimmed, validSongLinesCount = 0) {
     if (FOOTER_UI_STOP_REGEX.test(trimmed)) {
       return true;
     }
-    if (/^(?:Related|Related Songs|Similar Songs|You May Also Like|More by Artist|Recommended Songs|Top Artists|Languages|Browse|Footer|Comments|Facebook Comments|Please rate this tab|More Versions)\b/i.test(trimmed)) {
+    if (/^(?:Share|Share this|Share on|Related|Related Songs|Similar Songs|You May Also Like|More by Artist|Recommended Songs|Top Artists|Languages|Browse|Footer|Comments|Facebook Comments|Please rate this tab|More Versions)\b/i.test(trimmed)) {
       return true;
     }
     if (/^Chord Diagrams\b/i.test(trimmed) || /^Guitar Chords\b/i.test(trimmed) || /^Chord Chart\b/i.test(trimmed)) {
       return true;
     }
     if (/^#{1,3}\s*(?:Chord Diagrams|Related|Comments|More Versions)\b/i.test(trimmed)) {
+      return true;
+    }
+    if (/^.+?\s+Chords(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i.test(trimmed)) {
+      return true;
+    }
+    if (/^\[தமிழ்\]\(https?:\/\//.test(trimmed) || /^(?:\[[A-G][#b♭♯]?\]\(https?:\/\/[^\)]+\)\s*){2,}/i.test(trimmed)) {
       return true;
     }
     // Duplicate Lyrics-Only Section (e.g. "TAMIL LYRICS" after Romanized chords)

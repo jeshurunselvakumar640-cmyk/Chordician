@@ -90,11 +90,17 @@ export function removeWebsiteNoise(text) {
     }
     inGuitarTab = false;
 
-    // 2. Alphabet search index lines: "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"
+    // 2. Alphabet search index lines & markdown link clusters:
     if (/^(?:[A-Z]\s+){6,}[A-Z]$/i.test(trimmed)) {
       continue;
     }
     if (trimmed.includes('அஆஇ') || trimmed.includes('ககாகிகீ')) {
+      continue;
+    }
+    if (/^(?:\[[^\]]+\]\(https?:\/\/[^\)]+\)\s*)+$/i.test(trimmed)) {
+      continue;
+    }
+    if (/^\[[^\]]+\]\(https?:\/\/[^\)]+\)$/i.test(trimmed)) {
       continue;
     }
 
@@ -103,17 +109,21 @@ export function removeWebsiteNoise(text) {
       continue;
     }
 
-    // 4. Navigation headers / Website breadcrumbs
-    if (/^(?:Home|Albums|Artists|Notes|Chords|Lyrics|Tabs|Bible|Submit|Contact Us|Discover more|Search|Quick Links)\s*(?:[|/,•>»-]\s*|\s+)/i.test(trimmed)) {
-      continue;
-    }
-    if (/^(?:Home|Albums|Artists|Notes|Chords|Buy Chords Book|Contact Us|Discover more)$/i.test(trimmed)) {
-      continue;
+    // 4. Navigation headers / Website breadcrumbs (excluding section headers like TAMIL LYRICS)
+    if (!/^(?:TAMIL\s+LYRICS|LYRICS\s+IN\s+TAMIL|PADAL\s+VARIGAL|HINDI\s+LYRICS|MALAYALAM\s+LYRICS|TELUGU\s+LYRICS|KANNADA\s+LYRICS)\b/i.test(trimmed)) {
+      if (/^(?:Home|Albums|Artists|Notes|Chords|Lyrics|Tabs|Bible|Submit|Contact Us|Discover more|Search|Quick Links|Christian Song Lyrics|Christian|Worship Song Collections)\s*(?:[|/,•>»-]\s*|\s+)/i.test(trimmed)) {
+        continue;
+      }
+      if (/^(?:Home|Albums|Artists|Notes|Chords|Buy Chords Book|Contact Us|Discover more|Christian Song Lyrics|Christian|Worship Song Collections)$/i.test(trimmed)) {
+        continue;
+      }
     }
 
-    // 5. Instrument / Page Title lines
-    if (/^#{1,3}\s*.+?\s+(?:Chords|Lyrics|Tabs|Song)$/i.test(trimmed)) {
-      continue;
+    // 5. Instrument / Page Title lines (excluding duplicate lyrics section headers)
+    if (!/^(?:TAMIL\s+LYRICS|LYRICS\s+IN\s+TAMIL|PADAL\s+VARIGAL|HINDI\s+LYRICS|MALAYALAM\s+LYRICS|TELUGU\s+LYRICS|KANNADA\s+LYRICS)\b/i.test(trimmed)) {
+      if (/^(?:#{1,3}\s*)?.+?\s+(?:Chords|Lyrics|Tabs|Song)(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i.test(trimmed)) {
+        continue;
+      }
     }
 
     // 6. Advertisements & Promotions
@@ -132,7 +142,7 @@ export function removeWebsiteNoise(text) {
     }
 
     // 9. Player toolbar buttons
-    if (/^(?:Transpose|1-2-3|Print|Tamil English|Tamil Search|English Songs|Font Size|Dark Mode|Hide Chords)$/i.test(trimmed)) {
+    if (/^(?:Transpose|1-2-3|Print|Tamil English|Tamil Search|English Songs|Font Size|Dark Mode|Hide Chords|Tamil English\s+Tamil English\s+Transpose|1-2-3\s+Print)$/i.test(trimmed)) {
       continue;
     }
 
@@ -377,6 +387,15 @@ function splitCollapsedLine(line) {
       continue;
     }
 
+    // 1b. Verse number indicator e.g. "D1DSinna" or "1DSinna"
+    const verseNumMatch = line.substring(i).match(/^(?:[A-G][#b]?)?([1-9])([A-G][#b]?[A-Za-z\u0B80-\u0BFF\u0900-\u097F])/);
+    if (verseNumMatch && currentChunk.trim().length >= 15) {
+      chunks.push(currentChunk.trim());
+      currentChunk = '';
+      i += (verseNumMatch[0].length - verseNumMatch[2].length);
+      continue;
+    }
+
     // 2. Structural chord + word boundary check
     const chord = findChordAt(line, i);
     if (chord && currentChunk.trim().length >= 12) {
@@ -393,7 +412,7 @@ function splitCollapsedLine(line) {
 
       // B. It is NOT an internal syllable of an embedded chord word like:
       //    "MaaGaugThthiA#Ramae" (Ththi, Ramae) or "NeeCmR" (R) or "OliyiA#L" (L) or "SeFYpavarae" (Ypavarae)
-      const isInsideEmbeddedWord = /^(?:Ththi|Ramae|Mae|Tha|Se|Ypavarae|R\b|L\b)/.test(remainderAfterChord);
+      const isInsideEmbeddedWord = /^(?:Ththi|Ramae|Mae|Tha|Se|Ypavarae|Rar|Ththu|DR|Thamaanaar|NG|R\b|L\b)/.test(remainderAfterChord);
 
       // C. Preceding chunk completed a lyric word/suffix
       const prevCompletedWord =
@@ -402,6 +421,8 @@ function splitCollapsedLine(line) {
         currentChunk.trim().endsWith('Parisuththa') ||
         currentChunk.endsWith('Ramae') ||
         currentChunk.endsWith('Parisuththar') ||
+        currentChunk.endsWith('SonthamaayinaarA') ||
+        currentChunk.endsWith('MakilvomBm') ||
         /[a-z]{3,}$/i.test(currentChunk.trim()) ||
         /[LR]\b/i.test(currentChunk.trim()) ||
         /A#L$/.test(currentChunk);
