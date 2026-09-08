@@ -10,6 +10,7 @@
  */
 
 import { isChord } from '../core/chordDetector.js';
+import { isSectionHeader } from '../core/lyricDetector.js';
 
 // Regex for single chord token with standard musical qualities and slash chords
 const SINGLE_CHORD_REGEX =
@@ -290,6 +291,13 @@ export function needsLineReconstruction(block, source = 'generic') {
  */
 function findChordAt(str, idx) {
   const sub = str.substring(idx);
+
+  // Support bracketed chords [Dm], [A#], [F#m7], etc.
+  const bracketMatch = sub.match(/^\[([A-G][#b]?(?:maj|min|m|M|dim|aug|sus[24]?|add[0-9]+|b5|#5|#9|b9|#11|7|9|11|13)*(?:\/[A-G][#b]?(?:m|maj|min)?[0-9]*)?)\]/);
+  if (bracketMatch) {
+    return bracketMatch[0];
+  }
+
   for (const c of MUSICAL_CHORD_PREFIXES) {
     if (sub.startsWith(c)) {
       // Must not be an English word like "Amazing", "Grace", "Email"
@@ -329,8 +337,8 @@ export function reconstructMusicalLines(block, source = 'generic') {
       continue;
     }
 
-    // If line is short or a section header, keep intact
-    if (trimmed.length < 90 || /^(?:\[|\*\*|#)/.test(trimmed)) {
+    // If line is short or a real section header, keep intact
+    if (trimmed.length < 90 || isSectionHeader(trimmed) || /^\*\*/.test(trimmed) || /^#{1,3}\s/.test(trimmed)) {
       reconstructed.push(trimmed);
       continue;
     }

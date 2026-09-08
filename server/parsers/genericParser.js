@@ -1,42 +1,49 @@
-import { extractSongFromHtml } from '../services/htmlExtractor.js';
-import { normalizeSongData } from '../services/songNormalizer.js';
-import { analyzeSongTextWithChordexAI } from '../services/chordexTextAnalyzer.js';
+import * as cheerio from 'cheerio';
+import { extractFromDom } from '../../src/engine/importUrl/siteAdapters/index.js';
+import { extractSongContent } from '../../src/engine/importUrl/songContentExtractor.js';
+import { parseSong } from '../../src/engine/core/songParser.js';
+import { normalizeToChordicianSong } from '../../src/engine/normalizer/songNormalizer.js';
+import { evaluateConfidence } from '../../src/engine/confidence/confidenceScorer.js';
 
 /**
- * HTML Song Parser powered by Chordex AI Intelligence.
- * Extracts webpage content and uses Gemini to reconstruct clean chord-above-lyrics formatting.
+ * Unified HTML Song Parser for backend & serverless execution.
+ * Executes the exact same canonical reconstruction pipeline as the engine.
  */
 export async function parseHtmlToSong(html, sourceUrl = '') {
-  const extracted = extractSongFromHtml(html, sourceUrl);
-
-  let song = null;
-  const warnings = [];
-
-  // 1. Try Chordex AI reconstruction if API key is available
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      console.log('[Chordex AI] Running intelligent chord sheet reconstruction...');
-      song = await analyzeSongTextWithChordexAI(extracted.rawText, {
-        title: extracted.title,
-        artist: extracted.artist,
-        originalKey: extracted.originalKey,
-        sourceUrl
-      });
-    } catch (aiErr) {
-      console.warn('[Chordex AI] AI text reconstruction error, falling back to rule engine:', aiErr.message);
-      warnings.push('AI parsing encountered an issue; used rule-based fallback.');
-    }
+  if (!html || typeof html !== 'string') {
+    throw new Error('Empty HTML content provided.');
   }
 
-  // 2. Fallback to deterministic rule-based normalizer if AI was unavailable or failed
-  if (!song) {
-    song = normalizeSongData(extracted, sourceUrl);
+  const $ = cheerio.load(html);
+  const extracted = extractFromDom($, sourceUrl);
+
+  const cleanRawText = extractSongContent(extracted.rawText || '', {
+    metadata: extracted,
+    sourceUrl
+  });
+
+  if (!cleanRawText || cleanRawText.trim().length < 15) {
+    throw new Error('No readable song lyrics or chord structure could be found on this webpage. Please paste the song text directly into the editor or try another URL.');
   }
+
+  const parsed = parseSong(cleanRawText, {
+    title: extracted.title,
+    artist: extracted.artist,
+    originalKey: extracted.originalKey,
+    inputType: 'url_import'
+  });
+
+  const confidenceEval = evaluateConfidence(parsed);
+  parsed.confidence = confidenceEval.confidence;
+  parsed.warnings = confidenceEval.warnings;
+
+  const song = normalizeToChordicianSong(parsed, sourceUrl);
 
   const totalChords = (song.sections || []).reduce((acc, sec) => {
     return acc + (sec.rows || []).filter(r => r.type === 'chords' && r.content.trim().length > 0).length;
   }, 0);
 
+  const warnings = [...(confidenceEval.warnings || [])];
   if (totalChords === 0) {
     warnings.push('No chords could be confidently detected on this page. Only lyrics were extracted.');
   }

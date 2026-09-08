@@ -41,9 +41,8 @@ export function cleanDom($) {
  * @param {cheerio.CheerioAPI} $
  */
 export function formatInlineChordElements($) {
-  // A. If chords are inside a dedicated chordline (.chordline, .chords-line, .chord-row, .c-line),
-  // unwrap the inner chord elements so natural line horizontal spacing is preserved!
-  $('.chordline, .chords-line, .chord-row, .c-line').find('.chrd, .crd, .chord, span').each((_, el) => {
+  // A. Dedicated chord lines: unwrap inner chord elements so natural line horizontal spacing is preserved!
+  $('[class*="chords-line"], [class*="chord-line"], .chordline, .c-line, .chord-row').find('.chrd, .crd, .chord, span').each((_, el) => {
     const $el = $(el);
     const text = ($el.attr('data-chord') || $el.text() || '').trim();
     if (text && isChord(text, true)) {
@@ -72,7 +71,7 @@ export function formatInlineChordElements($) {
   for (const selector of specificChordSelectors) {
     $(selector).each((_, el) => {
       const $el = $(el);
-      if ($el.closest('.chordline, .chords-line, .chord-row').length > 0) {
+      if ($el.closest('[class*="chords-line"], [class*="chord-line"], .chordline, .chord-row, .c-line').length > 0) {
         return;
       }
       const chordText = ($el.attr('data-chord') || $el.text() || '').trim();
@@ -91,7 +90,7 @@ export function formatInlineChordElements($) {
 
   $('span, b, strong, i, em, font, sup').each((_, el) => {
     const $el = $(el);
-    if ($el.closest('.chordline, .chords-line, .chord-row').length > 0) {
+    if ($el.closest('[class*="chords-line"], [class*="chord-line"], .chordline, .chord-row, .c-line').length > 0) {
       return;
     }
     if ($el.children().length === 0) {
@@ -231,7 +230,17 @@ export function getNodeFormattedText($el, $) {
   const $clone = $el.clone();
   $clone.find('br, hr').replaceWith('\n');
 
-  $clone.find('p, div, li, tr, blockquote, section, article, h1, h2, h3, h4, h5, h6, pre, samp, strong').each((_, elem) => {
+  // Preserve line breaks for line-level chord/lyric containers
+  $clone.find(
+    'tr, li, [class*="chords-line"], [class*="chord-line"], .chordline, .c-line, .chord-row, .song-line, .lyric-line'
+  ).each((_, elem) => {
+    $(elem).append('\n');
+  });
+
+  // Preserve stanza/paragraph breaks
+  $clone.find(
+    'p, div, blockquote, section, article, h1, h2, h3, h4, h5, h6, pre, samp'
+  ).each((_, elem) => {
     $(elem).prepend('\n').append('\n');
   });
 

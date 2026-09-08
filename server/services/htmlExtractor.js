@@ -595,16 +595,23 @@ function cleanTitleAndArtist(title, artist, sourceUrl) {
   };
 }
 
-/**
- * Reads text from a Cheerio node while preserving block structure and newlines.
- */
 function getNodeFormattedText($el, $) {
   if (!$el || $el.length === 0) return '';
 
   const $clone = $el.clone();
   $clone.find('br, hr').replaceWith('\n');
 
-  $clone.find('p, div, li, tr, blockquote, section, article, h1, h2, h3, h4, h5, h6, pre, samp, strong').each((_, elem) => {
+  // Preserve line breaks for line-level chord/lyric containers
+  $clone.find(
+    'tr, li, [class*="chords-line"], [class*="chord-line"], .chordline, .c-line, .chord-row, .song-line, .lyric-line'
+  ).each((_, elem) => {
+    $(elem).append('\n');
+  });
+
+  // Preserve stanza/paragraph breaks
+  $clone.find(
+    'p, div, blockquote, section, article, h1, h2, h3, h4, h5, h6, pre, samp'
+  ).each((_, elem) => {
     $(elem).prepend('\n').append('\n');
   });
 
