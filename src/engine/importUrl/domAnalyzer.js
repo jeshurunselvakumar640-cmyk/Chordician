@@ -111,10 +111,10 @@ export function formatInlineChordElements($) {
  */
 export function findBestSongContainer($) {
   const candidateSelectors = [
-    '#chord-display-en',
     '#chord-display-ta',
-    '#tab-english',
     '#tab-tamil',
+    '#chord-display-en',
+    '#tab-english',
     '#tab-merged',
     '.songpre',
     '.songcont',

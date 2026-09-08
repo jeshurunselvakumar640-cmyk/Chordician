@@ -174,12 +174,15 @@ CRITICAL RULES:
 6. SECTION STRUCTURE & HEADERS:
    - Respect and preserve section headers like "[Chorus]", "[Verse 1]", "[Verse 2]", "[Bridge]", "[Intro]", "[Outro]", "[Pre-Chorus]", "[Ending]".
    - Keep sections in sequential order. If the same section is repeated (e.g. multiple "[Chorus]" blocks), output each section block in order.
-7. PRESERVE ORIGINAL LYRICS & MULTI-LANGUAGE TRANSLITERATIONS:
-   - Do NOT translate, summarize, or rewrite lyric words.
-   - Preserve Hindi, Tamil, Telugu, and English transliterated words, punctuation, and repetition markers (e.g. "Pani Pe Chalta Hai", "Krus Ko Uthaya Hai", "...X2", "(2)", "-2").
+7. PRESERVE ORIGINAL LYRICS & EXACT SCRIPT:
+   - Do NOT translate, summarize, rewrite, or phonetically transliterate lyric words into another script.
+   - If the input lyrics are in Tamil Unicode script (e.g. "அதிசயமான ஒளி மைய நாடாம்"), KEEP the lyrics in Tamil Unicode script!
+   - If the input lyrics are in Hindi/Devanagari, KEEP the lyrics in Devanagari script!
+   - If the input lyrics are in Romanized/English transliteration, KEEP them in Romanized transliteration.
+   - Preserve all punctuation and repetition markers (e.g. "...X2", "(2)", "-2").
 8. AUTOMATIC TITLE DETECTION (TAMIL / TANGLISH & MULTILINGUAL):
    - Automatically detect and formulate the title of the song.
-   - For Tamil songs, if the title or opening lyrics are in Tamil Unicode script, provide the title in natural, standard Tanglish / Romanized Tamil (e.g., 'எத்தனை நன்மைகள்' -> 'Ethanai Nanmaigal', 'உதவி வரும் கன்மலை' -> 'Uthavi Varum Kanmalai', 'இஸ்ரவேலே' -> 'Isravelae', 'என் இயேசு ராஜாவுக்கே' -> 'En Yesu Rajavukke').
+   - For Tamil songs, if the title or opening lyrics are in Tamil Unicode script, provide the title in natural, standard Tanglish / Romanized Tamil (e.g., 'அதிசயமான ஒளி மைய நாடாம்' -> 'Athisayamaana Oli Maya Naadaam', 'எத்தனை நன்மைகள்' -> 'Ethanai Nanmaigal', 'உதவி வரும் கன்மலை' -> 'Uthavi Varum Kanmalai').
 9. MUSICAL KEY DETECTION:
    - Detect the root musical key from the first chords and harmonic progression in the sheet (e.g. "C", "G", "Eb", "Bb", "D", "E", "F", "Am", "Cm").
 10. STYLE IDENTIFICATION:
