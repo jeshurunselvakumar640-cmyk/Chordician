@@ -67,6 +67,8 @@ export default function ImportSong() {
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedImagePreset, setSelectedImagePreset] = useState(null);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [imageLoadingStep, setImageLoadingStep] = useState(1);
+  const [imageLoadingMessage, setImageLoadingMessage] = useState('Reading & preprocessing image...');
   const [isDragging, setIsDragging] = useState(false);
 
   // Universal Analysis Result & Preview State
@@ -334,10 +336,30 @@ export default function ImportSong() {
     }
 
     setIsAnalyzingImage(true);
+    setImageLoadingStep(1);
+    setImageLoadingMessage('Reading & preprocessing chord sheet image...');
     setAnalysisResult(null);
+
+    const timer1 = setTimeout(() => {
+      setImageLoadingStep(2);
+      setImageLoadingMessage('Chordex Vision AI scanning musical symbols & text lines...');
+    }, 1200);
+
+    const timer2 = setTimeout(() => {
+      setImageLoadingStep(3);
+      setImageLoadingMessage('Detecting chords, key signature & lyric alignment...');
+    }, 3200);
+
+    const timer3 = setTimeout(() => {
+      setImageLoadingStep(4);
+      setImageLoadingMessage('Synthesizing song structure & preparing chord sheet...');
+    }, 5500);
 
     try {
       const res = await parseSongFromImage(imageFile || imagePreview, selectedImagePreset);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
       setIsAnalyzingImage(false);
 
       if (res.success && res.song) {
@@ -354,6 +376,9 @@ export default function ImportSong() {
       }
     } catch (err) {
       console.error(err);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
       setIsAnalyzingImage(false);
       showToast(err.message || 'An error occurred during AI analysis.', 'error');
     }
@@ -1018,6 +1043,100 @@ export default function ImportSong() {
               )}
             </button>
           </div>
+
+          {/* Vision AI Dynamic Step Progress & Skeleton Loading Indicator */}
+          {isAnalyzingImage && (
+            <div className="url-loading-indicator" style={{ marginTop: '20px' }}>
+              <div className="url-loading-header">
+                <div className="url-loading-spinner-wrap">
+                  <div className="url-loading-spinner-ring"></div>
+                </div>
+                <div className="url-loading-title-group">
+                  <div className="url-loading-badge-row">
+                    <span className="badge badge-primary">CHORDEX AI VISION</span>
+                    <span className="url-loading-step-tag">Step {imageLoadingStep} of 4</span>
+                  </div>
+                  <h3 className="url-loading-main-title">
+                    {imageLoadingMessage}
+                  </h3>
+                  <p className="url-loading-target-url">
+                    <ImageIcon size={12} />
+                    <span>{imageFile ? imageFile.name : selectedImagePreset ? 'Sample Chord Sheet Image' : 'Uploaded Image'}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Animated Progress Bar */}
+              <div className="url-progress-bar-track">
+                <div
+                  className="url-progress-bar-fill"
+                  style={{ width: `${Math.min(100, imageLoadingStep * 25)}%` }}
+                ></div>
+              </div>
+
+              {/* Multi-Step Indicator */}
+              <div className="url-steps-grid">
+                <div className={`url-step-item ${imageLoadingStep >= 1 ? (imageLoadingStep > 1 ? 'completed' : 'active') : ''}`}>
+                  <div className="url-step-bullet">
+                    {imageLoadingStep > 1 ? <Check size={12} /> : imageLoadingStep === 1 ? <Loader2 size={12} className="animate-spin" /> : '1'}
+                  </div>
+                  <div className="url-step-text">
+                    <span className="url-step-name">Process Image</span>
+                    <span className="url-step-sub">Preprocessing pixels</span>
+                  </div>
+                </div>
+
+                <div className={`url-step-item ${imageLoadingStep >= 2 ? (imageLoadingStep > 2 ? 'completed' : 'active') : ''}`}>
+                  <div className="url-step-bullet">
+                    {imageLoadingStep > 2 ? <Check size={12} /> : imageLoadingStep === 2 ? <Loader2 size={12} className="animate-spin" /> : '2'}
+                  </div>
+                  <div className="url-step-text">
+                    <span className="url-step-name">Vision OCR</span>
+                    <span className="url-step-sub">Scanning symbols</span>
+                  </div>
+                </div>
+
+                <div className={`url-step-item ${imageLoadingStep >= 3 ? (imageLoadingStep > 3 ? 'completed' : 'active') : ''}`}>
+                  <div className="url-step-bullet">
+                    {imageLoadingStep > 3 ? <Check size={12} /> : imageLoadingStep === 3 ? <Loader2 size={12} className="animate-spin" /> : '3'}
+                  </div>
+                  <div className="url-step-text">
+                    <span className="url-step-name">Chordex AI</span>
+                    <span className="url-step-sub">Spatial alignment</span>
+                  </div>
+                </div>
+
+                <div className={`url-step-item ${imageLoadingStep >= 4 ? 'active' : ''}`}>
+                  <div className="url-step-bullet">
+                    {imageLoadingStep >= 4 ? <Loader2 size={12} className="animate-spin" /> : '4'}
+                  </div>
+                  <div className="url-step-text">
+                    <span className="url-step-name">Build Song</span>
+                    <span className="url-step-sub">Ready for review</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shimmer Skeleton Preview */}
+              <div className="url-loading-skeleton-preview">
+                <div className="skeleton-chord-row">
+                  <div className="skeleton-pill" style={{ width: '60px' }}></div>
+                  <div className="skeleton-pill" style={{ width: '45px' }}></div>
+                  <div className="skeleton-pill" style={{ width: '55px' }}></div>
+                </div>
+                <div className="skeleton-lyric-row">
+                  <div className="skeleton-line" style={{ width: '80%' }}></div>
+                </div>
+                <div className="skeleton-chord-row" style={{ marginTop: '8px' }}>
+                  <div className="skeleton-pill" style={{ width: '50px' }}></div>
+                  <div className="skeleton-pill" style={{ width: '65px' }}></div>
+                </div>
+                <div className="skeleton-lyric-row">
+                  <div className="skeleton-line" style={{ width: '65%' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

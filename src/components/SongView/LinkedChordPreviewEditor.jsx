@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   Music,
   Plus,
@@ -10,14 +10,48 @@ import {
   Sparkles,
   Info,
   Combine,
-  Layers
+  Layers,
+  Languages,
+  Undo2
 } from 'lucide-react';
 import { splitLinkedLine, mergeLinkedLines, mergeSections } from '../../utils/linkedChordEditorHelper.js';
+import { hasRegionalScript, transliterateSong } from '../../transliteration/index.js';
 
 export default function LinkedChordPreviewEditor({ song, onSongChange }) {
   if (!song || !song.sections) return null;
 
   const [activeEditingId, setActiveEditingId] = useState(null);
+  const [originalSongBackup, setOriginalSongBackup] = useState(null);
+  const [isTransliterated, setIsTransliterated] = useState(false);
+
+  // Check if current song contains any Tamil or Hindi script
+  const hasRegionalLyrics = useMemo(() => {
+    return (song.sections || []).some((sec) =>
+      (sec.rows || []).some(
+        (row) => row.type === 'lyrics' && typeof row.content === 'string' && hasRegionalScript(row.content)
+      )
+    );
+  }, [song]);
+
+  // Handler to transliterate all Tamil / Hindi lyrics to English phonetics
+  const handleTransliterateToEnglish = () => {
+    if (!originalSongBackup) {
+      setOriginalSongBackup(JSON.parse(JSON.stringify(song)));
+    }
+    const { song: updatedSong, modified } = transliterateSong(song);
+    if (modified) {
+      setIsTransliterated(true);
+      onSongChange(updatedSong);
+    }
+  };
+
+  // Handler to revert back to original script
+  const handleRevertOriginalScript = () => {
+    if (originalSongBackup) {
+      onSongChange(JSON.parse(JSON.stringify(originalSongBackup)));
+      setIsTransliterated(false);
+    }
+  };
 
   // Helper to merge a section into the previous section
   const handleMergeWithPrevious = (sectionIndex) => {
@@ -355,16 +389,47 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
 
   return (
     <div className="linked-preview-editor">
-      <div className="linked-editor-banner">
-        <div className="linked-editor-banner-icon">
-          <Sparkles size={18} />
+      <div className="linked-editor-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1, minWidth: '260px' }}>
+          <div className="linked-editor-banner-icon">
+            <Sparkles size={18} />
+          </div>
+          <div className="linked-editor-banner-text">
+            <strong>Interactive Linked Lyrics, Chords & Lead Notes</strong>
+            <p>
+              Chords, lyrics, and lead melody notes are synchronized together. Press <kbd>Enter</kbd> anywhere in the lyrics to split the line—the chords and lead notes above and below will automatically follow and align to their respective words!
+            </p>
+          </div>
         </div>
-        <div className="linked-editor-banner-text">
-          <strong>Interactive Linked Lyrics, Chords & Lead Notes</strong>
-          <p>
-            Chords, lyrics, and lead melody notes are synchronized together. Press <kbd>Enter</kbd> anywhere in the lyrics to split the line—the chords and lead notes above and below will automatically follow and align to their respective words!
-          </p>
-        </div>
+
+        {/* Transliteration Action for Tamil & Hindi lyrics */}
+        {(hasRegionalLyrics || isTransliterated) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {!isTransliterated ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleTransliterateToEnglish}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
+                title="Transliterate Tamil or Hindi script lyrics into English phonetics (Tanglish / Hinglish)"
+              >
+                <Languages size={15} />
+                <span>Transliterate to English</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleRevertOriginalScript}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
+                title="Revert back to original regional script (Tamil / Hindi)"
+              >
+                <Undo2 size={15} />
+                <span>Original Script</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="linked-sections-container">
