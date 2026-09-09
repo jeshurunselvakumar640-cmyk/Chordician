@@ -773,7 +773,7 @@ export default function ImportSong() {
             />
 
             <div className="smart-paste-meta-row">
-              <div>
+              <div className="smart-paste-field-group">
                 <label className="form-label" htmlFor="paste-title">Song Title (Optional)</label>
                 <input
                   id="paste-title"
@@ -785,7 +785,7 @@ export default function ImportSong() {
                   disabled={isAnalyzingText}
                 />
               </div>
-              <div>
+              <div className="smart-paste-field-group">
                 <label className="form-label" htmlFor="paste-artist">Artist (Optional)</label>
                 <input
                   id="paste-artist"
@@ -797,11 +797,11 @@ export default function ImportSong() {
                   disabled={isAnalyzingText}
                 />
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <div className="smart-paste-btn-group">
                 <button
                   type="button"
                   className="btn btn-primary btn-lg"
-                  style={{ width: '100%', minHeight: '44px', justifyContent: 'center' }}
+                  style={{ width: '100%', minHeight: '44px', justifyContent: 'center', whiteSpace: 'nowrap' }}
                   onClick={handleAnalyzeText}
                   disabled={isAnalyzingText || (!textInput.trim() && !selectedTextPreset)}
                 >

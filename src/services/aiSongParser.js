@@ -180,8 +180,108 @@ export const DEMO_PRESETS = [
   }
 ];
 
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const CHORDEX_VISION_SYSTEM_INSTRUCTION = `You are Chordex AI, a specialized visual chord-sheet analyzer for Chordician.
+Analyze the supplied image of a song/chord sheet containing lyrics and musical chords.
+Reconstruct the image into structured JSON adhering to this schema:
+{
+  "title": "Song Title",
+  "artist": "Artist name or empty string",
+  "originalKey": "Key of song (e.g. C, Dm, G, A#)",
+  "sections": [
+    {
+      "id": "section-1",
+      "type": "verse",
+      "name": "Verse 1",
+      "lines": [
+        {
+          "id": "line-1",
+          "lyrics": "Exact line lyrics",
+          "chords": [
+            { "chord": "Dm", "position": 0, "confidence": 0.98 }
+          ],
+          "confidence": 0.98
+        }
+      ]
+    }
+  ],
+  "overallConfidence": 0.95
+}`;
+
+async function analyzeWithClientGeminiVision(imageFile, imageBase64) {
+  const clientKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!clientKey) {
+    throw new Error('No client GEMINI_API_KEY available.');
+  }
+
+  const genAI = new GoogleGenerativeAI(clientKey);
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro'];
+
+  let base64Data = '';
+  let mimeType = 'image/jpeg';
+
+  if (imageFile) {
+    mimeType = imageFile.type || 'image/jpeg';
+    base64Data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        const match = result.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+        if (match) {
+          resolve(match[2]);
+        } else {
+          resolve(result);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(imageFile);
+    });
+  } else if (imageBase64) {
+    const match = imageBase64.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
+    if (match) {
+      mimeType = match[1];
+      base64Data = match[2];
+    } else {
+      base64Data = imageBase64;
+    }
+  }
+
+  let lastErr = null;
+  for (const modelName of models) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: CHORDEX_VISION_SYSTEM_INSTRUCTION,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.1,
+          maxOutputTokens: 8192
+        }
+      });
+
+      const prompt = 'Analyze this chord sheet image and output structured JSON adhering to the Chordex format.';
+      const imagePart = {
+        inlineData: {
+          data: base64Data,
+          mimeType
+        }
+      };
+
+      const res = await model.generateContent([prompt, imagePart]);
+      const text = res.response.text();
+      const parsed = JSON.parse(text.replace(/^```json\s*|^```\s*|```$/g, '').trim());
+      return parsed;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  throw lastErr || new Error('Client-side Gemini Vision analysis failed.');
+}
+
 /**
- * Sends image to the backend /api/chordex/analyze endpoint
+ * Sends image to the backend /api/chordex/analyze endpoint, with client-side fallback
  */
 export async function analyzeImageWithChordexAI(imageFile, imageBase64 = null) {
   const formData = new FormData();
@@ -193,27 +293,49 @@ export async function analyzeImageWithChordexAI(imageFile, imageBase64 = null) {
     return { success: false, error: 'No image provided.' };
   }
 
-  const response = await fetchWithRetry('/api/chordex/analyze', {
-    method: 'POST',
-    body: formData
-  }, 2, 1000);
+  try {
+    const response = await fetchWithRetry('/api/chordex/analyze', {
+      method: 'POST',
+      body: formData
+    }, 2, 1000);
 
-  const result = await response.json();
-  if (!response.ok || !result.success) {
-    throw new Error(result.error || 'Failed to analyze chord sheet.');
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Failed to analyze chord sheet on server.');
+    }
+
+    const validation = validateChordexData(result.data);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    const convertedSong = convertChordexToChordician(result.data);
+    return {
+      success: true,
+      chordexData: result.data,
+      convertedSong
+    };
+  } catch (serverErr) {
+    // If client has VITE_GEMINI_API_KEY configured, attempt direct client processing
+    if (import.meta.env.VITE_GEMINI_API_KEY) {
+      try {
+        console.log('[Chordex AI] Server analysis failed, running direct client Gemini Vision fallback...');
+        const clientData = await analyzeWithClientGeminiVision(imageFile, imageBase64);
+        const validation = validateChordexData(clientData);
+        if (validation.valid) {
+          const convertedSong = convertChordexToChordician(clientData);
+          return {
+            success: true,
+            chordexData: clientData,
+            convertedSong
+          };
+        }
+      } catch (clientErr) {
+        console.warn('[Chordex AI] Direct client fallback error:', clientErr);
+      }
+    }
+    throw serverErr;
   }
-
-  const validation = validateChordexData(result.data);
-  if (!validation.valid) {
-    throw new Error(validation.error);
-  }
-
-  const convertedSong = convertChordexToChordician(result.data);
-  return {
-    success: true,
-    chordexData: result.data,
-    convertedSong
-  };
 }
 
 /**

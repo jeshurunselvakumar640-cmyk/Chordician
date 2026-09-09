@@ -5,7 +5,8 @@ import {
   ChevronUp,
   ChevronDown,
   Layers,
-  Combine
+  Combine,
+  Split
 } from 'lucide-react';
 import SongRowEditor from './SongRowEditor';
 import { COMMON_SECTION_NAMES } from '../../utils/musicConstants.js';
@@ -19,7 +20,10 @@ export default function SongSectionEditor({
   onMoveUp,
   onMoveDown,
   onMergeUp,
-  onMergeDown
+  onMergeDown,
+  onInsertAbove,
+  onInsertBelow,
+  onSplitSection
 }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -112,6 +116,18 @@ export default function SongSectionEditor({
         </div>
 
         <div className="editor-section-controls">
+          {onInsertBelow && (
+            <button
+              type="button"
+              className="btn-ghost editor-icon-btn"
+              onClick={onInsertBelow}
+              title="Add a new section directly below this section"
+              aria-label="Add section below"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              <Plus size={18} />
+            </button>
+          )}
           {index > 0 && onMergeUp && (
             <button
               type="button"
@@ -249,6 +265,8 @@ export default function SongSectionEditor({
                 onMoveDown={() => handleMoveRow(rIndex, 1)}
                 onInsertBelow={(type) => handleInsertRow(rIndex + 1, type)}
                 onInsertAbove={(type) => handleInsertRow(rIndex, type)}
+                onSplitSection={() => onSplitSection?.(rIndex)}
+                onInsertSectionBelow={onInsertBelow}
               />
             ))}
           </>

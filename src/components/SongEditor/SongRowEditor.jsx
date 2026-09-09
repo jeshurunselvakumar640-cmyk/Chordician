@@ -5,7 +5,9 @@ import {
   ChevronDown,
   Sparkles,
   Plus,
-  X
+  X,
+  Split,
+  Layers
 } from 'lucide-react';
 import { ROW_TYPES } from '../../utils/musicConstants.js';
 import ChordHelper from './ChordHelper';
@@ -19,7 +21,9 @@ export default function SongRowEditor({
   onMoveUp,
   onMoveDown,
   onInsertBelow,
-  onInsertAbove
+  onInsertAbove,
+  onSplitSection,
+  onInsertSectionBelow
 }) {
   const [showHelper, setShowHelper] = useState(false);
   const [showInsertMenu, setShowInsertMenu] = useState(false);
@@ -241,6 +245,43 @@ export default function SongRowEditor({
             >
               + Note
             </button>
+
+            {index > 0 && onSplitSection && (
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                onClick={() => {
+                  onSplitSection();
+                  setShowInsertMenu(false);
+                }}
+                style={{
+                  fontSize: '0.78rem',
+                  padding: '3px 8px',
+                  color: 'var(--color-primary)',
+                  fontWeight: '700',
+                  border: '1px dashed var(--color-primary)',
+                  background: 'rgba(99, 102, 241, 0.12)'
+                }}
+                title="Divide this section into two parts at this row"
+              >
+                <Split size={13} /> ✂ Divide Section Here
+              </button>
+            )}
+
+            {onInsertSectionBelow && (
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                onClick={() => {
+                  onInsertSectionBelow();
+                  setShowInsertMenu(false);
+                }}
+                style={{ fontSize: '0.78rem', padding: '3px 8px', fontWeight: '600' }}
+                title="Create a new section directly below this section"
+              >
+                <Layers size={13} /> + New Section
+              </button>
+            )}
           </div>
 
           <button

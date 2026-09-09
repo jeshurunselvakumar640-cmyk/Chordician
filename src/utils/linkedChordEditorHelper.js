@@ -293,3 +293,97 @@ export function mergeSections(sections, targetIndex, sourceIndex) {
   return result;
 }
 
+/**
+ * Splits a section into two parts at a given row index.
+ * Rows from 0 to splitRowIndex - 1 remain in Part 1.
+ * Rows from splitRowIndex to end move into a new Part 2 section directly below it.
+ *
+ * @param {Array<object>} sections - Array of song sections
+ * @param {number} sectionIndex - Index of the section to split
+ * @param {number} splitRowIndex - Row index where the split should occur
+ * @param {string} [customNewName] - Optional custom name for the new section
+ * @returns {Array<object>} - Updated sections array with the new split section inserted
+ */
+export function splitSection(sections, sectionIndex, splitRowIndex, customNewName = null) {
+  if (!Array.isArray(sections) || sectionIndex < 0 || sectionIndex >= sections.length) {
+    return sections;
+  }
+
+  const targetSec = sections[sectionIndex];
+  const rows = targetSec.rows || [];
+  if (rows.length <= 1 || splitRowIndex <= 0 || splitRowIndex >= rows.length) {
+    return sections;
+  }
+
+  const part1Rows = rows.slice(0, splitRowIndex);
+  const part2Rows = rows.slice(splitRowIndex);
+
+  const baseName = (targetSec.name || `Section ${sectionIndex + 1}`).trim();
+  
+  let part1Name = baseName;
+  let part2Name = customNewName;
+
+  if (!part2Name) {
+    const numMatch = baseName.match(/^(.+?)\s*(\d+)$/i);
+    if (numMatch) {
+      const prefix = numMatch[1].trim();
+      const num = parseInt(numMatch[2], 10);
+      part2Name = `${prefix} ${num + 1}`;
+    } else {
+      part1Name = `${baseName} (Part 1)`;
+      part2Name = `${baseName} (Part 2)`;
+    }
+  }
+
+  const part1Sec = {
+    ...targetSec,
+    name: part1Name,
+    rows: part1Rows
+  };
+
+  const part2Sec = {
+    id: 'sec_' + Date.now() + Math.random().toString(36).substring(2, 6),
+    name: part2Name,
+    rows: part2Rows
+  };
+
+  const result = [];
+  for (let i = 0; i < sections.length; i++) {
+    if (i === sectionIndex) {
+      result.push(part1Sec);
+      result.push(part2Sec);
+    } else {
+      result.push({ ...sections[i] });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Inserts a brand new empty section at a specific position in the sections list.
+ *
+ * @param {Array<object>} sections - Array of song sections
+ * @param {number} insertIndex - Position where the new section will be inserted
+ * @param {string} [sectionName] - Optional custom name
+ * @returns {Array<object>}
+ */
+export function insertSection(sections, insertIndex, sectionName = null) {
+  if (!Array.isArray(sections)) return sections;
+
+  const targetIndex = Math.max(0, Math.min(sections.length, insertIndex));
+  const newSection = {
+    id: 'sec_' + Date.now() + Math.random().toString(36).substring(2, 6),
+    name: sectionName || `Section ${targetIndex + 1}`,
+    rows: [
+      { id: 'r_' + Date.now() + '_1', type: 'chords', content: '' },
+      { id: 'r_' + Date.now() + '_2', type: 'lyrics', content: '' }
+    ]
+  };
+
+  const result = [...sections];
+  result.splice(targetIndex, 0, newSection);
+  return result;
+}
+
+

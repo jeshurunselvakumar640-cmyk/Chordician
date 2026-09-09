@@ -14,7 +14,7 @@ import {
   Languages,
   Undo2
 } from 'lucide-react';
-import { splitLinkedLine, mergeLinkedLines, mergeSections } from '../../utils/linkedChordEditorHelper.js';
+import { splitLinkedLine, mergeLinkedLines, mergeSections, splitSection, insertSection } from '../../utils/linkedChordEditorHelper.js';
 import { hasRegionalScript, transliterateSong } from '../../transliteration/index.js';
 
 export default function LinkedChordPreviewEditor({ song, onSongChange }) {
@@ -128,6 +128,14 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
     });
   };
 
+  // Helper to split a section into two parts at a specific row index
+  const handleSplitSection = (sectionIndex, splitRowIndex) => {
+    const updated = splitSection(song.sections, sectionIndex, splitRowIndex);
+    onSongChange({
+      ...song,
+      sections: updated
+    });
+  };
 
   // Updates a specific row content in a section
   const handleUpdateRow = (sectionIndex, rowIndex, newContent) => {
@@ -528,6 +536,16 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
                     </button>
                   )}
 
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-xs linked-merge-action-btn"
+                    onClick={() => handleAddSection(sIdx)}
+                    title="Add a new section directly below this section"
+                  >
+                    <Plus size={13} />
+                    <span>+ New Section</span>
+                  </button>
+
                   <div className="linked-section-reorder-group">
                     <button
                       type="button"
@@ -593,14 +611,27 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
                             onKeyDown={(e) => handleLyricKeyDown(e, sIdx, chordRowIndex, lyricRowIndex, leadRowIndex)}
                           />
 
-                          <button
-                            type="button"
-                            className="linked-pair-delete-btn"
-                            onClick={() => handleDeleteTrio(sIdx, chordRowIndex, lyricRowIndex, leadRowIndex)}
-                            title="Delete this chord, lyric & lead group"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {pIdx > 0 && (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: '2px 6px', fontSize: '0.72rem', color: 'var(--color-primary)' }}
+                                onClick={() => handleSplitSection(sIdx, chordRowIndex ?? lyricRowIndex)}
+                                title="Divide section into two parts starting at this line"
+                              >
+                                <Split size={12} /> Divide
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="linked-pair-delete-btn"
+                              onClick={() => handleDeleteTrio(sIdx, chordRowIndex, lyricRowIndex, leadRowIndex)}
+                              title="Delete this chord, lyric & lead group"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Lead Line Input */}
@@ -649,6 +680,17 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
                           />
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {pIdx > 0 && (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                style={{ padding: '2px 6px', fontSize: '0.72rem', color: 'var(--color-primary)' }}
+                                onClick={() => handleSplitSection(sIdx, chordRowIndex ?? lyricRowIndex)}
+                                title="Divide section into two parts starting at this line"
+                              >
+                                <Split size={12} /> Divide
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm"
@@ -723,6 +765,17 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
                         value={row.content}
                         onChange={(e) => handleUpdateRow(sIdx, rowIndex, e.target.value)}
                       />
+                      {pIdx > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          style={{ padding: '2px 6px', fontSize: '0.72rem', color: 'var(--color-primary)' }}
+                          onClick={() => handleSplitSection(sIdx, rowIndex)}
+                          title="Divide section into two parts starting at this line"
+                        >
+                          <Split size={12} /> Divide
+                        </button>
+                      )}
                     </div>
                   );
                 })}

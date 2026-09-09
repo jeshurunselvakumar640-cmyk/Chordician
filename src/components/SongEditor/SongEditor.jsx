@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { ALL_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../../utils/musicConstants.js';
 import { formatStyleCode } from '../../data/songStyles.js';
-import { mergeSections } from '../../utils/linkedChordEditorHelper.js';
+import { mergeSections, splitSection, insertSection } from '../../utils/linkedChordEditorHelper.js';
 import SongSectionEditor from './SongSectionEditor';
 import StyleSelectorModal from './StyleSelectorModal';
 
@@ -71,6 +71,16 @@ export default function SongEditor({
       ]
     };
     setSections([...sections, newSection]);
+  };
+
+  const handleInsertSection = (targetIndex) => {
+    const updated = insertSection(sections, targetIndex);
+    setSections(updated);
+  };
+
+  const handleSplitSection = (sectionIndex, splitRowIndex) => {
+    const updated = splitSection(sections, sectionIndex, splitRowIndex);
+    setSections(updated);
   };
 
   const handleSectionChange = (index, updatedSection) => {
@@ -437,6 +447,9 @@ export default function SongEditor({
             onMoveUp={() => handleMoveSection(sIndex, -1)}
             onMoveDown={() => handleMoveSection(sIndex, 1)}
             onMergeUp={() => handleMergeSectionUp(sIndex)}
+            onInsertAbove={() => handleInsertSection(sIndex)}
+            onInsertBelow={() => handleInsertSection(sIndex + 1)}
+            onSplitSection={(splitRowIndex) => handleSplitSection(sIndex, splitRowIndex)}
           />
         ))}
 

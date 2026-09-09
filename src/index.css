@@ -2135,6 +2135,37 @@ button:disabled {
   max-width: 360px;
 }
 
+/* Smart Paste Meta Row & Button Styling */
+.smart-paste-meta-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.smart-paste-field-group {
+  flex: 1 1 180px;
+  min-width: 160px;
+}
+
+.smart-paste-btn-group {
+  flex: 0 0 auto;
+  min-width: 240px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.smart-paste-btn-group .btn {
+  width: 100%;
+  min-width: max-content;
+  white-space: nowrap;
+  padding: 10px 22px;
+  font-size: 0.95rem;
+}
+
+
 /* Settings Card Styles */
 .settings-card {
   margin-bottom: 24px;
@@ -2269,29 +2300,40 @@ button:disabled {
 /* ==========================================================================
    MODALS & DIALOGS
    ========================================================================== */
-.modal-backdrop {
+.modal-backdrop,
+.modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.65);
+  background-color: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  z-index: 100;
+  z-index: 1050;
   animation: modalFadeIn var(--transition-fast);
 }
 
-.modal-content {
+.modal-content,
+.modal-container,
+.share-modal-container,
+.batch-export-modal-container {
   background-color: var(--bg-card);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-xl);
-  max-width: min(480px, calc(100vw - 32px));
+  max-width: min(580px, calc(100vw - 32px));
   width: 100%;
-  padding: 24px;
-  box-shadow: var(--shadow-xl);
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
   animation: modalScaleUp var(--transition-fast);
+  margin: auto;
+}
+
+.modal-content {
+  padding: 24px;
 }
 
 .modal-header {
@@ -2608,15 +2650,26 @@ button:disabled {
     margin-top: 6px;
   }
 
-  .modal-backdrop {
-    align-items: flex-end;
+  .modal-backdrop,
+  .modal-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .modal-content,
+  .modal-container,
+  .share-modal-container,
+  .batch-export-modal-container {
+    max-width: 100%;
+    border-radius: var(--radius-xl);
     padding: 0;
+    max-height: calc(100dvh - 32px);
+    margin: auto;
   }
 
   .modal-content {
-    max-width: 100%;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+    padding: 20px 16px;
   }
 
   .modal-actions {
@@ -6035,19 +6088,25 @@ button:disabled {
     padding: 10px 12px 40px;
   }
 
-  /* --- Style Selector Modal on Phones --- */
-  .modal-backdrop {
-    align-items: flex-end;
-    padding: 0;
+  /* --- Modals & Dialogs on Phones --- */
+  .modal-backdrop,
+  .modal-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
   }
 
-  .modal-container {
+  .modal-container,
+  .modal-content,
+  .share-modal-container,
+  .batch-export-modal-container,
+  .style-selector-modal {
     width: 100%;
     max-width: 100%;
-    max-height: 88vh;
-    max-height: 88dvh;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding: 16px 14px calc(16px + env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 32px);
+    border-radius: var(--radius-xl);
+    padding: 0;
+    margin: auto;
   }
 
   .style-category-nav {

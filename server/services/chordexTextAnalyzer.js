@@ -224,8 +224,8 @@ OUTPUT FORMAT: Return ONLY valid JSON matching this schema:
 }`;
 
 // Cache the fastest working model to eliminate retry overhead on subsequent imports
-let cachedFastestModel = 'gemini-3.5-flash-lite';
-const FAST_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.7-flash'];
+let cachedFastestModel = 'gemini-2.5-flash';
+const FAST_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro'];
 
 /**
  * Safely parses JSON with auto-repair for trailing brackets/quotes
