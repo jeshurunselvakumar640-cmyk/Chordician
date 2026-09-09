@@ -38,6 +38,7 @@ import PerformanceModal from '../components/Modal/PerformanceModal';
 import ConfirmModal from '../components/Modal/ConfirmModal';
 import ShareModal from '../components/Modal/ShareModal';
 import ContactModal from '../components/Modal/ContactModal';
+import ErrorBoundary from '../components/UI/ErrorBoundary';
 import { SongDetailsSkeleton } from '../components/UI/SkeletonLoader';
 
 export default function SongDetails({
@@ -585,29 +586,29 @@ export default function SongDetails({
             </span>
             {isTransposed && (
               <span className="badge badge-key transposed-badge">
-                Playing in: <strong>{activeKey}</strong>
+                Playing in: <strong>{activeKey || originalKey || 'C'}</strong>
               </span>
             )}
             {category && (
               <span
                 className={`badge badge-category ${
-                  category.toLowerCase() === 'tamil' ? 'badge-lang-tamil' :
-                  category.toLowerCase() === 'hindi' ? 'badge-lang-hindi' :
-                  category.toLowerCase() === 'english' ? 'badge-lang-english' : ''
+                  typeof category === 'string' && category.toLowerCase() === 'tamil' ? 'badge-lang-tamil' :
+                  typeof category === 'string' && category.toLowerCase() === 'hindi' ? 'badge-lang-hindi' :
+                  typeof category === 'string' && category.toLowerCase() === 'english' ? 'badge-lang-english' : ''
                 }`}
               >
-                {category.toLowerCase() === 'tamil' ? '🇮🇳 Tamil' :
-                 category.toLowerCase() === 'hindi' ? '🇮🇳 Hindi' :
-                 category.toLowerCase() === 'english' ? '🌐 English' : category}
+                {typeof category === 'string' && category.toLowerCase() === 'tamil' ? '🇮🇳 Tamil' :
+                 typeof category === 'string' && category.toLowerCase() === 'hindi' ? '🇮🇳 Hindi' :
+                 typeof category === 'string' && category.toLowerCase() === 'english' ? '🌐 English' : String(category?.name || category)}
               </span>
             )}
-            {style?.name && (
+            {style && (
               <span
                 className="badge badge-style badge-style-highlight"
-                title={`Style: ${style.category || ''} → ${style.name} (${formatStyleCode(style)})`}
+                title={`Style: ${formatMainStyleHighlight(style)} (${formatStyleCode(style)})`}
               >
                 <Sliders size={12} />
-                <span>Style: <strong>{formatMainStyleHighlight(style)}</strong></span>
+                <span>Style: <strong>{formatMainStyleHighlight(style) || (typeof style === 'string' ? style : style?.name)}</strong></span>
               </span>
             )}
             {song.tempo && (
@@ -636,7 +637,7 @@ export default function SongDetails({
       <div className="song-details-transposer-wrapper">
         <TransposeBar
           originalKey={originalKey || 'C'}
-          activeKey={activeKey}
+          activeKey={activeKey || originalKey || 'C'}
           semitoneDelta={transposedSong?.semitoneDelta || 0}
           onChangeKey={setActiveKey}
           zoomLevel={zoomLevel}
@@ -647,10 +648,15 @@ export default function SongDetails({
       </div>
 
       {/* Structured Song Content (Piano Friendly Reading with Zoom Support) */}
-      <SongViewer
-        transposedSong={transposedSong}
-        zoomLevel={zoomLevel}
-      />
+      <ErrorBoundary
+        title="Error Displaying Chord Sheet"
+        message="An unexpected error occurred while rendering the chord sheet for this song."
+      >
+        <SongViewer
+          transposedSong={transposedSong}
+          zoomLevel={zoomLevel}
+        />
+      </ErrorBoundary>
 
       {/* Performance Mode Modal (Supports Portrait & Landscape) */}
       <PerformanceModal

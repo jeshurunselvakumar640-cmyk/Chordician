@@ -12,6 +12,7 @@ import ReloadPrompt from './components/UI/ReloadPrompt';
 import ConfirmModal from './components/Modal/ConfirmModal';
 import AuthModal from './components/Modal/AuthModal';
 import ProtectedRoute from './components/UI/ProtectedRoute';
+import ErrorBoundary from './components/UI/ErrorBoundary';
 import { SongCardSkeleton } from './components/UI/SkeletonLoader';
 import { getSongs, deleteSong, toggleFavoriteSong } from './firebase/songs';
 
@@ -128,20 +129,21 @@ function AppContent() {
 
   return (
     <>
-      <Suspense fallback={<PageFallback />}>
-        <Routes>
-          <Route
-            element={
-              <Layout
-                songs={songs}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                firestoreError={firestoreError}
-                onRetryFirestore={fetchAllSongs}
-                onRefresh={fetchAllSongs}
-              />
-            }
-          >
+      <ErrorBoundary>
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            <Route
+              element={
+                <Layout
+                  songs={songs}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  firestoreError={firestoreError}
+                  onRetryFirestore={fetchAllSongs}
+                  onRefresh={fetchAllSongs}
+                />
+              }
+            >
             <Route
               path="/"
               element={
@@ -246,6 +248,7 @@ function AppContent() {
           </Route>
         </Routes>
       </Suspense>
+    </ErrorBoundary>
 
       {/* App-wide Delete Confirm Modal */}
       <ConfirmModal

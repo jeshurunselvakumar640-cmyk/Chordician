@@ -264,22 +264,101 @@ export function stepKey(currentKey, direction = 1) {
  * Does NOT mutate the input song object.
  */
 export function transposeSong(song, targetKey) {
-  if (!song) return null;
+  if (!song || typeof song !== 'object') return null;
   const originalKey = song.originalKey || 'C';
   const effectiveTargetKey = targetKey || originalKey;
   const semitoneDelta = calculateSemitoneDistance(originalKey, effectiveTargetKey);
+
+  // Normalize sections from song data
+  let rawSections = [];
+  if (Array.isArray(song.sections) && song.sections.length > 0) {
+    rawSections = song.sections;
+  } else if (song.content || song.lyrics || song.chords) {
+    // Fallback single section if raw content was stored at document root
+    const fallbackRows = [];
+    if (song.chords) fallbackRows.push({ id: 'r_root_chords', type: 'chords', content: song.chords });
+    if (song.lyrics) fallbackRows.push({ id: 'r_root_lyrics', type: 'lyrics', content: song.lyrics });
+    if (song.content && !song.chords && !song.lyrics) {
+      fallbackRows.push({ id: 'r_root_content', type: 'lyrics', content: song.content });
+    }
+    rawSections = [{ id: 'sec_root', name: 'Main', rows: fallbackRows }];
+  }
+
+  const sections = rawSections.map((section, sIdx) => {
+    if (!section) {
+      return { id: `sec_${sIdx}`, name: `Section ${sIdx + 1}`, rows: [] };
+    }
+    if (typeof section === 'string') {
+      return {
+        id: `sec_${sIdx}`,
+        name: section,
+        rows: [{ id: `r_${sIdx}_1`, type: 'lyrics', content: section, displayContent: section }]
+      };
+    }
+
+    let rows = Array.isArray(section.rows) ? section.rows : [];
+
+    // If rows are empty but lines exist (e.g. parsed / Chordex format), convert lines to rows
+    if (rows.length === 0 && Array.isArray(section.lines) && section.lines.length > 0) {
+      rows = [];
+      section.lines.forEach((line, lIdx) => {
+        if (!line) return;
+        const lineChords = Array.isArray(line.chords)
+          ? line.chords
+              .map(c => (typeof c === 'string' ? c : c?.chord || ''))
+              .filter(Boolean)
+              .join('   ')
+          : (line.rawChordLine || line.chords || '');
+        const lineLyrics = line.lyrics !== undefined ? line.lyrics : (typeof line === 'string' ? line : '');
+
+        if (lineChords) {
+          rows.push({ id: `r_${sIdx}_${lIdx}_c`, type: 'chords', content: lineChords });
+        }
+        if (lineLyrics) {
+          rows.push({ id: `r_${sIdx}_${lIdx}_l`, type: 'lyrics', content: lineLyrics });
+        }
+      });
+    }
+
+    return {
+      ...section,
+      id: section.id || `sec_${sIdx + 1}`,
+      name: section.name || `Section ${sIdx + 1}`,
+      rows: rows.map((row, rIdx) => {
+        if (!row) {
+          return { id: `r_${sIdx}_${rIdx}`, type: 'lyrics', content: '', displayContent: '' };
+        }
+        if (typeof row === 'string') {
+          return {
+            id: `r_${sIdx}_${rIdx}`,
+            type: 'lyrics',
+            content: row,
+            displayContent: transposeRowContent(row, 'lyrics', semitoneDelta, effectiveTargetKey)
+          };
+        }
+
+        const rowType = row.type || (row.chords ? 'chords' : (row.lyrics ? 'lyrics' : 'custom'));
+        const rawContent =
+          row.displayContent !== undefined
+            ? row.displayContent
+            : (row.content !== undefined ? row.content : (row.chords || row.lyrics || row.text || ''));
+
+        return {
+          ...row,
+          id: row.id || `r_${sIdx}_${rIdx}`,
+          type: rowType,
+          content: rawContent,
+          displayContent: transposeRowContent(rawContent, rowType, semitoneDelta, effectiveTargetKey)
+        };
+      })
+    };
+  });
 
   return {
     ...song,
     originalKey,
     activeKey: effectiveTargetKey,
     semitoneDelta,
-    sections: (song.sections || []).map(section => ({
-      ...section,
-      rows: (section.rows || []).map(row => ({
-        ...row,
-        displayContent: transposeRowContent(row.content, row.type, semitoneDelta, effectiveTargetKey)
-      }))
-    }))
+    sections
   };
 }

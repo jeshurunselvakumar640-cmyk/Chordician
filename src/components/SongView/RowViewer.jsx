@@ -1,8 +1,9 @@
 import React, { memo } from 'react';
 
 function RowViewer({ row }) {
-  const { type = 'chords', displayContent, content } = row;
-  const rawText = displayContent !== undefined ? displayContent : content;
+  if (!row) return null;
+  const { type = 'chords', displayContent, content, chords, lyrics, text: rowText } = typeof row === 'string' ? { type: 'lyrics', content: row } : row;
+  const rawText = displayContent !== undefined ? displayContent : (content !== undefined ? content : (chords || lyrics || rowText || ''));
   
   const text = Array.isArray(rawText) ? rawText.join('   ') : String(rawText || '');
 

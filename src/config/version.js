@@ -2,11 +2,10 @@
  * Chordician Application Version Configuration
  *
  * Versioning Policy:
- * - Base version starts at 2.0.
- * - Increments with every major/feature update and release (e.g. 2.0 -> 2.9 -> 3.0).
+ * - Increments automatically with every release and push.
  */
-export const APP_VERSION = '3.1';
-export const APP_VERSION_TAG = 'v3.1';
+export const APP_VERSION = '3.1.1';
+export const APP_VERSION_TAG = 'v3.1.1';
 export const APP_NAME = 'Chordician';
 export const APP_RELEASE_NAME = 'Lead Transposition, Regional Transliteration & Scale Engine';
 export const APP_LAST_UPDATED = 'September 2026';

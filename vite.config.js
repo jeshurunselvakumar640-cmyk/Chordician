@@ -128,8 +128,18 @@ export default defineConfig({
             if (id.includes('firebase')) return 'vendor-firebase';
             if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf';
             if (id.includes('lucide-react')) return 'vendor-lucide';
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'vendor-react';
             if (id.includes('@google/generative-ai')) return 'vendor-gemini';
+            if (
+              id.includes('node_modules/react/') ||
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/react-router/') ||
+              id.includes('node_modules/react-router-dom/') ||
+              id.includes('node_modules/scheduler/') ||
+              id.includes('node_modules/@remix-run/') ||
+              id.includes('node_modules/use-sync-external-store/')
+            ) {
+              return 'vendor-react';
+            }
             return 'vendor-libs';
           }
         }
