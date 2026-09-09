@@ -199,7 +199,7 @@ export function analyzeLines(rawLines) {
     result.push({ raw: noEmoji, trimmed, type: 'LYRIC_ONLY' });
   }
 
-  // Pass 2: Detect transpose note ladders (runs of >= 3 consecutive single-note lines)
+  // Pass 2: Detect transpose note ladders (runs of >= 7 consecutive single-note button lines from web scrapers)
   let runStart = -1;
   let runCount = 0;
 
@@ -211,7 +211,7 @@ export function analyzeLines(rawLines) {
     } else if (item.type === 'EMPTY' && runStart !== -1) {
       continue;
     } else {
-      if (runCount >= 3) {
+      if (runCount >= 7) {
         for (let j = runStart; j < i; j++) {
           if (result[j].trimmed && SINGLE_NOTE_REGEX.test(result[j].trimmed)) {
             result[j].type = 'TRANSPOSE_LADDER';
@@ -222,7 +222,7 @@ export function analyzeLines(rawLines) {
       runCount = 0;
     }
   }
-  if (runCount >= 3) {
+  if (runCount >= 7) {
     for (let j = runStart; j < result.length; j++) {
       if (result[j].trimmed && SINGLE_NOTE_REGEX.test(result[j].trimmed)) {
         result[j].type = 'TRANSPOSE_LADDER';
