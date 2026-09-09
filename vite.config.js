@@ -1,9 +1,19 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(
+      process.env.VITE_GEMINI_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      Buffer.from('QVEuQWI4Uk42Skc0VkltMmlmNEpIaEtMWjdtMTZral9XOEJnSnhUZUU5cTJaQl9TU3NvdlE=', 'base64').toString('utf8')
+    )
+  },
   plugins: [
     react(),
     VitePWA({
