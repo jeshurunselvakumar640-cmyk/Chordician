@@ -8,10 +8,27 @@ import { searchSongAcrossInternet } from '../services/internetSongCrawler.js';
 
 const router = Router();
 
-// Rate limiter helper (in-memory sliding counter per IP)
+// Rate limiter helper (in-memory sliding counter per IP with automatic eviction)
 const requestCounts = new Map();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 30;
+const MAX_REQUESTS_PER_WINDOW = 45;
+
+// URL import response cache (LRU memory cache with 15-minute TTL)
+const urlResponseCache = new Map();
+const URL_CACHE_TTL_MS = 15 * 60 * 1000;
+const MAX_URL_CACHE_SIZE = 500;
+
+function pruneExpiredRateLimits() {
+  const now = Date.now();
+  for (const [ip, record] of requestCounts.entries()) {
+    if (now > record.resetTime) {
+      requestCounts.delete(ip);
+    }
+  }
+}
+
+// Prune rate limit map every 2 minutes
+setInterval(pruneExpiredRateLimits, 2 * 60 * 1000).unref();
 
 function checkRateLimit(ip) {
   const now = Date.now();
@@ -55,6 +72,21 @@ router.post(['/import-url', '/api/import-url'], async (req, res) => {
   const trimmedUrl = url.trim();
   console.log(`[Import URL] Request received for: ${trimmedUrl}`);
 
+  // Check fast response cache
+  if (urlResponseCache.has(trimmedUrl)) {
+    const cached = urlResponseCache.get(trimmedUrl);
+    if (Date.now() - cached.timestamp < URL_CACHE_TTL_MS) {
+      console.log(`[Import URL] Cache hit for: ${trimmedUrl} (0ms response)`);
+      return res.json({
+        success: true,
+        sourceUrl: cached.sourceUrl,
+        song: cached.song,
+        warnings: cached.warnings || [],
+        cached: true
+      });
+    }
+  }
+
   try {
     // 1. Validate URL & SSRF
     console.log('[Import URL] Validating URL & SSRF security...');
@@ -78,6 +110,18 @@ router.post(['/import-url', '/api/import-url'], async (req, res) => {
     const { song, warnings } = await parseHtmlToSong(fetchResult.html, fetchResult.finalUrl);
 
     console.log(`[Import URL] Import successful: "${song.title}" by "${song.artist || 'Unknown'}" (${song.sections.length} sections).`);
+
+    // Store in cache
+    if (urlResponseCache.size >= MAX_URL_CACHE_SIZE) {
+      const firstKey = urlResponseCache.keys().next().value;
+      urlResponseCache.delete(firstKey);
+    }
+    urlResponseCache.set(trimmedUrl, {
+      sourceUrl: fetchResult.finalUrl,
+      song,
+      warnings: warnings || [],
+      timestamp: Date.now()
+    });
 
     return res.json({
       success: true,
@@ -184,18 +228,31 @@ router.post(['/import-internet/search', '/api/import-internet/search'], async (r
     });
   }
 
-  const { query } = req.body || {};
+  const trimmedQuery = query.trim().toLowerCase();
+  const searchCacheKey = `search:${trimmedQuery}`;
 
-  if (!query || typeof query !== 'string' || !query.trim()) {
-    return res.status(400).json({
-      success: false,
-      error: 'Please enter a song title to search.',
-      code: 'EMPTY_QUERY'
-    });
+  if (urlResponseCache.has(searchCacheKey)) {
+    const cached = urlResponseCache.get(searchCacheKey);
+    if (Date.now() - cached.timestamp < URL_CACHE_TTL_MS) {
+      console.log(`[Import Internet Search] Cache hit for "${query.trim()}" (0ms response)`);
+      return res.json(cached.result);
+    }
   }
 
   try {
     const result = await searchSongAcrossInternet(query.trim());
+    
+    if (result && result.success) {
+      if (urlResponseCache.size >= MAX_URL_CACHE_SIZE) {
+        const firstKey = urlResponseCache.keys().next().value;
+        urlResponseCache.delete(firstKey);
+      }
+      urlResponseCache.set(searchCacheKey, {
+        result,
+        timestamp: Date.now()
+      });
+    }
+
     return res.json(result);
   } catch (err) {
     console.error('[Import Internet Search Error]:', err.message || err);

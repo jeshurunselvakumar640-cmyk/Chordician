@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -29,6 +29,7 @@ export default function Songs({
   const urlArtist = searchParams.get('artist') || 'ALL';
 
   const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedKey, setSelectedKey] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState(urlCategory);
   const [selectedArtist, setSelectedArtist] = useState(urlArtist);
@@ -136,13 +137,13 @@ export default function Songs({
 
     // 2. Perform prioritized hierarchical search
     let searchResult = { results: baseList, didYouMean: null, isFuzzyMatch: false };
-    if (searchQuery.trim()) {
-      searchResult = searchSongsWithFuzzy(baseList, searchQuery);
+    if (deferredSearchQuery.trim()) {
+      searchResult = searchSongsWithFuzzy(baseList, deferredSearchQuery);
     }
 
     // 3. Sort matching songs: If searching and sortBy is 'relevance', maintain search tier ranking
     const sorted = [...searchResult.results].sort((a, b) => {
-      if (searchQuery.trim() && sortBy === 'relevance') {
+      if (deferredSearchQuery.trim() && sortBy === 'relevance') {
         // searchSongsWithFuzzy already sorted strictly by user priority algorithm
         return 0;
       }
@@ -170,7 +171,7 @@ export default function Songs({
       didYouMean: searchResult.didYouMean,
       isFuzzyMatch: searchResult.isFuzzyMatch
     };
-  }, [songs, searchQuery, selectedKey, selectedCategory, selectedArtist, favoritesOnly, sortBy]);
+  }, [songs, deferredSearchQuery, selectedKey, selectedCategory, selectedArtist, favoritesOnly, sortBy]);
 
   const hasActiveFilters = searchQuery.trim() || selectedKey !== 'ALL' || selectedCategory !== 'ALL' || selectedArtist !== 'ALL' || favoritesOnly;
 

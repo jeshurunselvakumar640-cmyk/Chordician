@@ -15,6 +15,38 @@ import { transliterateSong } from '../transliteration/index.js';
 
 const SONGS_COLLECTION = 'songs';
 
+// High-performance in-memory cache
+let _cachedSongs = null;
+let _lastCacheTimestamp = 0;
+const CACHE_TTL_MS = 45 * 1000; // 45 seconds fresh cache TTL
+const _songMapCache = new Map();
+
+/**
+ * Invalidate in-memory and local storage song cache
+ */
+export function invalidateSongCache(songId = null) {
+  if (songId) {
+    _songMapCache.delete(songId);
+  } else {
+    _songMapCache.clear();
+  }
+  _cachedSongs = null;
+  _lastCacheTimestamp = 0;
+  try {
+    sessionStorage.removeItem('chordician_songs_cache_v3');
+  } catch {}
+}
+
+/**
+ * Update memory cache optimistically
+ */
+export function updateMemorySongCache(updater) {
+  if (_cachedSongs && typeof updater === 'function') {
+    _cachedSongs = updater(_cachedSongs);
+    _lastCacheTimestamp = Date.now();
+  }
+}
+
 /**
  * Structured diagnostic logger for Firestore operations (safe - no secrets exposed)
  */
@@ -61,9 +93,16 @@ export function formatFirestoreError(error, context = '') {
 }
 
 /**
- * Fetch all songs from Firestore (/songs)
+ * Fetch all songs from Firestore (/songs) with high-speed multi-tier caching
  */
-export async function getSongs() {
+export async function getSongs({ forceRefresh = false } = {}) {
+  const now = Date.now();
+
+  // 1. Fast in-memory cache hit (< 0.1ms)
+  if (!forceRefresh && _cachedSongs && (now - _lastCacheTimestamp < CACHE_TTL_MS)) {
+    return { data: _cachedSongs, error: null };
+  }
+
   await ensureAuthReady();
   const path = SONGS_COLLECTION;
 
@@ -82,26 +121,69 @@ export async function getSongs() {
     const songs = [];
     snapshot.forEach((docSnapshot) => {
       const data = docSnapshot.data();
-      songs.push({
+      const songItem = {
         id: docSnapshot.id,
         ...data,
         createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt
-      });
+      };
+      songs.push(songItem);
+      // Populate individual song cache
+      _songMapCache.set(docSnapshot.id, songItem);
     });
+
+    _cachedSongs = songs;
+    _lastCacheTimestamp = Date.now();
+
+    try {
+      sessionStorage.setItem('chordician_songs_cache_v3', JSON.stringify(songs));
+    } catch {}
 
     return { data: songs, error: null };
   } catch (err) {
+    // Graceful offline fallback to memory/sessionStorage cache
+    if (_cachedSongs && _cachedSongs.length > 0) {
+      return { data: _cachedSongs, error: null };
+    }
+    try {
+      const saved = sessionStorage.getItem('chordician_songs_cache_v3');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          _cachedSongs = parsed;
+          return { data: parsed, error: null };
+        }
+      }
+    } catch {}
+
     logFirestoreDiagnostic('getDocs', path, err);
     return { data: [], error: formatFirestoreError(err, 'getSongs') };
   }
 }
 
 /**
- * Fetch a single song by ID (/songs/{id})
+ * Fetch a single song by ID (/songs/{id}) with instant memory cache
  */
 export async function getSongById(id) {
   if (!id) return { data: null, error: 'Song ID is required' };
+
+  // Check fast in-memory map
+  if (_songMapCache.has(id)) {
+    const cached = _songMapCache.get(id);
+    if (cached && Array.isArray(cached.sections)) {
+      return { data: cached, error: null };
+    }
+  }
+
+  // Check in _cachedSongs array
+  if (_cachedSongs) {
+    const found = _cachedSongs.find((s) => s.id === id);
+    if (found && Array.isArray(found.sections) && found.sections.length > 0) {
+      _songMapCache.set(id, found);
+      return { data: found, error: null };
+    }
+  }
+
   await ensureAuthReady();
   const path = `${SONGS_COLLECTION}/${id}`;
 
@@ -114,13 +196,17 @@ export async function getSongById(id) {
     }
 
     const data = docSnap.data();
+    const songData = {
+      id: docSnap.id,
+      ...data,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+      updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt
+    };
+
+    _songMapCache.set(id, songData);
+
     return {
-      data: {
-        id: docSnap.id,
-        ...data,
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
-        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt
-      },
+      data: songData,
       error: null
     };
   } catch (err) {
@@ -160,6 +246,7 @@ export async function addSong(songData) {
     }
 
     const docRef = await addDoc(collection(db, SONGS_COLLECTION), cleanData);
+    invalidateSongCache();
     return { id: docRef.id, error: null };
   } catch (err) {
     logFirestoreDiagnostic('addDoc', path, err);
@@ -199,6 +286,8 @@ export async function updateSong(id, songData) {
     }
 
     await updateDoc(docRef, cleanData);
+    invalidateSongCache(id);
+    invalidateSongCache();
     return { success: true, error: null };
   } catch (err) {
     logFirestoreDiagnostic('updateDoc', path, err);
@@ -217,6 +306,8 @@ export async function deleteSong(id) {
   try {
     const docRef = doc(db, SONGS_COLLECTION, id);
     await deleteDoc(docRef);
+    invalidateSongCache(id);
+    invalidateSongCache();
     return { success: true, error: null };
   } catch (err) {
     logFirestoreDiagnostic('deleteDoc', path, err);
@@ -238,6 +329,13 @@ export async function toggleFavoriteSong(id, currentStatus) {
       favorite: !currentStatus,
       updatedAt: serverTimestamp()
     });
+    updateMemorySongCache((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, favorite: !currentStatus } : s))
+    );
+    if (_songMapCache.has(id)) {
+      const existing = _songMapCache.get(id);
+      _songMapCache.set(id, { ...existing, favorite: !currentStatus });
+    }
     return { success: true, newStatus: !currentStatus, error: null };
   } catch (err) {
     logFirestoreDiagnostic('updateDoc (toggleFavorite)', path, err);

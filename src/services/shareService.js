@@ -1,5 +1,3 @@
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { formatMainStyleHighlight } from '../data/songStyles.js';
 import { transposeSong } from './transposer.js';
 import { getSongById } from '../firebase/songs.js';
@@ -610,6 +608,11 @@ export async function exportSongsToPDF(songs, options = {}) {
   document.body.appendChild(renderRoot);
 
   try {
+    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+      import('jspdf'),
+      import('html2canvas')
+    ]);
+
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'pt',

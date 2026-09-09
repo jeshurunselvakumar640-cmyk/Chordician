@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { memo } from 'react';
 
-export default function RowViewer({ row }) {
+function RowViewer({ row }) {
   const { type = 'chords', displayContent, content } = row;
   const rawText = displayContent !== undefined ? displayContent : content;
   
@@ -60,3 +60,5 @@ export default function RowViewer({ row }) {
       );
   }
 }
+
+export default memo(RowViewer);

@@ -106,6 +106,25 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0',
     port: 5173
+  },
+  build: {
+    target: 'esnext',
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('firebase')) return 'vendor-firebase';
+            if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf';
+            if (id.includes('lucide-react')) return 'vendor-lucide';
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'vendor-react';
+            if (id.includes('@google/generative-ai')) return 'vendor-gemini';
+            return 'vendor-libs';
+          }
+        }
+      }
+    }
   }
 });
 

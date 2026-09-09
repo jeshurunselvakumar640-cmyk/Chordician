@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Heart,
@@ -21,7 +21,7 @@ import { useCommunion } from '../../context/CommunionContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
-export default function SongCard({
+function SongCard({
   song,
   viewMode = 'grid',
   onToggleFavorite,
@@ -452,3 +452,5 @@ export default function SongCard({
     </div>
   );
 }
+
+export default memo(SongCard);

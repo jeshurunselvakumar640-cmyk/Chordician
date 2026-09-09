@@ -104,11 +104,20 @@ function normalizeSearchText(text) {
  * @param {string} target
  * @returns {number}
  */
+// Fast similarity memoization cache (capped at 4,000 entries)
+const _similarityCache = new Map();
+const MAX_SIMILARITY_CACHE = 4000;
+
 export function calculateSimilarity(query, target) {
   const qRaw = String(query || '').trim();
   const tRaw = String(target || '').trim();
 
   if (!qRaw || !tRaw) return 0;
+
+  const cacheKey = `${qRaw}§${tRaw}`;
+  if (_similarityCache.has(cacheKey)) {
+    return _similarityCache.get(cacheKey);
+  }
 
   const qClean = normalizeSearchText(qRaw);
   const tClean = normalizeSearchText(tRaw);
@@ -217,7 +226,16 @@ export function calculateSimilarity(query, target) {
     }
   }
 
-  return Math.max(fullScore, tokenScore, phraseScore, translitScore, 0);
+  const finalScore = Math.max(fullScore, tokenScore, phraseScore, translitScore, 0);
+
+  if (_similarityCache.size >= MAX_SIMILARITY_CACHE) {
+    // Evict oldest entries
+    const firstKey = _similarityCache.keys().next().value;
+    _similarityCache.delete(firstKey);
+  }
+  _similarityCache.set(cacheKey, finalScore);
+
+  return finalScore;
 }
 
 /**

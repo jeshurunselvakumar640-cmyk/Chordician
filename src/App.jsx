@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { PWAProvider } from './context/PWAContext';
@@ -9,21 +9,36 @@ import { AuthProvider } from './context/AuthContext';
 import { DeviceModeProvider } from './context/DeviceModeContext';
 import Layout from './components/Layout/Layout';
 import ReloadPrompt from './components/UI/ReloadPrompt';
-import Dashboard from './pages/Dashboard';
-import ThisSunday from './pages/ThisSunday';
-import CommunionSongs from './pages/CommunionSongs';
-import Songs from './pages/Songs';
-import Favorites from './pages/Favorites';
-import Recent from './pages/Recent';
-import SongDetails from './pages/SongDetails';
-import AddSong from './pages/AddSong';
-import EditSong from './pages/EditSong';
-import ImportSong from './pages/ImportSong';
-import Settings from './pages/Settings';
 import ConfirmModal from './components/Modal/ConfirmModal';
 import AuthModal from './components/Modal/AuthModal';
 import ProtectedRoute from './components/UI/ProtectedRoute';
+import { SongCardSkeleton } from './components/UI/SkeletonLoader';
 import { getSongs, deleteSong, toggleFavoriteSong } from './firebase/songs';
+
+// Lazy-load page components for optimal bundle splitting & rapid first contentful paint
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ThisSunday = lazy(() => import('./pages/ThisSunday'));
+const CommunionSongs = lazy(() => import('./pages/CommunionSongs'));
+const Songs = lazy(() => import('./pages/Songs'));
+const Favorites = lazy(() => import('./pages/Favorites'));
+const Recent = lazy(() => import('./pages/Recent'));
+const SongDetails = lazy(() => import('./pages/SongDetails'));
+const AddSong = lazy(() => import('./pages/AddSong'));
+const EditSong = lazy(() => import('./pages/EditSong'));
+const ImportSong = lazy(() => import('./pages/ImportSong'));
+const Settings = lazy(() => import('./pages/Settings'));
+
+function PageFallback() {
+  return (
+    <div style={{ padding: '24px 16px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+        <SongCardSkeleton />
+        <SongCardSkeleton />
+        <SongCardSkeleton />
+      </div>
+    </div>
+  );
+}
 
 function AppContent() {
   const { showToast } = useToast();
@@ -113,122 +128,124 @@ function AppContent() {
 
   return (
     <>
-      <Routes>
-        <Route
-          element={
-            <Layout
-              songs={songs}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              firestoreError={firestoreError}
-              onRetryFirestore={fetchAllSongs}
-              onRefresh={fetchAllSongs}
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          <Route
+            element={
+              <Layout
+                songs={songs}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                firestoreError={firestoreError}
+                onRetryFirestore={fetchAllSongs}
+                onRefresh={fetchAllSongs}
+              />
+            }
+          >
+            <Route
+              path="/"
+              element={
+                <Dashboard
+                  songs={songs}
+                  isLoading={isLoading}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDeleteRequest={handleDeleteRequest}
+                />
+              }
             />
-          }
-        >
-          <Route
-            path="/"
-            element={
-              <Dashboard
-                songs={songs}
-                isLoading={isLoading}
-                onToggleFavorite={handleToggleFavorite}
-                onDeleteRequest={handleDeleteRequest}
-              />
-            }
-          />
-          <Route
-            path="/this-sunday"
-            element={
-              <ThisSunday
-                songs={songs}
-                isLoading={isLoading}
-              />
-            }
-          />
-          <Route
-            path="/communion"
-            element={
-              <CommunionSongs
-                songs={songs}
-                isLoading={isLoading}
-              />
-            }
-          />
-          <Route
-            path="/songs"
-            element={
-              <Songs
-                songs={songs}
-                isLoading={isLoading}
-                onToggleFavorite={handleToggleFavorite}
-                onDeleteRequest={handleDeleteRequest}
-              />
-            }
-          />
-          <Route
-            path="/favorites"
-            element={
-              <Favorites
-                songs={songs}
-                isLoading={isLoading}
-                onToggleFavorite={handleToggleFavorite}
-                onDeleteRequest={handleDeleteRequest}
-              />
-            }
-          />
-          <Route
-            path="/recent"
-            element={
-              <Recent
-                songs={songs}
-                isLoading={isLoading}
-                onToggleFavorite={handleToggleFavorite}
-                onDeleteRequest={handleDeleteRequest}
-              />
-            }
-          />
-          <Route
-            path="/songs/:id"
-            element={
-              <SongDetails
-                cachedSongs={songs}
-                onToggleFavorite={handleToggleFavorite}
-                onDeleteSong={handleDeleteSongDirect}
-              />
-            }
-          />
-          <Route
-            path="/songs/:id/edit"
-            element={
-              <ProtectedRoute title="Edit Song (Owner Access Only)">
-                <EditSong onSongUpdated={fetchAllSongs} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/add-song"
-            element={
-              <ProtectedRoute title="Add New Song (Owner Access Only)">
-                <AddSong onSongAdded={fetchAllSongs} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/import"
-            element={
-              <ProtectedRoute title="AI Screenshot Import (Owner Access Only)">
-                <ImportSong />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={<Settings onSongAdded={fetchAllSongs} />}
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
+            <Route
+              path="/this-sunday"
+              element={
+                <ThisSunday
+                  songs={songs}
+                  isLoading={isLoading}
+                />
+              }
+            />
+            <Route
+              path="/communion"
+              element={
+                <CommunionSongs
+                  songs={songs}
+                  isLoading={isLoading}
+                />
+              }
+            />
+            <Route
+              path="/songs"
+              element={
+                <Songs
+                  songs={songs}
+                  isLoading={isLoading}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDeleteRequest={handleDeleteRequest}
+                />
+              }
+            />
+            <Route
+              path="/favorites"
+              element={
+                <Favorites
+                  songs={songs}
+                  isLoading={isLoading}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDeleteRequest={handleDeleteRequest}
+                />
+              }
+            />
+            <Route
+              path="/recent"
+              element={
+                <Recent
+                  songs={songs}
+                  isLoading={isLoading}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDeleteRequest={handleDeleteRequest}
+                />
+              }
+            />
+            <Route
+              path="/songs/:id"
+              element={
+                <SongDetails
+                  cachedSongs={songs}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDeleteSong={handleDeleteSongDirect}
+                />
+              }
+            />
+            <Route
+              path="/songs/:id/edit"
+              element={
+                <ProtectedRoute title="Edit Song (Owner Access Only)">
+                  <EditSong onSongUpdated={fetchAllSongs} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/add-song"
+              element={
+                <ProtectedRoute title="Add New Song (Owner Access Only)">
+                  <AddSong onSongAdded={fetchAllSongs} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/import"
+              element={
+                <ProtectedRoute title="AI Screenshot Import (Owner Access Only)">
+                  <ImportSong />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={<Settings onSongAdded={fetchAllSongs} />}
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </Suspense>
 
       {/* App-wide Delete Confirm Modal */}
       <ConfirmModal

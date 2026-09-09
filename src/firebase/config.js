@@ -2,6 +2,9 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAnalytics, isSupported as isAnalyticsSupported } from 'firebase/analytics';
 import {
   getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   getDoc,
   setDoc,
@@ -57,12 +60,20 @@ try {
 
 let db = null;
 try {
-  db = getFirestore(dbApp);
-} catch (e) {
+  db = initializeFirestore(dbApp, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch {
   try {
-    db = getFirestore(app);
-  } catch (err) {
-    console.warn("Firestore initialization notice:", err);
+    db = getFirestore(dbApp);
+  } catch {
+    try {
+      db = getFirestore(app);
+    } catch (err) {
+      console.warn("Firestore initialization notice:", err);
+    }
   }
 }
 

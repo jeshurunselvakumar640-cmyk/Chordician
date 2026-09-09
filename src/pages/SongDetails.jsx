@@ -133,7 +133,7 @@ export default function SongDetails({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  });
+  }, [nextSong, prevSong]);
 
   // Immediately hydrate from cachedSongs when id or cachedSongs changes
   useEffect(() => {

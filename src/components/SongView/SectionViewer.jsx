@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { memo } from 'react';
 import RowViewer from './RowViewer';
 
-export default function SectionViewer({ section }) {
+function SectionViewer({ section }) {
   const { name = 'Section', rows = [] } = section;
 
   return (
@@ -24,3 +24,5 @@ export default function SectionViewer({ section }) {
     </div>
   );
 }
+
+export default memo(SectionViewer);

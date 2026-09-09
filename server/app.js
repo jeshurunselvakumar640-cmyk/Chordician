@@ -385,14 +385,28 @@ app.get(['/api/health', '/health'], (req, res) => {
   });
 });
 
-// Serve frontend build static files in production environments (Render, Railway, Heroku)
+// Serve frontend build static files in production environments (Render, Railway, Heroku, Vercel)
 const distPath = path.join(__dirname, '../dist');
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    maxAge: '1y',
+    etag: true,
+    immutable: true,
+    setHeaders: (res, filePath) => {
+      // Never cache index.html or service worker so updates are picked up instantly
+      if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
+
   app.get('*', (req, res, next) => {
     if (req.url.startsWith('/api') || req.url.startsWith('/chordex') || req.url.startsWith('/import-url')) {
       return next();
     }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
