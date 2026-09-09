@@ -215,8 +215,8 @@ export function extractRelevantSongBlock(rawContent, source = 'generic') {
       const trimmed = lines[i].trim();
       if (!trimmed) continue;
 
-      // Check for chord start line or heading
-      if (containsHighChordDensity(trimmed)) {
+      // Check for authentic chord start line (attached, bracketed, or section header)
+      if (isPossibleSongStart(trimmed)) {
         startIndex = i;
         break;
       }
@@ -247,6 +247,51 @@ export function extractRelevantSongBlock(rawContent, source = 'generic') {
 
   // Generic fallback: preserve the block
   return rawContent;
+}
+
+/**
+ * Checks if a trimmed line is a candidate start of authentic song content.
+ * @param {string} trimmed
+ * @returns {boolean}
+ */
+function isPossibleSongStart(trimmed) {
+  if (!trimmed) return false;
+
+  // Reject UI noise & navigation links
+  if (/^(?:\[[^\]]+\]\(https?:\/\/[^\)]+\)\s*)+$/i.test(trimmed)) return false;
+  if (/^\[[^\]]+\]\(https?:\/\/[^\)]+\)$/i.test(trimmed)) return false;
+  if (/^(?:[A-Z]\s+){6,}[A-Z]$/i.test(trimmed)) return false;
+  if (trimmed.includes('அஆஇ') || trimmed.includes('ககாகிகீ')) return false;
+  if (/^(?:Transpose|1-2-3|Print|Tamil English|Tamil Search|English Songs|Font Size|Dark Mode|Hide Chords|Tamil English\s+Tamil English\s+Transpose|1-2-3\s+Print)$/i.test(trimmed)) return false;
+  if (/^(?:Home|Albums|Artists|Notes|Chords|Lyrics|Tabs|Bible|Submit|Contact Us|Discover more|Search|Quick Links|Christian Song Lyrics|Christian|Worship Song Collections)$/i.test(trimmed)) return false;
+  if (/^(?:Related|Chord Diagrams|Top Artists|Languages|Browse|Footer|©\s*\d+)\b/i.test(trimmed)) return false;
+
+  // Check 1: Bracketed chord inline notation (e.g. [F]இயேசுவின்... or [C]Amazing...)
+  if (/^\[[A-G][#b]?(?:m|maj|min|dim|aug|sus[24]?|add[0-9]+|7|9)?\]/i.test(trimmed)) {
+    return true;
+  }
+
+  // Check 2: Attached chord + Indic/Latin lyric (e.g. Fஇயேசுவின்... or DmMaravaamal...)
+  for (const c of MUSICAL_CHORD_PREFIXES) {
+    if (trimmed.startsWith(c) && trimmed.length > c.length + 2) {
+      const charAfter = trimmed.charAt(c.length);
+      if (/[\u0B80-\u0BFF\u0900-\u097F]/.test(charAfter) || /^[A-Z]/.test(charAfter)) {
+        return true;
+      }
+    }
+  }
+
+  // Check 3: Section headers (e.g. [Chorus], Verse 1, Pallavi)
+  if (isSectionHeader(trimmed)) {
+    return true;
+  }
+
+  // Check 4: High chord density
+  if (containsHighChordDensity(trimmed)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**

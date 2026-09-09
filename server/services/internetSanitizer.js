@@ -336,15 +336,15 @@ export function sanitizeTamilChristianSongsContent(text) {
       inGuitarTab = false;
     }
 
-    // Discard native Tamil script lines
-    if (hasNativeScript(trimmed)) {
+    // Discard pure native Tamil script lines ONLY if they have no chords
+    if (hasNativeScript(trimmed) && !/^[A-G][#b]?[a-zA-Z0-9\u0B80-\u0BFF]/.test(trimmed) && !/\[[A-G][#b]?/.test(trimmed)) {
       continue;
     }
 
-    // Start condition: First Romanized line with chords
+    // Start condition: First line with chords
     if (!started) {
-      if (/^[A-G][a-zA-Z0-9#\s\/\(\)]+/.test(trimmed) && trimmed.length >= 10) {
-        if (!trimmed.includes('Tamil Christian') && !trimmed.includes('Transpose') && !trimmed.includes('English')) {
+      if ((/^[A-G][a-zA-Z0-9#\s\/\(\)\u0B80-\u0BFF]+/.test(trimmed) || /^\[[A-G][#b]?/.test(trimmed)) && trimmed.length >= 8) {
+        if (!trimmed.includes('Tamil Christian') && !trimmed.includes('Transpose') && !trimmed.includes('English') && !trimmed.includes('1-2-3')) {
           started = true;
         }
       }

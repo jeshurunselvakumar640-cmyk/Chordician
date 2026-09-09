@@ -1147,10 +1147,40 @@ assertEqual(t37_5Res.sections[0].lines[0].chords.length, 1, 'Section 1 line 1 ha
 assertEqual(t37_5Res.sections[0].lines[0].chords[0].chord, 'G', 'Section 1 line 1 chord is G');
 assertEqual(t37_5Res.sections[0].lines[1].chords.length, 2, 'Section 1 line 2 has 2 chords');
 
+// Test 38: Opening Line Preservation for TamilChristianSongs (e.g. Yesuvin Pinnaal Naan Selvaen)
+console.log('\n--- Test 38: TamilChristianSongs Opening Line Preservation ---');
+const t38Raw = `[Tamil Christian Songs .IN](https://tamilchristiansongs.in/) [Lyrics](https://tamilchristiansongs.in/lyrics/)[Chords](https://tamilchristiansongs.in/chords/)[Bible](https://tamilchristiansongs.in/bible/) ☀
+[A](https://tamilchristiansongs.in/a/)[B](https://tamilchristiansongs.in/b/)[C](https://tamilchristiansongs.in/c/)[D](https://tamilchristiansongs.in/d/)[E](https://tamilchristiansongs.in/e/)[F](https://tamilchristiansongs.in/f/)[G](https://tamilchristiansongs.in/g/)[H](https://tamilchristiansongs.in/h/)[I](https://tamilchristiansongs.in/i/)[J](https://tamilchristiansongs.in/j/)[K](https://tamilchristiansongs.in/k/)[L](https://tamilchristiansongs.in/l/)[M](https://tamilchristiansongs.in/m/)[N](https://tamilchristiansongs.in/n/)[O](https://tamilchristiansongs.in/o/)[P](https://tamilchristiansongs.in/p/)[Q](https://tamilchristiansongs.in/q/)[R](https://tamilchristiansongs.in/r/)[S](https://tamilchristiansongs.in/s/)[T](https://tamilchristiansongs.in/t/)[U](https://tamilchristiansongs.in/u/)[V](https://tamilchristiansongs.in/v/)[W](https://tamilchristiansongs.in/w/)[X](https://tamilchristiansongs.in/x/)[Y](https://tamilchristiansongs.in/y/)[Z](https://tamilchristiansongs.in/z/)
+Discover more
+Christian Song Lyrics
+South Asians & Diaspora
+Christian Music Streaming
+[Lyrics](https://tamilchristiansongs.in/lyrics/yesuvin-pinnal-naan-selven/) [2/4](https://tamilchristiansongs.in/pattern/2-4/)[F](https://tamilchristiansongs.in/scale/f/)
+Yesuvin Pinnaal Naan Selvaen Chords
+Tamil English Tamil English Transpose
+1-2-3 Print
+Fஇயேசுவின் பின்னால் நான் செல்வேன்Fதிரும்பிப் பார்க்க மாட்Cடேன்Bbதிரும்பிப் பார்க்க மாட்Fடேன்Fசிலுவையே முன்னாBbல்Fஉலகமே பின்னால்Gmஇயேசு சிந்திய இரத்Bbதத்தினாலேCஎன்றும் விடுதலையேF
+Fஉலகத்தின் பெருமை செல்வத்தின் பற்றுFஎல்லாம் உதறி விட்டேன்BbBbஉடல், பொருள், ஆவி உடைமைகFள் யாவும்Cஒப்புக் கொடுத்து விட்டேFன்Fநான் அவர் ஆலயம்Bb எனக்Fகுள்ளே இயேசுCஎன்ன நடந்தாலும் எவ்வேளையிலும்Fஎப்போதும் துதித்திடுவேன்....இயேசுவின்
+Fவேதனை நெருக்கம் இன்னல்கள் இடர்கள்Fஎதுவும் பிரிக்காBbதுBbவெற்றி வேந்தன் என் இயேFசுவின் அன்பால்Cமுற்றிலும் ஜெயம் பெறுவேன்FFநிகழ்கின்ற காBbலமோ வருகிFன்ற காலமோCவாழ்வோ சாவோ வல்ல தூதரோFபிரிக்கவே முடியாது....இயேசுவின்
+Fஅகிலமெங்கிலும் ஆண்டவன் இயேசுFஆட்சி செய்திடணும்BbBbஆவியில் நிறைந்து சத்Fதியம் பேசும்Cசபைகள் பெருகிடணும்FFஎன் சொந்த தேசம்Bb இயேFசுவுக்கேCஇயேசுதான் வழி என்கிற முழக்கம்Fஎங்கும் கேட்கணுமே....இயேசுவின்
+[Yesuvin Pinnal Naan Selven Lyrics](https://tamilchristiansongs.in/lyrics/yesuvin-pinnal-naan-selven/)
+[தமிழ்](https://tamilchristiansongs.in/tamil/chords/yesuvin-pinnaal-naan-selvaen/)
+[A♭](https://tamilchristiansongs.in/chords/yesuvin-pinnaal-naan-selvaen/ab/)[A](https://tamilchristiansongs.in/chords/yesuvin-pinnaal-naan-selvaen/a/)
+[Fr. Berchmans](https://tamilchristiansongs.in/artist/fr-berchmans/)
+Share
+Related`;
+
+const t38Extracted = extractSongContent(t38Raw, { sourceUrl: 'https://tamilchristiansongs.in/chords/yesuvin-pinnaal-naan-selvaen/' });
+assert(t38Extracted.startsWith('Fஇயேசுவின் பின்னால் நான் செல்வேன்'), `T38: First line starts with Fஇயேசுவின் பின்னால் நான் செல்வேன் (got "${t38Extracted.substring(0, 50)}")`);
+const t38Sp = parseSmartPaste(t38Extracted);
+assert(t38Sp.success, 'T38: Smart Paste parsed successfully');
+assert(t38Sp.song.sections[0].rows[1].content.startsWith('இயேசுவின் பின்னால் நான் செல்வேன்'), 'T38: First lyric line preserved exactly');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
 }
+
 
 
 
