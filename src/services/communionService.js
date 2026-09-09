@@ -160,8 +160,9 @@ export function clearCommunionSongs() {
  */
 export function getAdjacentCommunionSongs(currentSongId, allSongs = []) {
   const data = getCommunionData();
-  const songMap = new Map((allSongs || []).map((s) => [s.id, s]));
-  const communionSongs = data.songIds.map((id) => songMap.get(id)).filter(Boolean);
+  const safeSongs = Array.isArray(allSongs) ? allSongs.filter(s => s && s.id) : [];
+  const songMap = new Map(safeSongs.map((s) => [s.id, s]));
+  const communionSongs = (data.songIds || []).map((id) => songMap.get(id)).filter(Boolean);
 
   const currentIndex = communionSongs.findIndex((s) => s.id === currentSongId);
   const inCommunion = currentIndex !== -1;

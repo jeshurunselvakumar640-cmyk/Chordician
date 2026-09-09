@@ -72,13 +72,14 @@ export default function ThisSunday({ songs = [], isLoading = false }) {
 
   // Map songIds to full song objects in order
   const setlistSongs = useMemo(() => {
-    const map = new Map(songs.map(s => [s.id, s]));
-    return songIds.map(id => map.get(id)).filter(Boolean);
+    const safeSongs = Array.isArray(songs) ? songs.filter(s => s && s.id) : [];
+    const map = new Map(safeSongs.map(s => [s.id, s]));
+    return (songIds || []).map(id => map.get(id)).filter(Boolean);
   }, [songIds, songs]);
 
   // Available songs to add (not yet in setlist)
   const availableSongs = useMemo(() => {
-    return songs.filter(s => !songIds.includes(s.id));
+    return (Array.isArray(songs) ? songs : []).filter(s => s && s.id && !(songIds || []).includes(s.id));
   }, [songs, songIds]);
 
   // Filtered available songs for modal picker with fuzzy search support

@@ -52,7 +52,7 @@ export default function SongDetails({
   const { canEdit } = useAuth();
 
   const [song, setSong] = useState(() => {
-    return cachedSongs.find((s) => s.id === id) || null;
+    return (Array.isArray(cachedSongs) ? cachedSongs.find((s) => s && s.id === id) : null) || null;
   });
   const [isLoading, setIsLoading] = useState(!song);
   const [error, setError] = useState(null);
@@ -93,26 +93,26 @@ export default function SongDetails({
 
   const isSelectedForSunday = song ? isInThisSunday(song.id) : false;
   const isSelectedForCommunion = song ? isInCommunion(song.id) : false;
-  const adjacentInfo = song ? getAdjacentSongs(song.id, cachedSongs) : null;
+  const adjacentInfo = song ? getAdjacentSongs(song.id, cachedSongs || []) : null;
   const inSundaySetlist = Boolean(adjacentInfo && adjacentInfo.currentIndex !== -1);
 
   // General library navigation fallback when not in Sunday setlist
   const libraryIndex = useMemo(() => {
-    return cachedSongs.findIndex((s) => s.id === id);
+    return Array.isArray(cachedSongs) ? cachedSongs.findIndex((s) => s && s.id === id) : -1;
   }, [cachedSongs, id]);
 
   const nextSong = useMemo(() => {
     if (adjacentInfo?.nextSong) return adjacentInfo.nextSong;
-    if (libraryIndex >= 0 && libraryIndex < cachedSongs.length - 1) {
-      return cachedSongs[libraryIndex + 1];
+    if (Array.isArray(cachedSongs) && libraryIndex >= 0 && libraryIndex < cachedSongs.length - 1) {
+      return cachedSongs[libraryIndex + 1] || null;
     }
     return null;
   }, [adjacentInfo, libraryIndex, cachedSongs]);
 
   const prevSong = useMemo(() => {
     if (adjacentInfo?.prevSong) return adjacentInfo.prevSong;
-    if (libraryIndex > 0) {
-      return cachedSongs[libraryIndex - 1];
+    if (Array.isArray(cachedSongs) && libraryIndex > 0) {
+      return cachedSongs[libraryIndex - 1] || null;
     }
     return null;
   }, [adjacentInfo, libraryIndex, cachedSongs]);
@@ -195,8 +195,8 @@ export default function SongDetails({
 
   // Immediately hydrate from cachedSongs when id or cachedSongs changes
   useEffect(() => {
-    if (!id) return;
-    const cached = cachedSongs.find((s) => s.id === id);
+    if (!id || !Array.isArray(cachedSongs)) return;
+    const cached = cachedSongs.find((s) => s && s.id === id);
     if (cached) {
       setSong(cached);
       setActiveKey(cached.originalKey || 'C');
@@ -210,7 +210,7 @@ export default function SongDetails({
 
     async function loadSong() {
       if (!id) return;
-      const hasCached = cachedSongs.some((s) => s.id === id);
+      const hasCached = Array.isArray(cachedSongs) && cachedSongs.some((s) => s && s.id === id);
       if (!hasCached) {
         setIsLoading(true);
       }
@@ -659,43 +659,51 @@ export default function SongDetails({
       </ErrorBoundary>
 
       {/* Performance Mode Modal (Supports Portrait & Landscape) */}
-      <PerformanceModal
-        isOpen={isPerformanceOpen}
-        onClose={() => setIsPerformanceOpen(false)}
-        transposedSong={transposedSong}
-        onChangeKey={setActiveKey}
-        setlistSongs={inSundaySetlist ? adjacentInfo.setlistSongs : cachedSongs}
-        currentIndex={inSundaySetlist ? adjacentInfo.currentIndex : libraryIndex}
-        onNextSong={handleNextSong}
-        onPrevSong={handlePrevSong}
-      />
+      {isPerformanceOpen && (
+        <PerformanceModal
+          isOpen={isPerformanceOpen}
+          onClose={() => setIsPerformanceOpen(false)}
+          transposedSong={transposedSong}
+          onChangeKey={setActiveKey}
+          setlistSongs={inSundaySetlist && adjacentInfo ? adjacentInfo.setlistSongs : (Array.isArray(cachedSongs) ? cachedSongs : [])}
+          currentIndex={inSundaySetlist && adjacentInfo ? adjacentInfo.currentIndex : libraryIndex}
+          onNextSong={handleNextSong}
+          onPrevSong={handlePrevSong}
+        />
+      )}
 
       {/* Share Modal */}
-      <ShareModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        song={song}
-        initialKey={activeKey}
-      />
+      {isShareModalOpen && (
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          song={song}
+          initialKey={activeKey || song?.originalKey || 'C'}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
-      <ConfirmModal
-        isOpen={isDeleteModalOpen}
-        title={`Delete "${title}"?`}
-        message="This will permanently delete this song and its musical sections from your Firestore database. This action cannot be undone."
-        confirmText="Delete Song"
-        isLoading={isDeleting}
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setIsDeleteModalOpen(false)}
-      />
+      {isDeleteModalOpen && (
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          title={`Delete "${title || 'Song'}"?`}
+          message="This will permanently delete this song and its musical sections from your Firestore database. This action cannot be undone."
+          confirmText="Delete Song"
+          isLoading={isDeleting}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setIsDeleteModalOpen(false)}
+        />
+      )}
 
       {/* Contact & Song Request Modal */}
-      <ContactModal
-        isOpen={isContactOpen}
-        onClose={() => setIsContactOpen(false)}
-        initialSongTitle={song?.title || ''}
-        initialType="Song Request"
-      />
+      {isContactOpen && (
+        <ContactModal
+          isOpen={isContactOpen}
+          onClose={() => setIsContactOpen(false)}
+          initialSongTitle={song?.title || ''}
+          initialType="Song Request"
+        />
+      )}
     </div>
   );
 }

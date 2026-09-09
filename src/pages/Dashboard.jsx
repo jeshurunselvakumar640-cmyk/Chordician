@@ -50,8 +50,9 @@ export default function Dashboard({
       showToast('Please select at least 1 song to export', 'warning');
       return;
     }
-    const songMap = new Map(songs.map((s) => [s.id, s]));
-    const selectedSongs = selectedSongIds.map((id) => songMap.get(id)).filter(Boolean);
+    const safeSongs = Array.isArray(songs) ? songs.filter((s) => s && s.id) : [];
+    const songMap = new Map(safeSongs.map((s) => [s.id, s]));
+    const selectedSongs = (selectedSongIds || []).map((id) => songMap.get(id)).filter(Boolean);
 
     setIsExportingPDF(true);
     setExportProgress('Compiling PDF...');
@@ -78,7 +79,8 @@ export default function Dashboard({
   const daysUntil = getDaysUntilNumber(serviceDate);
   const daysUntilText = getDaysUntil(serviceDate);
   const sundaySongs = useMemo(() => {
-    return (songIds || []).map((id) => songs.find((s) => s.id === id)).filter(Boolean);
+    const safeSongs = Array.isArray(songs) ? songs : [];
+    return (songIds || []).map((id) => safeSongs.find((s) => s && s.id === id)).filter(Boolean);
   }, [songIds, songs]);
 
   const greeting = useMemo(() => {
@@ -89,20 +91,21 @@ export default function Dashboard({
   }, []);
 
   const stats = useMemo(() => {
-    const total = songs.length;
-    const favorites = songs.filter((s) => s.favorite).length;
+    const safeSongs = Array.isArray(songs) ? songs.filter(Boolean) : [];
+    const total = safeSongs.length;
+    const favorites = safeSongs.filter((s) => s && s.favorite).length;
     
     // Distinct keys used
-    const keysSet = new Set(songs.map((s) => s.originalKey).filter(Boolean));
+    const keysSet = new Set(safeSongs.map((s) => s && s.originalKey).filter(Boolean));
     const distinctKeys = keysSet.size;
 
     // Recently added in the last 7 days or top 5
     const recentCount = Math.min(5, total);
 
     // Language counts
-    const tamilCount = songs.filter((s) => (s.category || '').toLowerCase() === 'tamil').length;
-    const hindiCount = songs.filter((s) => (s.category || '').toLowerCase() === 'hindi').length;
-    const englishCount = songs.filter((s) => (s.category || '').toLowerCase() === 'english').length;
+    const tamilCount = safeSongs.filter((s) => typeof s?.category === 'string' && s.category.toLowerCase() === 'tamil').length;
+    const hindiCount = safeSongs.filter((s) => typeof s?.category === 'string' && s.category.toLowerCase() === 'hindi').length;
+    const englishCount = safeSongs.filter((s) => typeof s?.category === 'string' && s.category.toLowerCase() === 'english').length;
     const othersCount = total - (tamilCount + hindiCount + englishCount);
 
     return {

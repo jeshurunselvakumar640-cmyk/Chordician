@@ -48,8 +48,9 @@ export default function CommunionSongs({ songs = [], isLoading = false }) {
 
   // Map songIds to full song objects in order
   const communionSongs = useMemo(() => {
-    const map = new Map(songs.map((s) => [s.id, s]));
-    return songIds.map((id) => map.get(id)).filter(Boolean);
+    const safeSongs = Array.isArray(songs) ? songs.filter((s) => s && s.id) : [];
+    const map = new Map(safeSongs.map((s) => [s.id, s]));
+    return (songIds || []).map((id) => map.get(id)).filter(Boolean);
   }, [songIds, songs]);
 
   // Current playing song model in Performance Mode

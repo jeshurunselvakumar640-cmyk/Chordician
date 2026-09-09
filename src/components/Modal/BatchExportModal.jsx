@@ -41,7 +41,8 @@ export default function BatchExportModal({
         setSelectedIds([...defaultSelectedIds]);
       } else {
         // Default to selecting all if small list, or empty
-        setSelectedIds(songs.map((s) => s.id));
+        const safeSongs = Array.isArray(songs) ? songs.filter(s => s && s.id) : [];
+        setSelectedIds(safeSongs.map((s) => s.id));
       }
       setCustomSubtitle(subtitle);
     }
@@ -49,10 +50,11 @@ export default function BatchExportModal({
 
   // Filter songs by search and category with fuzzy spell resilience
   const { filteredSongs, didYouMean, isFuzzyMatch } = useMemo(() => {
-    const baseList = songs.filter((s) => {
+    const safeSongs = Array.isArray(songs) ? songs.filter(Boolean) : [];
+    const baseList = safeSongs.filter((s) => {
       return (
         selectedCategory === 'ALL' ||
-        (s.category || '').toLowerCase() === selectedCategory.toLowerCase()
+        (typeof s?.category === 'string' && s.category.toLowerCase() === selectedCategory.toLowerCase())
       );
     });
 
@@ -77,13 +79,15 @@ export default function BatchExportModal({
   };
 
   const handleSelectAll = () => {
-    const allFilteredIds = filteredSongs.map((s) => s.id);
+    const safeFiltered = Array.isArray(filteredSongs) ? filteredSongs.filter(s => s && s.id) : [];
+    const allFilteredIds = safeFiltered.map((s) => s.id);
     const union = Array.from(new Set([...selectedIds, ...allFilteredIds]));
     setSelectedIds(union);
   };
 
   const handleDeselectAll = () => {
-    const filteredSet = new Set(filteredSongs.map((s) => s.id));
+    const safeFiltered = Array.isArray(filteredSongs) ? filteredSongs.filter(s => s && s.id) : [];
+    const filteredSet = new Set(safeFiltered.map((s) => s.id));
     setSelectedIds((prev) => prev.filter((id) => !filteredSet.has(id)));
   };
 
@@ -93,7 +97,8 @@ export default function BatchExportModal({
       return;
     }
 
-    const songMap = new Map(songs.map((s) => [s.id, s]));
+    const safeSongs = Array.isArray(songs) ? songs.filter((s) => s && s.id) : [];
+    const songMap = new Map(safeSongs.map((s) => [s.id, s]));
     // Preserve defaultSelectedIds order if provided, otherwise preserve songs array order
     const orderedSongs = selectedIds.map((id) => songMap.get(id)).filter(Boolean);
 

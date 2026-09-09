@@ -297,8 +297,9 @@ export function clearThisSunday() {
  */
 export function getAdjacentSongs(currentSongId, allSongs = []) {
   const data = getThisSundayData();
-  const songMap = new Map((allSongs || []).map(s => [s.id, s]));
-  const setlistSongs = data.songIds.map(id => songMap.get(id)).filter(Boolean);
+  const safeSongs = Array.isArray(allSongs) ? allSongs.filter(s => s && s.id) : [];
+  const songMap = new Map(safeSongs.map(s => [s.id, s]));
+  const setlistSongs = (data.songIds || []).map(id => songMap.get(id)).filter(Boolean);
 
   const currentIndex = setlistSongs.findIndex(s => s.id === currentSongId);
   const inSetlist = currentIndex !== -1;

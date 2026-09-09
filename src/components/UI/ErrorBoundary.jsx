@@ -105,13 +105,13 @@ export default class ErrorBoundary extends React.Component {
             </button>
           </div>
 
-          {process.env.NODE_ENV !== 'production' && this.state.error && (
+          {this.state.error && (
             <details style={{ marginTop: '24px', textAlign: 'left', background: 'var(--bg-main)', padding: '12px', borderRadius: '8px' }}>
               <summary style={{ cursor: 'pointer', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
                 Technical Details
               </summary>
-              <pre style={{ fontSize: '0.78rem', color: 'var(--color-danger)', overflowX: 'auto', marginTop: '8px' }}>
-                {this.state.error?.toString()}
+              <pre style={{ fontSize: '0.78rem', color: 'var(--color-danger)', overflowX: 'auto', marginTop: '8px', whiteSpace: 'pre-wrap' }}>
+                {this.state.error?.stack || this.state.error?.message || String(this.state.error)}
               </pre>
             </details>
           )}
