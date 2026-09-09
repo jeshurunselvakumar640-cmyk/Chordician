@@ -77,7 +77,64 @@ export default function SongDetails({
     return 100;
   });
 
-  const handleZoomIn = () => {
+  const { 
+    isInThisSunday, 
+    toggleSong, 
+    getAdjacentSongs, 
+    serviceDate, 
+    formatServiceDate 
+  } = useThisSunday();
+
+  const {
+    isInCommunion,
+    toggleSong: toggleCommunionSong
+  } = useCommunion();
+
+  const isSelectedForSunday = song ? isInThisSunday(song.id) : false;
+  const isSelectedForCommunion = song ? isInCommunion(song.id) : false;
+  const adjacentInfo = song ? getAdjacentSongs(song.id, cachedSongs) : null;
+  const inSundaySetlist = Boolean(adjacentInfo && adjacentInfo.currentIndex !== -1);
+
+  // General library navigation fallback when not in Sunday setlist
+  const libraryIndex = useMemo(() => {
+    return cachedSongs.findIndex((s) => s.id === id);
+  }, [cachedSongs, id]);
+
+  const nextSong = useMemo(() => {
+    if (adjacentInfo?.nextSong) return adjacentInfo.nextSong;
+    if (libraryIndex >= 0 && libraryIndex < cachedSongs.length - 1) {
+      return cachedSongs[libraryIndex + 1];
+    }
+    return null;
+  }, [adjacentInfo, libraryIndex, cachedSongs]);
+
+  const prevSong = useMemo(() => {
+    if (adjacentInfo?.prevSong) return adjacentInfo.prevSong;
+    if (libraryIndex > 0) {
+      return cachedSongs[libraryIndex - 1];
+    }
+    return null;
+  }, [adjacentInfo, libraryIndex, cachedSongs]);
+
+  const handleNextSong = useCallback(() => {
+    if (nextSong) {
+      navigate(`/songs/${nextSong.id}`);
+      showToast(`Next: ${nextSong.title}`, 'info', 1200);
+    } else {
+      showToast('You have reached the last song', 'info', 1200);
+    }
+  }, [nextSong, navigate, showToast]);
+
+  const handlePrevSong = useCallback(() => {
+    if (prevSong) {
+      navigate(`/songs/${prevSong.id}`);
+      showToast(`Previous: ${prevSong.title}`, 'info', 1200);
+    } else {
+      showToast('You are at the first song', 'info', 1200);
+    }
+  }, [prevSong, navigate, showToast]);
+
+  const handleZoomIn = useCallback(() => {
     setZoomLevel((prev) => {
       const next = Math.min(160, prev + 10);
       try {
@@ -86,9 +143,9 @@ export default function SongDetails({
       showToast(`Zoom: ${next}%`, 'info', 1000);
       return next;
     });
-  };
+  }, [showToast]);
 
-  const handleZoomOut = () => {
+  const handleZoomOut = useCallback(() => {
     setZoomLevel((prev) => {
       const next = Math.max(70, prev - 10);
       try {
@@ -97,15 +154,15 @@ export default function SongDetails({
       showToast(`Zoom: ${next}%`, 'info', 1000);
       return next;
     });
-  };
+  }, [showToast]);
 
-  const handleResetZoom = () => {
+  const handleResetZoom = useCallback(() => {
     setZoomLevel(100);
     try {
       localStorage.setItem('chordician_songbook_zoom', '100');
     } catch (e) {}
     showToast('Zoom reset to 100%', 'info', 1000);
-  };
+  }, [showToast]);
 
   // Keyboard zoom shortcuts (+ to zoom in, - to zoom out, 0 to reset)
   useEffect(() => {
@@ -133,7 +190,7 @@ export default function SongDetails({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nextSong, prevSong]);
+  }, [handleZoomIn, handleZoomOut, handleResetZoom, handleNextSong, handlePrevSong]);
 
   // Immediately hydrate from cachedSongs when id or cachedSongs changes
   useEffect(() => {
@@ -190,63 +247,6 @@ export default function SongDetails({
     if (!song) return null;
     return transposeSong(song, activeKey || song.originalKey || 'C');
   }, [song, activeKey]);
-
-  const { 
-    isInThisSunday, 
-    toggleSong, 
-    getAdjacentSongs, 
-    serviceDate, 
-    formatServiceDate 
-  } = useThisSunday();
-
-  const {
-    isInCommunion,
-    toggleSong: toggleCommunionSong
-  } = useCommunion();
-
-  const isSelectedForSunday = song ? isInThisSunday(song.id) : false;
-  const isSelectedForCommunion = song ? isInCommunion(song.id) : false;
-  const adjacentInfo = song ? getAdjacentSongs(song.id, cachedSongs) : null;
-  const inSundaySetlist = Boolean(adjacentInfo && adjacentInfo.currentIndex !== -1);
-
-  // General library navigation fallback when not in Sunday setlist
-  const libraryIndex = useMemo(() => {
-    return cachedSongs.findIndex((s) => s.id === id);
-  }, [cachedSongs, id]);
-
-  const nextSong = useMemo(() => {
-    if (adjacentInfo?.nextSong) return adjacentInfo.nextSong;
-    if (libraryIndex >= 0 && libraryIndex < cachedSongs.length - 1) {
-      return cachedSongs[libraryIndex + 1];
-    }
-    return null;
-  }, [adjacentInfo, libraryIndex, cachedSongs]);
-
-  const prevSong = useMemo(() => {
-    if (adjacentInfo?.prevSong) return adjacentInfo.prevSong;
-    if (libraryIndex > 0) {
-      return cachedSongs[libraryIndex - 1];
-    }
-    return null;
-  }, [adjacentInfo, libraryIndex, cachedSongs]);
-
-  const handleNextSong = () => {
-    if (nextSong) {
-      navigate(`/songs/${nextSong.id}`);
-      showToast(`Next: ${nextSong.title}`, 'info', 1200);
-    } else {
-      showToast('You have reached the last song', 'info', 1200);
-    }
-  };
-
-  const handlePrevSong = () => {
-    if (prevSong) {
-      navigate(`/songs/${prevSong.id}`);
-      showToast(`Previous: ${prevSong.title}`, 'info', 1200);
-    } else {
-      showToast('You are at the first song', 'info', 1200);
-    }
-  };
 
   // Touch Gesture Swipe Navigation (Left swipe -> Next Song, Right swipe -> Previous Song)
   const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
