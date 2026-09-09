@@ -9,8 +9,9 @@ const SINGLE_NOTE_REGEX = /^[A-G][#b♭♯]?(?:m|maj|min|dim|aug|sus[24]?|add9|7
 const TIME_SIG_REGEX = /^(?:[1-9]|1[0-2])\/(?:2|4|8|16)$/;
 const KEY_MARKER_REGEX = /^(?:Key|Scale|Pitch)\s*[:|-]?\s*([A-G][#b♭♯]?(?:m|maj|min)?)$/i;
 const TEMPO_REGEX = /^(?:Tempo|BPM)\s*[:|-]?\s*(\d{2,3})\s*(?:bpm)?$/i;
+const TITLE_MARKER_REGEX = /^(?:Title|Song Title|Track)\s*[:|-]\s*(.+)$/i;
 const INSTRUMENT_TAB_HEADER_REGEX =
-  /^(?:.+?\s+)?(?:Chords|Lyrics|Tabs|Song|Chord Chart|Sheet Music)(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i;
+  /^(?:#+\s*)?(?:.+?\s+)?(?:Chords|Tabs|Chord Chart|Sheet Music|(?:Song\s+(?:Lyrics|Chords|Tabs)))(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i;
 
 const FOOTER_UI_STOP_REGEX =
   /^(?:Your Account|Your Favourites|Your favorites|Interactive chord editor|Click a word|ChordPro source|Edit chords|Version history|Restricted \(copyright\)|Top Artists|Chords Z|Top Songs|Popular Songs|All Artists|Browse by|A B C D E F G|HIJKLMNOPQRSTUVWXYZ|Leave a Reply|Comments|Recent Posts|You May Also Like|Related Posts|Popular Songs|Footer Navigation|Similar Songs|Next Post|Previous Post|Tags:|Categories:|Copyright\s*©|All rights reserved)\b/i;
@@ -145,8 +146,32 @@ export function analyzeLines(rawLines) {
       continue;
     }
 
+    const titleMatch = trimmed.match(TITLE_MARKER_REGEX);
+    if (titleMatch) {
+      result.push({
+        raw: noEmoji,
+        trimmed,
+        type: 'METADATA_HEADER',
+        metaValue: titleMatch[1].trim()
+      });
+      continue;
+    }
+
+    if (/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/.test(trimmed)) {
+      result.push({ raw: noEmoji, trimmed, type: 'INLINE_BRACKETED' });
+      continue;
+    }
+
+    if (isChordLine(noEmoji)) {
+      result.push({ raw: noEmoji, trimmed, type: 'CHORD_LINE' });
+      continue;
+    }
+
     if (INSTRUMENT_TAB_HEADER_REGEX.test(trimmed)) {
-      const cleanTitle = trimmed.replace(/\s*(?:[-–—|:]\s*)?(?:Chords|Lyrics|Tabs|Song|Chord Chart|Sheet Music)(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i, '').trim();
+      const cleanTitle = trimmed
+        .replace(/\s*(?:[-–—|:]\s*)?(?:Chords|Tabs|Chord Chart|Sheet Music|(?:Song\s+(?:Lyrics|Chords|Tabs)))(?:\s+(?:for\s+)?(?:Keyboard|Guitar|Piano|Ukulele|Bass|and|,|\s+)+)*$/i, '')
+        .replace(/^#+\s*/, '')
+        .trim();
       result.push({
         raw: noEmoji,
         trimmed,
@@ -162,16 +187,6 @@ export function analyzeLines(rawLines) {
         trimmed,
         type: 'TRANSPOSE_LADDER' // Treat as skippable non-song line
       });
-      continue;
-    }
-
-    if (/\[[A-G][#b]?[^\]\s]*\]|\([A-G][#b]?[^)\s]*\)/.test(trimmed)) {
-      result.push({ raw: noEmoji, trimmed, type: 'INLINE_BRACKETED' });
-      continue;
-    }
-
-    if (isChordLine(noEmoji)) {
-      result.push({ raw: noEmoji, trimmed, type: 'CHORD_LINE' });
       continue;
     }
 
@@ -243,11 +258,20 @@ export function analyzeLines(rawLines) {
         continue;
       }
 
-      // Check if top line is single-note key indicator (e.g. "   F")
+      // Check if top line is an isolated single-note key indicator before empty line/metadata/headers (e.g. "   F" followed by empty line or "4/4" or section header)
       if (item.type === 'CHORD_LINE' && SINGLE_NOTE_REGEX.test(item.trimmed)) {
-        item.type = 'METADATA_KEY';
-        item.metaValue = item.trimmed.toUpperCase();
-        continue;
+        const nextItem = result[i + 1];
+        if (!nextItem || nextItem.type === 'EMPTY' || (
+          nextItem.type === 'METADATA_TIME' ||
+          nextItem.type === 'METADATA_TEMPO' ||
+          nextItem.type === 'METADATA_HEADER' ||
+          nextItem.type === 'TRANSPOSE_LADDER' ||
+          nextItem.type === 'SECTION_HEADER'
+        )) {
+          item.type = 'METADATA_KEY';
+          item.metaValue = item.trimmed.toUpperCase();
+          continue;
+        }
       }
 
       songStarted = true;

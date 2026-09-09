@@ -1086,6 +1086,67 @@ for (const tc of t36Cases) {
   assertEqual(reconstructed, tokenized.lyrics, `True character and order conservation for "${tc.input}"`);
 }
 
+// --- Test 37: First-Line Chord Detection & Reconstruction Invariants ---
+console.log('\n--- Test 37: First-Line Chord Detection & Reconstruction Invariants ---');
+
+// Test 37.1: Single chord on line 1 above lyrics (Previously failing scenario)
+const t37_1Raw = `C
+Amazing grace, how sweet the sound
+F              C           G
+That saved a wretch like me`;
+const t37_1Res = parseSong(t37_1Raw);
+assertEqual(t37_1Res.sections[0].lines[0].chords.length, 1, 'Line 1 has 1 chord detected');
+assertEqual(t37_1Res.sections[0].lines[0].chords[0].chord, 'C', 'Line 1 chord is C');
+assertEqual(t37_1Res.sections[0].lines[0].lyrics, 'Amazing grace, how sweet the sound', 'Line 1 lyrics matched');
+assertEqual(t37_1Res.sections[0].lines[1].chords.length, 3, 'Line 2 has 3 chords detected');
+
+// Test 37.2: Various single chord types on line 1 (Cm, C7, C#, A#, Dm, F#m, G7, G)
+const chordTypesToTest = ['Cm', 'C7', 'C#', 'A#', 'Dm', 'F#m', 'G7', 'G', 'Em', 'Bb', 'Dmaj7', 'Fsus4'];
+for (const chordType of chordTypesToTest) {
+  const rawSong = `${chordType}
+First lyric line of the song
+G              C
+Second lyric line with chords`;
+  const parsed = parseSong(rawSong);
+  assertEqual(parsed.sections[0].lines[0].chords.length, 1, `Line 1 with ${chordType} has 1 chord`);
+  assertEqual(parsed.sections[0].lines[0].chords[0].chord, chordType, `Line 1 chord is ${chordType}`);
+  assertEqual(parsed.sections[0].lines[0].lyrics, 'First lyric line of the song', `Line 1 lyrics preserved for ${chordType}`);
+  assertEqual(parsed.sections[0].lines[1].chords.length, 2, `Line 2 chords preserved for ${chordType}`);
+}
+
+// Test 37.3: Multiple chords on line 1
+const t37_3Raw = `C       G       Am      F
+Sing to the Lord a brand new song
+C       G       F       C
+Sing to the Lord all the earth`;
+const t37_3Res = parseSong(t37_3Raw);
+assertEqual(t37_3Res.sections[0].lines[0].chords.length, 4, 'Line 1 has 4 chords');
+assertEqual(t37_3Res.sections[0].lines[0].lyrics, 'Sing to the Lord a brand new song', 'Line 1 lyrics preserved');
+assertEqual(t37_3Res.sections[0].lines[1].chords.length, 4, 'Line 2 has 4 chords');
+
+// Test 37.4: Bracketed chords containing word "song" in line 1
+const t37_4Raw = `[G] Sing unto the Lord a new [C] song
+[G] Sing unto the Lord all the [D] earth`;
+const t37_4Res = parseSong(t37_4Raw);
+assertEqual(t37_4Res.sections[0].lines[0].chords.length, 2, 'Bracketed line 1 with "song" has 2 chords');
+assertEqual(t37_4Res.sections[0].lines[0].chords[0].chord, 'G', 'Bracketed line 1 first chord is G');
+assertEqual(t37_4Res.sections[0].lines[0].chords[1].chord, 'C', 'Bracketed line 1 second chord is C');
+assertEqual(t37_4Res.sections[0].lines[1].chords.length, 2, 'Bracketed line 2 has 2 chords');
+
+// Test 37.5: Blank lines and explicit section headers with first-line single chords
+const t37_5Raw = `Title: My Praise Song
+Key: G
+
+[Verse 1]
+G
+Kaun Hai, Kaun Hai Rajao Ka Raja
+E                  A
+Toh Karo Jai Jai Kar`;
+const t37_5Res = parseSong(t37_5Raw);
+assertEqual(t37_5Res.sections[0].lines[0].chords.length, 1, 'Section 1 line 1 has chord G');
+assertEqual(t37_5Res.sections[0].lines[0].chords[0].chord, 'G', 'Section 1 line 1 chord is G');
+assertEqual(t37_5Res.sections[0].lines[1].chords.length, 2, 'Section 1 line 2 has 2 chords');
+
 console.log(`\n=== TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===\n`);
 if (failed > 0) {
   process.exit(1);
