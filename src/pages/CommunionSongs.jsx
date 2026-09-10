@@ -119,7 +119,7 @@ export default function CommunionSongs({ songs = [], isLoading = false }) {
   };
 
   const handlePrint = () => {
-    window.print();
+    setIsExportPDFOpen(true);
   };
 
   return (

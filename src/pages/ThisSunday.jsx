@@ -188,7 +188,7 @@ export default function ThisSunday({ songs = [], isLoading = false }) {
   };
 
   const handlePrint = () => {
-    window.print();
+    setIsExportPDFOpen(true);
   };
 
   return (

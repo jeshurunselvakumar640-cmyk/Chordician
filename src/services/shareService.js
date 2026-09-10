@@ -1,6 +1,7 @@
 import { formatMainStyleHighlight } from '../data/songStyles.js';
 import { transposeSong } from './transposer.js';
 import { getSongById } from '../firebase/songs.js';
+import { extractSongUniqueChords, getChordNotes, getScaleNotes } from '../utils/chordNotesCalculator.js';
 
 /**
  * Formats only the song details into text:
@@ -238,13 +239,32 @@ function createPDFRenderElement(songList = [], options = {}) {
 
     const songPage = document.createElement('div');
     songPage.className = 'pdf-song-page';
-    songPage.style.padding = '36px 40px 48px 40px';
+    songPage.style.padding = '34px 38px 42px 38px';
     songPage.style.boxSizing = 'border-box';
     songPage.style.minHeight = '1120px'; // standard A4 height at 96 DPI
     songPage.style.position = 'relative';
     songPage.style.display = 'flex';
     songPage.style.flexDirection = 'column';
     songPage.style.justifyContent = 'space-between';
+    songPage.style.overflow = 'hidden';
+
+    // Subtle background watermark
+    const watermarkEl = document.createElement('div');
+    watermarkEl.style.position = 'absolute';
+    watermarkEl.style.top = '50%';
+    watermarkEl.style.left = '50%';
+    watermarkEl.style.transform = 'translate(-50%, -50%) rotate(-32deg)';
+    watermarkEl.style.fontSize = '84px';
+    watermarkEl.style.fontWeight = '900';
+    watermarkEl.style.color = 'rgba(99, 102, 241, 0.04)';
+    watermarkEl.style.letterSpacing = '0.16em';
+    watermarkEl.style.textTransform = 'uppercase';
+    watermarkEl.style.pointerEvents = 'none';
+    watermarkEl.style.userSelect = 'none';
+    watermarkEl.style.zIndex = '0';
+    watermarkEl.style.whiteSpace = 'nowrap';
+    watermarkEl.innerText = 'CHORDICIAN';
+    songPage.appendChild(watermarkEl);
 
     if (sIndex > 0) {
       songPage.style.pageBreakBefore = 'always';
@@ -252,15 +272,17 @@ function createPDFRenderElement(songList = [], options = {}) {
 
     // --- Main Content Top Wrapper ---
     const contentWrap = document.createElement('div');
+    contentWrap.style.position = 'relative';
+    contentWrap.style.zIndex = '1';
 
-    // --- Header Branding ---
+    // --- Header Branding with Letterhead ---
     const header = document.createElement('div');
     header.style.display = 'flex';
-    header.style.alignItems = 'center';
+    header.style.alignItems = 'flex-end';
     header.style.justifyContent = 'space-between';
-    header.style.borderBottom = '2px solid #6366f1';
+    header.style.borderBottom = '2px solid #4f46e5';
     header.style.paddingBottom = '10px';
-    header.style.marginBottom = '18px';
+    header.style.marginBottom = '16px';
 
     const brandLeft = document.createElement('div');
     brandLeft.style.display = 'flex';
@@ -268,10 +290,10 @@ function createPDFRenderElement(songList = [], options = {}) {
     brandLeft.style.gap = '8px';
 
     const logoIcon = document.createElement('div');
-    logoIcon.style.width = '24px';
-    logoIcon.style.height = '24px';
+    logoIcon.style.width = '26px';
+    logoIcon.style.height = '26px';
     logoIcon.style.borderRadius = '6px';
-    logoIcon.style.background = 'linear-gradient(135deg, #6366f1, #a855f7)';
+    logoIcon.style.background = 'linear-gradient(135deg, #4f46e5, #6366f1)';
     logoIcon.style.display = 'flex';
     logoIcon.style.alignItems = 'center';
     logoIcon.style.justifyContent = 'center';
@@ -282,18 +304,19 @@ function createPDFRenderElement(songList = [], options = {}) {
 
     const brandText = document.createElement('div');
     brandText.innerHTML = `
-      <span style="font-size: 16px; font-weight: 800; color: #1e1b4b; letter-spacing: -0.02em;">Chordician</span>
-      <span style="font-size: 11px; color: #6b7280; margin-left: 6px;">Your chords. Your key.</span>
+      <div style="font-size: 17px; font-weight: 800; color: #1e1b4b; letter-spacing: -0.02em; line-height: 1.1;">Chordician</div>
+      <div style="font-size: 9.5px; font-weight: 600; color: #6366f1; letter-spacing: 0.03em; text-transform: uppercase;">Your chords. Your key.</div>
     `;
 
     brandLeft.appendChild(logoIcon);
     brandLeft.appendChild(brandText);
 
     const brandRight = document.createElement('div');
-    brandRight.style.fontSize = '11px';
-    brandRight.style.color = '#6b7280';
-    brandRight.style.fontWeight = '500';
-    brandRight.innerText = options.documentSubtitle || 'Worship Songbook';
+    brandRight.style.textAlign = 'right';
+    brandRight.innerHTML = `
+      <div style="font-size: 10.5px; font-weight: 700; color: #0f172a;">Owner: <span style="color: #4f46e5;">Jeshurun Selvakumar</span></div>
+      <div style="font-size: 9px; color: #64748b; font-family: monospace;">chordician.vercel.app</div>
+    `;
 
     header.appendChild(brandLeft);
     header.appendChild(brandRight);
@@ -526,6 +549,70 @@ function createPDFRenderElement(songList = [], options = {}) {
     });
 
     contentWrap.appendChild(sectionsContainer);
+
+    // --- Bottom Section: Chords & Scale Breakdown in PDF ---
+    const chordsAndScaleCard = document.createElement('div');
+    chordsAndScaleCard.style.marginTop = '18px';
+    chordsAndScaleCard.style.padding = '10px 14px';
+    chordsAndScaleCard.style.borderRadius = '8px';
+    chordsAndScaleCard.style.border = '1px solid #c7d2fe';
+    chordsAndScaleCard.style.background = '#f8fafc';
+
+    const csHeader = document.createElement('div');
+    csHeader.style.display = 'flex';
+    csHeader.style.justifyContent = 'space-between';
+    csHeader.style.alignItems = 'center';
+    csHeader.style.borderBottom = '1px solid #e2e8f0';
+    csHeader.style.paddingBottom = '4px';
+    csHeader.style.marginBottom = '6px';
+    csHeader.innerHTML = `
+      <span style="font-size: 10.5px; font-weight: 800; color: #312e81; text-transform: uppercase; letter-spacing: 0.04em;">Chords & Scale Breakdown</span>
+      <span style="font-size: 9px; font-weight: 700; color: #4338ca; background: #ffffff; padding: 1px 6px; border-radius: 4px; border: 1px solid #c7d2fe; font-family: monospace;">Key of ${key}</span>
+    `;
+    chordsAndScaleCard.appendChild(csHeader);
+
+    // Scale Row
+    const scaleInfo = getScaleNotes(key);
+    const scaleRow = document.createElement('div');
+    scaleRow.style.fontSize = '10px';
+    scaleRow.style.marginBottom = '6px';
+    scaleRow.innerHTML = `
+      <strong style="color: #4338ca;">Scale (${scaleInfo.label}):</strong> 
+      <span style="font-family: monospace; font-weight: 700; color: #1e1b4b; margin-left: 6px;">${scaleInfo.formatted}</span>
+    `;
+    chordsAndScaleCard.appendChild(scaleRow);
+
+    // Unique Chords Breakdown
+    const uniqueChords = extractSongUniqueChords(currentSong);
+    if (uniqueChords.length > 0) {
+      const chordsWrap = document.createElement('div');
+      chordsWrap.style.fontSize = '9.5px';
+      chordsWrap.style.display = 'flex';
+      chordsWrap.style.flexWrap = 'wrap';
+      chordsWrap.style.gap = '6px 12px';
+      chordsWrap.style.marginTop = '4px';
+
+      uniqueChords.forEach((chord) => {
+        const info = getChordNotes(chord);
+        const item = document.createElement('div');
+        item.style.display = 'inline-flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '4px';
+        item.style.background = '#ffffff';
+        item.style.padding = '2px 6px';
+        item.style.borderRadius = '4px';
+        item.style.border = '1px solid #e2e8f0';
+        item.innerHTML = `
+          <strong style="color: #4338ca; font-weight: 800;">${chord}:</strong>
+          <span style="font-family: monospace; font-weight: 600; color: #334155;">${info.formatted || info.notes}</span>
+        `;
+        chordsWrap.appendChild(item);
+      });
+
+      chordsAndScaleCard.appendChild(chordsWrap);
+    }
+
+    contentWrap.appendChild(chordsAndScaleCard);
     songPage.appendChild(contentWrap);
 
     // --- Footer Branding ---
@@ -699,7 +786,13 @@ export async function exportSongsToPDF(songs, options = {}) {
       pdf.text(`Page ${pNum} of ${totalPdfPages}`, pdfWidth - 40, pdfHeight - 10, { align: 'right' });
     }
 
-    pdf.save(filename);
+    if (options.printDirect) {
+      pdf.autoPrint();
+      const blobUrl = pdf.output('bloburl');
+      window.open(blobUrl, '_blank');
+    } else {
+      pdf.save(filename);
+    }
     return pdf;
   } finally {
     if (renderRoot && renderRoot.parentNode) {

@@ -31,10 +31,11 @@ export default function ShareModal({
   isOpen,
   onClose,
   song,
-  initialKey
+  initialKey,
+  initialTab = 'details'
 }) {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'full' | 'pdf'
+  const [activeTab, setActiveTab] = useState(initialTab || 'details'); // 'details' | 'full' | 'pdf'
   const [selectedKey, setSelectedKey] = useState(initialKey || song?.originalKey || 'C');
   const [isCopied, setIsCopied] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
@@ -46,6 +47,7 @@ export default function ShareModal({
     let isMounted = true;
     if (!isOpen || !song) return;
 
+    setActiveTab(initialTab || 'details');
     setSelectedKey(initialKey || song.originalKey || 'C');
 
     if (!song.sections || song.sections.length === 0) {
@@ -123,9 +125,9 @@ export default function ShareModal({
     showToast('Downloaded text file', 'success');
   };
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (isPrint = false) => {
     setIsExportingPDF(true);
-    setPdfProgress('Preparing PDF...');
+    setPdfProgress(isPrint ? 'Preparing print preview...' : 'Preparing PDF...');
     try {
       const songToExport = {
         ...currentSong,
@@ -133,11 +135,12 @@ export default function ShareModal({
       };
       await exportSongsToPDF(songToExport, {
         documentSubtitle: 'Chordician Piano Songbook',
+        printDirect: isPrint,
         onProgress: (current, total) => {
           setPdfProgress(`Rendering page ${current} of ${total}...`);
         }
       });
-      showToast(`Exported "${song.title}" PDF successfully!`, 'success');
+      showToast(isPrint ? `Opening print dialog for "${song.title}"...` : `Exported "${song.title}" PDF successfully!`, 'success');
       onClose();
     } catch (err) {
       console.error('PDF export error:', err);
@@ -371,14 +374,15 @@ export default function ShareModal({
                 </div>
 
                 <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                  <li><strong>Header:</strong> Chordician branding header ("Your chords. Your key.")</li>
-                  <li><strong>Scale / Key:</strong> Rendered in <strong>Key of {selectedKey}</strong></li>
-                  <li><strong>Sections:</strong> Chords aligned over lyrics with support for Tamil Unicode</li>
+                  <li><strong>Letterhead:</strong> Chordician branding & Owner: Jeshurun Selvakumar</li>
+                  <li><strong>Scale / Key:</strong> Transposed to <strong>Key of {selectedKey}</strong></li>
+                  <li><strong>Chords & Scale Breakdown:</strong> Included at the bottom of the PDF</li>
+                  <li><strong>Watermark:</strong> Subtle background conservatory watermark</li>
                   <li><strong>Footer:</strong> <span style={{ color: 'var(--text-main)', fontWeight: '600' }}>© Jeshurun Selvakumar</span> & Page numbers</li>
                 </ul>
               </div>
 
-              <div className="share-actions-row" style={{ justifyContent: 'flex-end' }}>
+              <div className="share-actions-row" style={{ justifyContent: 'flex-end', gap: '10px' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -390,10 +394,21 @@ export default function ShareModal({
 
                 <button
                   type="button"
-                  className="btn btn-primary"
-                  onClick={handleExportPDF}
+                  className="btn btn-secondary"
+                  onClick={() => handleExportPDF(true)}
                   disabled={isExportingPDF}
-                  style={{ minWidth: '160px' }}
+                  style={{ minWidth: '130px' }}
+                >
+                  <Printer size={16} />
+                  <span>Print PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => handleExportPDF(false)}
+                  disabled={isExportingPDF}
+                  style={{ minWidth: '150px' }}
                 >
                   {isExportingPDF ? (
                     <>
@@ -403,7 +418,7 @@ export default function ShareModal({
                   ) : (
                     <>
                       <FileDown size={16} />
-                      <span>Export Song PDF</span>
+                      <span>Download PDF</span>
                     </>
                   )}
                 </button>

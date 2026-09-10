@@ -60,6 +60,7 @@ export default function SongDetails({
   const [activeKey, setActiveKey] = useState(song?.originalKey || 'C');
   const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareModalTab, setShareModalTab] = useState('details');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
@@ -309,7 +310,8 @@ export default function SongDetails({
   };
 
   const handlePrint = () => {
-    window.print();
+    setShareModalTab('pdf');
+    setIsShareModalOpen(true);
   };
 
   if (isLoading) {
@@ -443,7 +445,10 @@ export default function SongDetails({
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => setIsShareModalOpen(true)}
+            onClick={() => {
+              setShareModalTab('details');
+              setIsShareModalOpen(true);
+            }}
             title="Share song details, chords, or export PDF"
             style={{ minWidth: '40px', minHeight: '40px', padding: '8px 12px' }}
           >
@@ -679,6 +684,7 @@ export default function SongDetails({
           onClose={() => setIsShareModalOpen(false)}
           song={song}
           initialKey={activeKey || song?.originalKey || 'C'}
+          initialTab={shareModalTab}
         />
       )}
 
