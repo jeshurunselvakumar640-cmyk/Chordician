@@ -217,7 +217,25 @@ function AppContent() {
               }
             />
             <Route
+              path="/song/:id"
+              element={
+                <SongDetails
+                  cachedSongs={songs}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDeleteSong={handleDeleteSongDirect}
+                />
+              }
+            />
+            <Route
               path="/songs/:id/edit"
+              element={
+                <ProtectedRoute title="Edit Song (Owner Access Only)">
+                  <EditSong onSongUpdated={fetchAllSongs} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/song/:id/edit"
               element={
                 <ProtectedRoute title="Edit Song (Owner Access Only)">
                   <EditSong onSongUpdated={fetchAllSongs} />

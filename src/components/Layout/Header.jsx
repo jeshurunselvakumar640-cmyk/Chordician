@@ -152,7 +152,7 @@ export default function Header({
             songs={songs}
             onSelectSong={(song) => {
               setMobileSearchOpen(false);
-              navigate(`/song/${song.id}`);
+              navigate(`/songs/${song.id}`);
             }}
           />
         </div>

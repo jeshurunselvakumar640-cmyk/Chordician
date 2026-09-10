@@ -50,7 +50,7 @@ export default function SearchBar({
     if (typeof onSelectSong === 'function') {
       onSelectSong(song);
     } else if (song && song.id) {
-      navigate(`/song/${song.id}`);
+      navigate(`/songs/${song.id}`);
     }
   };
 
