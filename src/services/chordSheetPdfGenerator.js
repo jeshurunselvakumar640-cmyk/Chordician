@@ -508,10 +508,26 @@ export async function generateChordReferencePDF(onProgress = null) {
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    const imgData = canvas.toDataURL('image/png');
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    const pages = [page1, page2, page3];
+    for (let i = 0; i < pages.length; i++) {
+      if (onProgress) onProgress(`Rendering Page ${i + 1} of ${pages.length}...`);
 
-    pdf.save('Chordician_Piano_Chord_and_Scale_Reference_Guide.pdf');
+      const canvas = await html2canvas(pages[i], {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      if (i > 0) {
+        pdf.addPage('a4', 'portrait');
+      }
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+    }
+
+    if (onProgress) onProgress('Saving PDF file...');
+    pdf.save('Chordician_Master_Chord_and_Scale_Reference_Guide.pdf');
 
     if (onProgress) onProgress('Download ready!');
   } finally {
