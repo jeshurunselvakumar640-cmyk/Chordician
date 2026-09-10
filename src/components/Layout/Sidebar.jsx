@@ -13,7 +13,8 @@ import {
   Wine,
   Download,
   Crown,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
 import { useCommunion } from '../../context/CommunionContext.jsx';
@@ -61,6 +62,7 @@ export default function Sidebar({
     { to: '/songs', label: 'My Songs', icon: <Music size={19} />, badge: totalSongs > 0 ? totalSongs : null },
     { to: '/favorites', label: 'Favorites', icon: <Heart size={19} />, badge: favoriteCount > 0 ? favoriteCount : null },
     { to: '/recent', label: 'Recently Added', icon: <Clock size={19} /> },
+    { to: '/notes', label: 'Notes', icon: <BookOpen size={19} /> },
     ...(canEdit ? [{ to: '/import', label: 'AI Import', icon: <Sparkles size={19} /> }] : []),
     { to: '/settings', label: 'Settings', icon: <Settings size={19} /> }
   ];

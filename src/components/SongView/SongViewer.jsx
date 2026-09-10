@@ -1,5 +1,6 @@
 import React from 'react';
 import SectionViewer from './SectionViewer';
+import SongChordsAndScale from './SongChordsAndScale';
 import { Music } from 'lucide-react';
 
 export default function SongViewer({ transposedSong, zoomLevel = 100 }) {
@@ -27,6 +28,9 @@ export default function SongViewer({ transposedSong, zoomLevel = 100 }) {
           <SectionViewer key={section.id || index} section={section} />
         ))
       )}
+
+      {/* Dynamic Chords and Scale Notes Breakdown */}
+      <SongChordsAndScale transposedSong={transposedSong} />
     </div>
   );
 }
