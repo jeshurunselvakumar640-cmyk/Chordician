@@ -24,7 +24,7 @@ import {
 } from '../../services/shareService.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import { transposeSong } from '../../services/transposer.js';
-import { ALL_KEYS } from '../../utils/musicConstants.js';
+import { ALL_KEYS, MAJOR_KEYS, MINOR_KEYS } from '../../utils/musicConstants.js';
 import { getSongById } from '../../firebase/songs.js';
 
 export default function ShareModal({
@@ -216,12 +216,12 @@ export default function ShareModal({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <select
-              className="form-select"
+              id="share-target-key"
               value={selectedKey}
               onChange={(e) => setSelectedKey(e.target.value)}
+              className="font-mono-input"
               style={{
-                fontSize: '0.82rem',
-                padding: '4px 8px',
+                padding: '6px 12px',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-medium)',
                 background: 'var(--bg-card)',
@@ -229,11 +229,20 @@ export default function ShareModal({
                 fontWeight: '600'
               }}
             >
-              {ALL_KEYS.map((k) => (
-                <option key={k} value={k}>
-                  Key of {k} {k === song.originalKey ? '(Original)' : ''}
-                </option>
-              ))}
+              <optgroup label="Major Keys">
+                {MAJOR_KEYS.map((k) => (
+                  <option key={k} value={k}>
+                    Key of {k} {k === song.originalKey ? '(Original)' : ''}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Minor Keys">
+                {MINOR_KEYS.map((k) => (
+                  <option key={k} value={k}>
+                    Key of {k} {k === song.originalKey ? '(Original)' : ''}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
         </div>

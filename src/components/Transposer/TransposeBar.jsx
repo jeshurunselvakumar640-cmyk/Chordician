@@ -1,6 +1,6 @@
 import React from 'react';
 import { Minus, Plus, RotateCcw, Sliders, ZoomIn, ZoomOut } from 'lucide-react';
-import { ALL_KEYS } from '../../utils/musicConstants.js';
+import { ALL_KEYS, MAJOR_KEYS, MINOR_KEYS } from '../../utils/musicConstants.js';
 import { stepKey } from '../../services/transposer.js';
 
 export default function TransposeBar({
@@ -61,11 +61,20 @@ export default function TransposeBar({
             onChange={(e) => onChangeKey(e.target.value)}
             aria-label="Select musical key"
           >
-            {ALL_KEYS.map((k) => (
-              <option key={k} value={k} style={{ background: 'var(--bg-card)', color: 'var(--text-main)' }}>
-                Key of {k}
-              </option>
-            ))}
+            <optgroup label="Major Keys">
+              {MAJOR_KEYS.map((k) => (
+                <option key={k} value={k} style={{ background: 'var(--bg-card)', color: 'var(--text-main)' }}>
+                  Key of {k}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Minor Keys">
+              {MINOR_KEYS.map((k) => (
+                <option key={k} value={k} style={{ background: 'var(--bg-card)', color: 'var(--text-main)' }}>
+                  Key of {k}
+                </option>
+              ))}
+            </optgroup>
           </select>
 
           {semitoneDelta !== 0 && (

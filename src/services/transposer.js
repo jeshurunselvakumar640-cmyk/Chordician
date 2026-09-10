@@ -250,13 +250,15 @@ export function transposeRowContent(content, rowType, semitoneDelta, targetKey) 
  * Step key up or down by 1 semitone
  */
 export function stepKey(currentKey, direction = 1) {
+  const isMinor = /m$/i.test(String(currentKey || '').trim());
   const root = getRootFromKey(currentKey);
   const currentSemitone = NOTE_TO_SEMITONE[root] ?? 0;
   const newSemitone = (currentSemitone + direction + 12) % 12;
   
   // Decide whether to return sharp or flat based on direction & key
   const preference = direction < 0 ? 'flat' : 'sharp';
-  return semitoneToNoteName(newSemitone, preference);
+  const steppedRoot = semitoneToNoteName(newSemitone, preference);
+  return isMinor ? `${steppedRoot}m` : steppedRoot;
 }
 
 /**

@@ -13,7 +13,7 @@ import EmptyState from '../components/UI/EmptyState';
 import BatchExportModal from '../components/Modal/BatchExportModal';
 import ContactModal from '../components/Modal/ContactModal';
 import { SongCardSkeleton } from '../components/UI/SkeletonLoader';
-import { ALL_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../utils/musicConstants.js';
+import { ALL_KEYS, MAJOR_KEYS, MINOR_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../utils/musicConstants.js';
 import { getStoredViewMode, setStoredViewMode } from '../services/storage.js';
 import { searchSongsWithFuzzy } from '../utils/fuzzySearch.js';
 
@@ -274,11 +274,20 @@ export default function Songs({
             aria-label="Filter by musical key"
           >
             <option value="ALL">All Keys</option>
-            {ALL_KEYS.map((k) => (
-              <option key={k} value={k}>
-                Key of {k}
-              </option>
-            ))}
+            <optgroup label="Major Keys">
+              {MAJOR_KEYS.map((k) => (
+                <option key={k} value={k}>
+                  Key of {k}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Minor Keys">
+              {MINOR_KEYS.map((k) => (
+                <option key={k} value={k}>
+                  Key of {k}
+                </option>
+              ))}
+            </optgroup>
           </select>
 
           {/* Category Filter */}

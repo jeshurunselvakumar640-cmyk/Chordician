@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ALL_KEYS, COMMON_CHORD_QUALITIES } from '../../utils/musicConstants.js';
+import { MAJOR_KEYS, COMMON_CHORD_QUALITIES } from '../../utils/musicConstants.js';
 
 export default function ChordHelper({ rowType, onInsert }) {
   const [selectedRoot, setSelectedRoot] = useState('C');
@@ -14,7 +14,7 @@ export default function ChordHelper({ rowType, onInsert }) {
 
         {/* Roots */}
         <div className="chord-helper-roots-grid">
-          {ALL_KEYS.map((root) => (
+          {MAJOR_KEYS.map((root) => (
             <button
               key={root}
               type="button"

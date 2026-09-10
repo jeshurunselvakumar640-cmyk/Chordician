@@ -5,8 +5,17 @@
 export const SHARP_SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 export const FLAT_SCALE  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
-export const ALL_KEYS = [
+export const MAJOR_KEYS = [
   'C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'
+];
+
+export const MINOR_KEYS = [
+  'Am', 'A#m', 'Bbm', 'Bm', 'Cm', 'C#m', 'Dbm', 'Dm', 'D#m', 'Ebm', 'Em', 'Fm', 'F#m', 'Gbm', 'Gm', 'G#m', 'Abm'
+];
+
+export const ALL_KEYS = [
+  ...MAJOR_KEYS,
+  ...MINOR_KEYS
 ];
 
 export const NOTE_TO_SEMITONE = {
@@ -42,7 +51,25 @@ export const KEY_SPELLING_PREFERENCE = {
   'A': 'sharp',
   'A#': 'flat', // Bb is standard
   'Bb': 'flat',
-  'B': 'sharp'
+  'B': 'sharp',
+  // Minor keys
+  'Am': 'sharp',
+  'A#m': 'sharp',
+  'Bbm': 'flat',
+  'Bm': 'sharp',
+  'Cm': 'flat',
+  'C#m': 'sharp',
+  'Dbm': 'flat',
+  'Dm': 'flat',
+  'D#m': 'sharp',
+  'Ebm': 'flat',
+  'Em': 'sharp',
+  'Fm': 'flat',
+  'F#m': 'sharp',
+  'Gbm': 'flat',
+  'Gm': 'flat',
+  'G#m': 'sharp',
+  'Abm': 'flat'
 };
 
 export const PRIMARY_LANGUAGES = ['Tamil', 'Hindi', 'English'];

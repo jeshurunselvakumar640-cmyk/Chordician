@@ -11,7 +11,7 @@ import {
   X,
   Sparkles
 } from 'lucide-react';
-import { ALL_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../../utils/musicConstants.js';
+import { ALL_KEYS, MAJOR_KEYS, MINOR_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../../utils/musicConstants.js';
 import { formatStyleCode } from '../../data/songStyles.js';
 import { mergeSections, splitSection, insertSection } from '../../utils/linkedChordEditorHelper.js';
 import SongSectionEditor from './SongSectionEditor';
@@ -256,11 +256,20 @@ export default function SongEditor({
               value={originalKey}
               onChange={(e) => setOriginalKey(e.target.value)}
             >
-              {ALL_KEYS.map((k) => (
-                <option key={k} value={k}>
-                  Key of {k}
-                </option>
-              ))}
+              <optgroup label="Major Keys">
+                {MAJOR_KEYS.map((k) => (
+                  <option key={k} value={k}>
+                    Key of {k}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Minor Keys">
+                {MINOR_KEYS.map((k) => (
+                  <option key={k} value={k}>
+                    Key of {k}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 
