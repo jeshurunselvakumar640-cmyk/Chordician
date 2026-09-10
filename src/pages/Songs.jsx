@@ -266,15 +266,6 @@ export default function Songs({
       {/* Filter and Search Card */}
       <div className="card songs-filter-card">
         <div className="songs-filter-grid">
-          {/* Search input (full width) */}
-          <div className="songs-search-col">
-            <SearchBar
-              value={searchQuery}
-              onChange={handleSearchChange}
-              placeholder="Search by title, artist, lyrics..."
-            />
-          </div>
-
           {/* Key Filter */}
           <select
             className="form-select font-mono-input filter-select"
@@ -340,6 +331,15 @@ export default function Songs({
             <option value="title_asc">Title (A to Z)</option>
             <option value="artist_asc">Artist (A to Z)</option>
           </select>
+
+          {/* Search input (full width below filters) */}
+          <div className="songs-search-col">
+            <SearchBar
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search by title, artist, lyrics..."
+            />
+          </div>
         </div>
 
         {hasActiveFilters && (

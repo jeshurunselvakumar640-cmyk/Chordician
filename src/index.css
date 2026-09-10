@@ -1119,9 +1119,14 @@ button:disabled {
 
 .songs-filter-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1.1fr 1.1fr 1.1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   align-items: center;
+}
+
+.songs-search-col {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .songs-filter-footer {
