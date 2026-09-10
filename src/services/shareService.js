@@ -314,7 +314,7 @@ function createPDFRenderElement(songList = [], options = {}) {
     const brandRight = document.createElement('div');
     brandRight.style.textAlign = 'right';
     brandRight.innerHTML = `
-      <div style="font-size: 10.5px; font-weight: 700; color: #0f172a;">Owner: <span style="color: #4f46e5;">Jeshurun Selvakumar</span></div>
+      <div style="font-size: 9.5px; font-weight: 600; color: #64748b;">built by <span style="color: #4f46e5; font-weight: 700;">jeshurun</span></div>
       <div style="font-size: 9px; color: #64748b; font-family: monospace;">chordician.vercel.app</div>
     `;
 

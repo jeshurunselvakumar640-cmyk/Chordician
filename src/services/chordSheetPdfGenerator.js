@@ -40,8 +40,8 @@ export async function generateChordReferencePDF(onProgress = null) {
         <div style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.2); font-size: 9.5px; font-weight: 700; color: #4338ca; text-transform: uppercase; letter-spacing: 0.04em;">
           Master Reference Edition
         </div>
-        <div style="font-size: 11px; font-weight: 700; color: #0f172a; margin-top: 3px;">
-          Owner: <span style="color: #4f46e5;">Jeshurun Selvakumar</span>
+        <div style="font-size: 9.5px; font-weight: 600; color: #64748b; margin-top: 3px;">
+          built by <span style="color: #4f46e5; font-weight: 700;">jeshurun</span>
         </div>
         <div style="font-size: 9.5px; color: #64748b; font-family: monospace; margin-top: 1px;">
           chordician.vercel.app
@@ -54,7 +54,7 @@ export async function generateChordReferencePDF(onProgress = null) {
   const createFooter = (pageNum, totalPages) => `
     <div style="position: relative; z-index: 1; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; color: #64748b;">
       <div>
-        <strong style="color: #4338ca;">Chordician</strong> • Created by <strong style="color: #1e293b;">Jeshurun Selvakumar</strong> • All Rights Reserved
+        <strong style="color: #4338ca;">Chordician</strong> • <span style="color: #64748b;">built by <strong style="color: #1e293b;">jeshurun</strong></span> • All Rights Reserved
       </div>
       <div style="font-weight: 600; color: #475569; font-family: monospace;">
         Page ${pageNum} of ${totalPages}

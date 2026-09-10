@@ -374,7 +374,7 @@ export default function ShareModal({
                 </div>
 
                 <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                  <li><strong>Letterhead:</strong> Chordician branding & Owner: Jeshurun Selvakumar</li>
+                  <li><strong>Letterhead:</strong> Chordician branding • built by jeshurun</li>
                   <li><strong>Scale / Key:</strong> Transposed to <strong>Key of {selectedKey}</strong></li>
                   <li><strong>Chords & Scale Breakdown:</strong> Included at the bottom of the PDF</li>
                   <li><strong>Watermark:</strong> Subtle background conservatory watermark</li>
