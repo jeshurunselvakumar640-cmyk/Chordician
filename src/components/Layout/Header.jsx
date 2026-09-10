@@ -20,7 +20,8 @@ export default function Header({
   onToggleMobile,
   searchQuery,
   onSearchChange,
-  onRefresh
+  onRefresh,
+  songs = []
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -80,6 +81,7 @@ export default function Header({
             value={searchQuery}
             onChange={handleSearchSubmit}
             placeholder="Search songs, artists, chords..."
+            songs={songs}
           />
         </div>
       </div>
@@ -147,6 +149,11 @@ export default function Header({
             }}
             placeholder="Search songs, artists, lyrics..."
             autoFocus={true}
+            songs={songs}
+            onSelectSong={(song) => {
+              setMobileSearchOpen(false);
+              navigate(`/song/${song.id}`);
+            }}
           />
         </div>
       )}

@@ -58,6 +58,7 @@ service cloud.firestore {
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
           onRefresh={onRefresh || onRetryFirestore}
+          songs={songs}
         />
 
         {/* Firestore Permission Guidance Banner if database rules are locked */}

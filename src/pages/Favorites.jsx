@@ -97,6 +97,7 @@ export default function Favorites({
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="Search favorite songs..."
+            songs={songs.filter((s) => s.favorite)}
           />
         </div>
       )}

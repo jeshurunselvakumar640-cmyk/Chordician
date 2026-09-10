@@ -338,6 +338,7 @@ export default function Songs({
               value={searchQuery}
               onChange={handleSearchChange}
               placeholder="Search by title, artist, lyrics..."
+              songs={songs}
             />
           </div>
         </div>
