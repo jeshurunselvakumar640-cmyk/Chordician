@@ -4,28 +4,62 @@ import { Search, X, Music } from 'lucide-react';
 import { searchSongsWithFuzzy } from '../../utils/fuzzySearch.js';
 
 export default function SearchBar({
-  value,
+  value = '',
   onChange,
   placeholder = 'Search by title, artist, category...',
   autoFocus = false,
   songs = [],
-  onSelectSong
+  onSelectSong,
+  showSuggestions = true
 }) {
   const navigate = useNavigate();
+  const [localValue, setLocalValue] = useState(value || '');
+  const [debouncedQuery, setDebouncedQuery] = useState(value || '');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef(null);
   const inputRef = useRef(null);
+  const debounceTimerRef = useRef(null);
+  const lastTypedValueRef = useRef(value || '');
+  const lastEmittedValueRef = useRef(value || '');
 
-  // Compute top matching song suggestions (title & scale only)
+  // Synchronize local input state ONLY when external value prop changes legitimately
+  // (e.g. Clear Search button, URL parameter navigation, or programmatic reset).
+  // Stale parent prop echoes are prevented from overwriting active user typing.
+  useEffect(() => {
+    const incomingValue = value || '';
+    // If incoming value matches what the user typed or what was emitted, treat as an echo and ignore.
+    if (incomingValue === lastTypedValueRef.current || incomingValue === lastEmittedValueRef.current) {
+      return;
+    }
+    // Legitimate external change (e.g. reset filters, URL navigation)
+    lastTypedValueRef.current = incomingValue;
+    lastEmittedValueRef.current = incomingValue;
+    setLocalValue(incomingValue);
+    setDebouncedQuery(incomingValue);
+  }, [value]);
+
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Compute top matching song suggestions (title & scale only) lazily ONLY when suggestions are active & dropdown is open
   const suggestions = useMemo(() => {
-    const q = String(value || '').trim();
+    if (!showSuggestions || !isOpen) {
+      return [];
+    }
+    const q = String(debouncedQuery || '').trim();
     if (!q || !Array.isArray(songs) || songs.length === 0) {
       return [];
     }
     const { results } = searchSongsWithFuzzy(songs, q);
     return (results || []).slice(0, 6);
-  }, [value, songs]);
+  }, [debouncedQuery, songs, showSuggestions, isOpen]);
 
   // Click outside listener to dismiss dropdown
   useEffect(() => {
@@ -45,6 +79,7 @@ export default function SearchBar({
   }, []);
 
   const handleSelect = (song) => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     setIsOpen(false);
     setSelectedIndex(-1);
     if (typeof onSelectSong === 'function') {
@@ -60,6 +95,14 @@ export default function SearchBar({
         setIsOpen(true);
         setSelectedIndex(0);
         e.preventDefault();
+      } else if (e.key === 'Enter') {
+        // Flush any pending debounce immediately on enter
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        lastEmittedValueRef.current = localValue;
+        setDebouncedQuery(localValue);
+        if (onChange) onChange(localValue);
       }
       return;
     }
@@ -74,6 +117,14 @@ export default function SearchBar({
       if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
         e.preventDefault();
         handleSelect(suggestions[selectedIndex]);
+      } else {
+        // Flush pending search
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        lastEmittedValueRef.current = localValue;
+        setDebouncedQuery(localValue);
+        if (onChange) onChange(localValue);
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);
@@ -83,21 +134,49 @@ export default function SearchBar({
 
   const handleChange = (e) => {
     const newVal = e.target.value;
-    onChange(newVal);
-    setIsOpen(Boolean(newVal.trim()));
+    lastTypedValueRef.current = newVal;
+    // 0ms immediate synchronous DOM update for buttery-smooth mobile typing
+    setLocalValue(newVal);
     setSelectedIndex(-1);
+
+    if (!newVal.trim()) {
+      setIsOpen(false);
+      setDebouncedQuery('');
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      lastEmittedValueRef.current = '';
+      if (onChange) onChange('');
+      return;
+    }
+
+    if (showSuggestions) {
+      setIsOpen(true);
+    }
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      lastEmittedValueRef.current = newVal;
+      setDebouncedQuery(newVal);
+      if (onChange) onChange(newVal);
+    }, 150);
   };
 
   const handleFocus = () => {
-    if (String(value || '').trim() && suggestions.length > 0) {
+    if (showSuggestions && String(localValue || '').trim() && (debouncedQuery || '').trim()) {
       setIsOpen(true);
     }
   };
 
   const handleClear = () => {
-    onChange('');
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    lastTypedValueRef.current = '';
+    lastEmittedValueRef.current = '';
+    setLocalValue('');
+    setDebouncedQuery('');
     setIsOpen(false);
     setSelectedIndex(-1);
+    if (onChange) onChange('');
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -111,16 +190,20 @@ export default function SearchBar({
         type="text"
         className="search-input"
         placeholder={placeholder}
-        value={value}
+        value={localValue}
         onChange={handleChange}
         onFocus={handleFocus}
         onKeyDown={handleKeyDown}
         autoFocus={autoFocus}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck="false"
         aria-label="Search songs"
         aria-expanded={isOpen && suggestions.length > 0}
         aria-autocomplete="list"
       />
-      {value && (
+      {localValue && (
         <button
           type="button"
           className="search-clear"
@@ -131,8 +214,8 @@ export default function SearchBar({
         </button>
       )}
 
-      {/* Google / Antigravity Style Attached Suggestions Dropdown */}
-      {isOpen && suggestions.length > 0 && (
+      {/* Attached Suggestions Dropdown */}
+      {showSuggestions && isOpen && suggestions.length > 0 && (
         <div className="search-suggestions-dropdown" role="listbox">
           {suggestions.map((song, index) => {
             const isSelected = index === selectedIndex;

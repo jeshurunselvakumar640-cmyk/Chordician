@@ -14,6 +14,7 @@ import {
 } from '../firebase/config';
 import { updateProfile } from 'firebase/auth';
 import { OWNER_EMAIL, OWNER_DEFAULT_NAME, isUserOwner } from '../utils/authConstants.js';
+import { unregisterNotificationToken } from '../services/fcmService.js';
 
 export { OWNER_EMAIL, OWNER_DEFAULT_NAME, isUserOwner };
 
@@ -148,6 +149,9 @@ export function AuthProvider({ children }) {
   // Sign out
   const logout = async () => {
     try {
+      if (currentUser) {
+        await unregisterNotificationToken(currentUser).catch(() => {});
+      }
       await signOut(auth);
       setCurrentUser(null);
       setUserProfile(null);

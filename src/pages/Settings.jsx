@@ -22,7 +22,10 @@ import {
   MessageSquare,
   Sparkles,
   Info,
-  Languages
+  Languages,
+  Bell,
+  BellOff,
+  BellRing
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -34,6 +37,12 @@ import { addSong, runFirebaseDiagnostics, transliterateAllRegionalSongsInDb } fr
 import { firebaseConfig } from '../firebase/config.js';
 import { DEMO_PRESETS } from '../services/aiSongParser.js';
 import { APP_VERSION, APP_VERSION_TAG, APP_RELEASE_NAME, APP_LAST_UPDATED } from '../config/version.js';
+import {
+  isPushNotificationSupported,
+  getNotificationPermissionState,
+  requestNotificationToken,
+  unregisterNotificationToken
+} from '../services/fcmService.js';
 
 export default function Settings({ onSongAdded }) {
   const { theme, setTheme, isDark } = useTheme();
@@ -45,6 +54,60 @@ export default function Settings({ onSongAdded }) {
   const [isSeeding, setIsSeeding] = useState(false);
   const [isTransliteratingDb, setIsTransliteratingDb] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+
+  // Push Notification state
+  const isSupported = isPushNotificationSupported();
+  const [notifPermission, setNotifPermission] = useState(() => getNotificationPermissionState());
+  const [isNotifEnabled, setIsNotifEnabled] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem('chordician_fcm_token_id')) && getNotificationPermissionState() === 'granted';
+    } catch {
+      return false;
+    }
+  });
+  const [isNotifLoading, setIsNotifLoading] = useState(false);
+
+  const handleToggleNotifications = async () => {
+    if (!currentUser) {
+      openAuthModal('login');
+      return;
+    }
+
+    if (!isSupported) {
+      showToast('Web Push is not supported in this browser.', 'warning');
+      return;
+    }
+
+    if (isNotifEnabled) {
+      // Turn off notifications
+      setIsNotifLoading(true);
+      await unregisterNotificationToken(currentUser);
+      setIsNotifEnabled(false);
+      setIsNotifLoading(false);
+      showToast('New song notifications turned off', 'info');
+    } else {
+      // Turn on notifications
+      if (notifPermission === 'denied') {
+        showToast('Notifications are blocked in your browser settings. Please allow notifications in site settings.', 'warning', 4000);
+        return;
+      }
+      setIsNotifLoading(true);
+      const res = await requestNotificationToken(currentUser);
+      setIsNotifLoading(false);
+      setNotifPermission(res.permission || getNotificationPermissionState());
+
+      if (res.success) {
+        setIsNotifEnabled(true);
+        showToast('✓ Notifications enabled for new songs!', 'success', 3000);
+      } else {
+        if (res.error === 'denied' || res.permission === 'denied') {
+          showToast('Notification permission was blocked in browser.', 'warning');
+        } else {
+          showToast(res.error || 'Could not enable notifications', 'error');
+        }
+      }
+    }
+  };
 
   // Diagnostics state
   const [isRunningDiag, setIsRunningDiag] = useState(false);
@@ -207,6 +270,62 @@ export default function Settings({ onSongAdded }) {
           </div>
         </div>
       </div>
+
+      {/* Web Push Notifications (Only for Authenticated Users on Supported Browsers) */}
+      {currentUser && isSupported && (
+        <div className="card settings-card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+            <h2 className="settings-section-title" style={{ marginBottom: 0 }}>
+              {isNotifEnabled ? (
+                <BellRing size={20} style={{ color: 'var(--color-primary)' }} />
+              ) : (
+                <Bell size={20} style={{ color: 'var(--text-muted)' }} />
+              )}
+              New Song Notifications
+            </h2>
+
+            <button
+              type="button"
+              className={`btn btn-sm ${isNotifEnabled ? 'btn-secondary' : 'btn-primary'}`}
+              onClick={handleToggleNotifications}
+              disabled={isNotifLoading}
+              style={{ minWidth: '110px' }}
+            >
+              {isNotifLoading ? (
+                <RefreshCw size={14} className="animate-spin" />
+              ) : isNotifEnabled ? (
+                <BellOff size={14} />
+              ) : (
+                <Bell size={14} />
+              )}
+              <span>{isNotifLoading ? 'Updating...' : isNotifEnabled ? 'Disable' : 'Enable'}</span>
+            </button>
+          </div>
+
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginTop: '8px', marginBottom: '16px' }}>
+            Get instant push notifications when a new chord sheet is added to the songbook library.
+          </p>
+
+          <div className="settings-db-info-list">
+            <div className="settings-db-row">
+              <span className="settings-db-label">Status:</span>
+              <span
+                className="settings-db-status"
+                style={{
+                  color: isNotifEnabled ? 'var(--color-success)' : notifPermission === 'denied' ? 'var(--color-danger)' : 'var(--text-muted)'
+                }}
+              >
+                {isNotifEnabled ? '✓ Active on this device' : notifPermission === 'denied' ? '🚫 Blocked in Browser Settings' : '○ Disabled'}
+              </span>
+            </div>
+            {notifPermission === 'denied' && (
+              <div style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--color-danger)', marginTop: '6px' }}>
+                Notifications are blocked in your browser settings. To enable, click the lock icon in your browser address bar and allow notifications.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Theme & Appearance */}
       <div className="card settings-card">

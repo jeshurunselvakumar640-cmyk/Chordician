@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { LayoutGrid, List, Heart, FileDown, Sparkles } from 'lucide-react';
 import SongCard from '../components/SongCard/SongCard';
 import SearchBar from '../components/SearchBar/SearchBar';
@@ -15,6 +15,7 @@ export default function Favorites({
   onDeleteRequest
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [viewMode, setViewMode] = useState(() => getStoredViewMode());
   const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
 
@@ -25,16 +26,16 @@ export default function Favorites({
 
   const { favoriteSongs, didYouMean, isFuzzyMatch } = useMemo(() => {
     const baseFavorites = songs.filter((song) => song.favorite);
-    if (!searchQuery.trim()) {
+    if (!deferredSearchQuery.trim()) {
       return { favoriteSongs: baseFavorites, didYouMean: null, isFuzzyMatch: false };
     }
-    const searchResult = searchSongsWithFuzzy(baseFavorites, searchQuery);
+    const searchResult = searchSongsWithFuzzy(baseFavorites, deferredSearchQuery);
     return {
       favoriteSongs: searchResult.results,
       didYouMean: searchResult.didYouMean,
       isFuzzyMatch: searchResult.isFuzzyMatch
     };
-  }, [songs, searchQuery]);
+  }, [songs, deferredSearchQuery]);
 
   return (
     <div className="favorites-page">
@@ -98,6 +99,7 @@ export default function Favorites({
             onChange={setSearchQuery}
             placeholder="Search favorite songs..."
             songs={songs.filter((s) => s.favorite)}
+            showSuggestions={false}
           />
         </div>
       )}

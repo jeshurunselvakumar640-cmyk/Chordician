@@ -46,9 +46,14 @@ export default function Header({
     }
   };
 
-  const handleSearchSubmit = (val) => {
+  const handleSearchChange = (val) => {
+    onSearchChange(val);
+  };
+
+  const handleSearchCommit = (val) => {
     onSearchChange(val);
     if (location.pathname !== '/songs' && val.trim()) {
+      setMobileSearchOpen(false);
       navigate(`/songs?q=${encodeURIComponent(val)}`);
     }
   };
@@ -79,9 +84,12 @@ export default function Header({
         <div className="desktop-search-wrapper">
           <SearchBar
             value={searchQuery}
-            onChange={handleSearchSubmit}
+            onChange={handleSearchChange}
             placeholder="Search songs, artists, chords..."
             songs={songs}
+            onSelectSong={(song) => {
+              navigate(`/songs/${song.id}`);
+            }}
           />
         </div>
       </div>
@@ -145,7 +153,7 @@ export default function Header({
           <SearchBar
             value={searchQuery}
             onChange={(val) => {
-              handleSearchSubmit(val);
+              handleSearchChange(val);
             }}
             placeholder="Search songs, artists, lyrics..."
             autoFocus={true}

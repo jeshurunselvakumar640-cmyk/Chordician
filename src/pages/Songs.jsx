@@ -24,32 +24,46 @@ export default function Songs({
   onDeleteRequest
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const urlQuery = searchParams.get('q') || '';
-  const urlCategory = searchParams.get('category') || 'ALL';
-  const urlArtist = searchParams.get('artist') || 'ALL';
-
-  const [searchQuery, setSearchQuery] = useState(urlQuery);
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedKey, setSelectedKey] = useState('ALL');
-  const [selectedCategory, setSelectedCategory] = useState(urlCategory);
-  const [selectedArtist, setSelectedArtist] = useState(urlArtist);
+  const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || 'ALL');
+  const [selectedArtist, setSelectedArtist] = useState(() => searchParams.get('artist') || 'ALL');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
   const [viewMode, setViewMode] = useState(() => getStoredViewMode());
   const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
 
-  // Keep state in sync with URL search params
+  // Sync state when external navigation or browser Back/Forward modifies URL search params
   useEffect(() => {
-    const cat = searchParams.get('category');
-    setSelectedCategory(cat || 'ALL');
-    const art = searchParams.get('artist');
-    setSelectedArtist(art || 'ALL');
-    const q = searchParams.get('q');
-    if (q !== null) {
-      setSearchQuery(q);
-    }
+    const q = searchParams.get('q') || '';
+    const cat = searchParams.get('category') || 'ALL';
+    const art = searchParams.get('artist') || 'ALL';
+
+    setSearchQuery((prev) => (prev !== q ? q : prev));
+    setSelectedCategory((prev) => (prev !== cat ? cat : prev));
+    setSelectedArtist((prev) => (prev !== art ? art : prev));
   }, [searchParams]);
+
+  // Keep URL search params in sync with active filters using deferred query to avoid router thrashing
+  useEffect(() => {
+    const currentQ = searchParams.get('q') || '';
+    const currentCat = searchParams.get('category') || 'ALL';
+    const currentArt = searchParams.get('artist') || 'ALL';
+
+    const desiredQ = deferredSearchQuery.trim();
+    const desiredCat = selectedCategory;
+    const desiredArt = selectedArtist;
+
+    if (currentQ !== desiredQ || currentCat !== desiredCat || currentArt !== desiredArt) {
+      const newParams = {};
+      if (desiredQ) newParams.q = desiredQ;
+      if (desiredCat !== 'ALL') newParams.category = desiredCat;
+      if (desiredArt !== 'ALL') newParams.artist = desiredArt;
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [deferredSearchQuery, selectedCategory, selectedArtist, searchParams, setSearchParams]);
 
   const handleViewModeChange = (mode) => {
     setViewMode(mode);
@@ -58,29 +72,14 @@ export default function Songs({
 
   const handleSearchChange = (query) => {
     setSearchQuery(query);
-    const newParams = {};
-    if (query.trim()) newParams.q = query;
-    if (selectedCategory !== 'ALL') newParams.category = selectedCategory;
-    if (selectedArtist !== 'ALL') newParams.artist = selectedArtist;
-    setSearchParams(newParams);
   };
 
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
-    const newParams = {};
-    if (searchQuery.trim()) newParams.q = searchQuery;
-    if (cat !== 'ALL') newParams.category = cat;
-    if (selectedArtist !== 'ALL') newParams.artist = selectedArtist;
-    setSearchParams(newParams);
   };
 
   const handleArtistSelect = (artist) => {
     setSelectedArtist(artist);
-    const newParams = {};
-    if (searchQuery.trim()) newParams.q = searchQuery;
-    if (selectedCategory !== 'ALL') newParams.category = selectedCategory;
-    if (artist !== 'ALL') newParams.artist = artist;
-    setSearchParams(newParams);
   };
 
   const handleResetFilters = () => {
@@ -90,7 +89,6 @@ export default function Songs({
     setSelectedArtist('ALL');
     setFavoritesOnly(false);
     setSortBy('relevance');
-    setSearchParams({});
   };
 
   // Dynamic Artist list extracted from all user songs in library
@@ -348,6 +346,7 @@ export default function Songs({
               onChange={handleSearchChange}
               placeholder="Search by title, artist, lyrics..."
               songs={songs}
+              showSuggestions={false}
             />
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import SongEditor from '../components/SongEditor/SongEditor';
 import { addSong } from '../firebase/songs';
 import { useToast } from '../context/ToastContext';
+import { triggerNewSongNotification } from '../services/fcmService';
 
 export default function AddSong({ onSongAdded }) {
   const location = useLocation();
@@ -23,6 +24,10 @@ export default function AddSong({ onSongAdded }) {
       showToast(res.error, 'error');
     } else if (res.id) {
       showToast(`"${songData.title}" added to your songbook!`, 'success');
+      
+      // Asynchronously trigger push notification for new song (non-blocking)
+      triggerNewSongNotification(res.id).catch(() => {});
+
       if (onSongAdded) {
         onSongAdded();
       }
