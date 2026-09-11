@@ -14,7 +14,7 @@ import {
 } from '../firebase/config';
 import { updateProfile } from 'firebase/auth';
 import { OWNER_EMAIL, OWNER_DEFAULT_NAME, isUserOwner } from '../utils/authConstants.js';
-import { unregisterNotificationToken } from '../services/fcmService.js';
+import { unregisterNotificationToken, initNotificationOnboarding } from '../services/fcmService.js';
 
 export { OWNER_EMAIL, OWNER_DEFAULT_NAME, isUserOwner };
 
@@ -35,8 +35,24 @@ export function AuthProvider({ children }) {
     return emailMatch || roleMatch;
   }, [currentUser, userProfile]);
 
-  // canEdit is strictly true only for the Owner account
+  // Global canEdit is true for Owner (used for global database sync & settings)
   const canEdit = isOwner;
+
+  // Authenticated users can create/import songs
+  const canCreateSong = Boolean(currentUser);
+
+  // Song-level permission: Owner can edit ALL songs.
+  // Normal authenticated users can edit ONLY songs they created (song.createdByUid === currentUser.uid).
+  // Legacy unowned songs (no createdByUid) can ONLY be edited by the Owner.
+  // Signed-out users cannot edit any songs.
+  const canEditSong = useCallback((song) => {
+    if (!currentUser) return false;
+    if (isOwner) return true;
+    if (!song) return false;
+    const songCreatorUid = song.createdByUid || song.userId || song.ownerId || null;
+    if (!songCreatorUid) return false; // Legacy unowned song -> only owner can edit
+    return songCreatorUid === currentUser.uid;
+  }, [currentUser, isOwner]);
 
   // Synchronize user profile with Firestore (/users/{uid})
   const syncUserProfile = useCallback(async (user, extraData = {}) => {
@@ -101,6 +117,7 @@ export function AuthProvider({ children }) {
       setCurrentUser(user);
       if (user && !user.isAnonymous) {
         await syncUserProfile(user);
+        initNotificationOnboarding(user).catch(() => {});
       } else {
         setUserProfile(null);
       }
@@ -116,6 +133,7 @@ export function AuthProvider({ children }) {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
       await syncUserProfile(user);
+      initNotificationOnboarding(user).catch(() => {});
       return { user, error: null };
     } catch (err) {
       return { user: null, error: formatAuthError(err) };
@@ -140,6 +158,7 @@ export function AuthProvider({ children }) {
       }
 
       await syncUserProfile(user, { displayName: finalName });
+      initNotificationOnboarding(user).catch(() => {});
       return { user, error: null };
     } catch (err) {
       return { user: null, error: formatAuthError(err) };
@@ -185,6 +204,8 @@ export function AuthProvider({ children }) {
     userProfile,
     isOwner,
     canEdit,
+    canCreateSong,
+    canEditSong,
     loading,
     isAuthModalOpen,
     authModalMode,

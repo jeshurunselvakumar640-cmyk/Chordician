@@ -147,6 +147,66 @@ export async function unregisterNotificationToken(user) {
 }
 
 /**
+ * Automatically checks and initiates notification permission onboarding for the current device.
+ * - If permission is 'default', requests native browser notification permission.
+ * - If permission is 'granted', ensures active FCM token registration for this device.
+ * - If permission is 'denied' or unsupported, exits silently.
+ * - Attaches a one-time gesture listener if initial request requires user interaction.
+ *
+ * @param {Object} user Authenticated user object
+ * @returns {Promise<void>}
+ */
+let _hasAttemptedOnboarding = false;
+export async function initNotificationOnboarding(user) {
+  if (!isPushNotificationSupported() || !user || !user.uid) return;
+  if (_hasAttemptedOnboarding) return;
+
+  const currentPermission = getNotificationPermissionState();
+  if (currentPermission === 'denied' || currentPermission === 'unsupported') return;
+
+  if (currentPermission === 'granted') {
+    _hasAttemptedOnboarding = true;
+    let existingTokenId = null;
+    try {
+      existingTokenId = localStorage.getItem(FCM_TOKEN_ID_KEY);
+    } catch {}
+    if (!existingTokenId) {
+      requestNotificationToken(user).catch(() => {});
+    }
+    return;
+  }
+
+  if (currentPermission === 'default') {
+    _hasAttemptedOnboarding = true;
+
+    const tryPrompt = async () => {
+      try {
+        await requestNotificationToken(user);
+      } catch (err) {
+        console.warn('[FCM Onboarding] Permission request notice:', err);
+      }
+    };
+
+    // Attempt direct prompt (works in desktop Chrome, Edge, Firefox)
+    tryPrompt();
+
+    // Attach one-time user interaction listener (for mobile Safari PWA / mobile Chrome requiring gesture)
+    if (typeof window !== 'undefined') {
+      const handleUserGesture = () => {
+        if (getNotificationPermissionState() === 'default') {
+          tryPrompt();
+        }
+        window.removeEventListener('click', handleUserGesture, true);
+        window.removeEventListener('touchend', handleUserGesture, true);
+      };
+
+      window.addEventListener('click', handleUserGesture, { capture: true, once: true });
+      window.addEventListener('touchend', handleUserGesture, { capture: true, once: true });
+    }
+  }
+}
+
+/**
  * Asynchronously triggers server-side notification broadcast for a newly created song.
  * Guaranteed to NEVER throw, block UI, or fail the song creation process.
  *

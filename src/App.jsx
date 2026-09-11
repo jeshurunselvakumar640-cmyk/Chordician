@@ -230,7 +230,7 @@ function AppContent() {
             <Route
               path="/songs/:id/edit"
               element={
-                <ProtectedRoute title="Edit Song (Owner Access Only)">
+                <ProtectedRoute title="Edit Song">
                   <EditSong onSongUpdated={fetchAllSongs} />
                 </ProtectedRoute>
               }
@@ -238,7 +238,7 @@ function AppContent() {
             <Route
               path="/song/:id/edit"
               element={
-                <ProtectedRoute title="Edit Song (Owner Access Only)">
+                <ProtectedRoute title="Edit Song">
                   <EditSong onSongUpdated={fetchAllSongs} />
                 </ProtectedRoute>
               }
@@ -246,7 +246,7 @@ function AppContent() {
             <Route
               path="/add-song"
               element={
-                <ProtectedRoute title="Add New Song (Owner Access Only)">
+                <ProtectedRoute title="Add New Song">
                   <AddSong onSongAdded={fetchAllSongs} />
                 </ProtectedRoute>
               }
@@ -254,7 +254,7 @@ function AppContent() {
             <Route
               path="/import"
               element={
-                <ProtectedRoute title="AI Screenshot Import (Owner Access Only)">
+                <ProtectedRoute title="AI & Web Song Import">
                   <ImportSong />
                 </ProtectedRoute>
               }

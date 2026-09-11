@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import importUrlRouter from './routes/importUrl.js';
 import notificationsRouter from './routes/notifications.js';
+import songsRouter from './routes/songs.js';
 
 dotenv.config();
 
@@ -38,6 +39,10 @@ app.use((req, res, next) => {
   console.log(`[HTTP API] ${req.method} ${req.url}`);
   next();
 });
+
+// Register Song write routes
+app.use('/api/songs', songsRouter);
+app.use('/songs', songsRouter);
 
 // Register Notification routes
 app.use('/api/notifications', notificationsRouter);

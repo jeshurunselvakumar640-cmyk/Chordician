@@ -34,24 +34,29 @@ export default function Sidebar({
   const { songIds: communionSongIds } = useCommunion();
   const communionCount = communionSongIds ? communionSongIds.length : 0;
   const { canInstall, installApp } = usePWA();
-  const { canEdit, openAuthModal } = useAuth();
+  const { currentUser, canEdit, openAuthModal } = useAuth();
+  const canCreate = Boolean(currentUser);
 
-  // Close mobile drawer on route change
+  // Close mobile sidebar on escape key
   useEffect(() => {
-    if (mobileOpen) {
-      onCloseMobile();
-    }
-  }, [location.pathname]);
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && mobileOpen) {
+        onCloseMobile();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen, onCloseMobile]);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
     if (mobileOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.classList.add('mobile-nav-open');
     } else {
-      document.body.style.overflow = '';
+      document.body.classList.remove('mobile-nav-open');
     }
     return () => {
-      document.body.style.overflow = '';
+      document.body.classList.remove('mobile-nav-open');
     };
   }, [mobileOpen]);
 
@@ -63,7 +68,7 @@ export default function Sidebar({
     { to: '/favorites', label: 'Favorites', icon: <Heart size={19} />, badge: favoriteCount > 0 ? favoriteCount : null },
     { to: '/recent', label: 'Recently Added', icon: <Clock size={19} /> },
     { to: '/notes', label: 'Notes', icon: <BookOpen size={19} /> },
-    ...(canEdit ? [{ to: '/import', label: 'AI Import', icon: <Sparkles size={19} /> }] : []),
+    ...(canCreate ? [{ to: '/import', label: 'AI Import', icon: <Sparkles size={19} /> }] : []),
     { to: '/settings', label: 'Settings', icon: <Settings size={19} /> }
   ];
 
@@ -140,7 +145,7 @@ export default function Sidebar({
             </button>
           )}
 
-          {canEdit ? (
+          {canCreate ? (
             <Link
               to="/add-song"
               className="btn btn-primary"
@@ -165,7 +170,7 @@ export default function Sidebar({
                 color: 'var(--color-text-muted)'
               }}
             >
-              <Crown size={14} style={{ color: '#f59e0b' }} /> Sign in as Owner
+              <LogIn size={15} /> <span>Sign in to Add Song</span>
             </button>
           )}
         </div>

@@ -3,15 +3,12 @@ import {
   doc,
   getDocs,
   getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
   query,
-  orderBy,
-  serverTimestamp
+  orderBy
 } from 'firebase/firestore';
 import { db, auth, ensureAuthReady, firebaseConfig } from './config.js';
 import { transliterateSong } from '../transliteration/index.js';
+import { OWNER_EMAIL, OWNER_DEFAULT_NAME } from '../utils/authConstants.js';
 
 const SONGS_COLLECTION = 'songs';
 
@@ -216,119 +213,141 @@ export async function getSongById(id) {
 }
 
 /**
- * Add a new song to Firestore (/songs)
+ * Add a new song to Firestore via Trusted Backend (/api/songs)
  */
 export async function addSong(songData) {
   await ensureAuthReady();
-  const path = SONGS_COLLECTION;
-  const currentUid = auth?.currentUser?.uid || null;
+  const currentUser = auth?.currentUser || null;
+
+  if (!currentUser) {
+    return { id: null, error: 'Authentication required. Please sign in to create or import songs.' };
+  }
 
   try {
-    const cleanData = {
-      title: (songData.title || '').trim(),
-      secondaryTitle: songData.secondaryTitle ? songData.secondaryTitle.trim() : null,
-      artist: (songData.artist || '').trim(),
-      originalKey: songData.originalKey || 'C',
-      category: songData.category || 'Other',
-      style: songData.style || null,
-      favorite: Boolean(songData.favorite),
-      sections: Array.isArray(songData.sections) ? songData.sections : [],
-      tempo: songData.tempo || null,
-      timeSignature: songData.timeSignature || '4/4',
-      notes: songData.notes || '',
-      ...(currentUid ? { userId: currentUid, ownerId: currentUid } : {}),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch('/api/songs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify(songData)
+    });
 
-    if (!cleanData.title) {
-      return { id: null, error: 'Song title cannot be empty' };
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return { id: null, error: data.error || 'Failed to create song' };
     }
 
-    const docRef = await addDoc(collection(db, SONGS_COLLECTION), cleanData);
     invalidateSongCache();
-    return { id: docRef.id, error: null };
+    return { id: data.id, error: null };
   } catch (err) {
-    logFirestoreDiagnostic('addDoc', path, err);
-    return { id: null, error: formatFirestoreError(err, 'addSong') };
+    console.error('addSong error:', err);
+    return { id: null, error: err.message || 'Network error while adding song' };
   }
 }
 
 /**
- * Update an existing song in Firestore (/songs/{id})
+ * Update an existing song in Firestore via Trusted Backend (/api/songs/{id})
  */
 export async function updateSong(id, songData) {
   if (!id) return { success: false, error: 'Song ID is required' };
   await ensureAuthReady();
-  const path = `${SONGS_COLLECTION}/${id}`;
-  const currentUid = auth?.currentUser?.uid || null;
+  const currentUser = auth?.currentUser || null;
+
+  if (!currentUser) {
+    return { success: false, error: 'Authentication required. Please sign in to edit songs.' };
+  }
 
   try {
-    const docRef = doc(db, SONGS_COLLECTION, id);
-    const cleanData = {
-      title: (songData.title || '').trim(),
-      secondaryTitle: songData.secondaryTitle ? songData.secondaryTitle.trim() : null,
-      artist: (songData.artist || '').trim(),
-      originalKey: songData.originalKey || 'C',
-      category: songData.category || 'Other',
-      style: songData.style || null,
-      favorite: Boolean(songData.favorite),
-      sections: Array.isArray(songData.sections) ? songData.sections : [],
-      tempo: songData.tempo || null,
-      timeSignature: songData.timeSignature || '4/4',
-      notes: songData.notes || '',
-      ...(currentUid ? { userId: currentUid, ownerId: currentUid } : {}),
-      updatedAt: serverTimestamp()
-    };
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch(`/api/songs/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify(songData)
+    });
 
-    if (!cleanData.title) {
-      return { success: false, error: 'Song title cannot be empty' };
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Failed to update song' };
     }
 
-    await updateDoc(docRef, cleanData);
     invalidateSongCache(id);
     invalidateSongCache();
     return { success: true, error: null };
   } catch (err) {
-    logFirestoreDiagnostic('updateDoc', path, err);
-    return { success: false, error: formatFirestoreError(err, `updateSong(${id})`) };
+    console.error('updateSong error:', err);
+    return { success: false, error: err.message || 'Network error while updating song' };
   }
 }
 
 /**
- * Delete a song from Firestore (/songs/{id})
+ * Delete a song from Firestore via Trusted Backend (/api/songs/{id})
  */
 export async function deleteSong(id) {
   if (!id) return { success: false, error: 'Song ID is required' };
   await ensureAuthReady();
-  const path = `${SONGS_COLLECTION}/${id}`;
+  const currentUser = auth?.currentUser || null;
+
+  if (!currentUser) {
+    return { success: false, error: 'Authentication required. Please sign in to delete songs.' };
+  }
 
   try {
-    const docRef = doc(db, SONGS_COLLECTION, id);
-    await deleteDoc(docRef);
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch(`/api/songs/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${idToken}`
+      }
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Failed to delete song' };
+    }
+
     invalidateSongCache(id);
     invalidateSongCache();
     return { success: true, error: null };
   } catch (err) {
-    logFirestoreDiagnostic('deleteDoc', path, err);
-    return { success: false, error: formatFirestoreError(err, `deleteSong(${id})`) };
+    console.error('deleteSong error:', err);
+    return { success: false, error: err.message || 'Network error while deleting song' };
   }
 }
 
 /**
  * Toggle favorite status of a song (/songs/{id})
+ * Routes exclusively via Trusted Backend (/api/songs/:id/favorite)
  */
 export async function toggleFavoriteSong(id, currentStatus) {
   if (!id) return { success: false, error: 'Song ID is required' };
   await ensureAuthReady();
-  const path = `${SONGS_COLLECTION}/${id}`;
+  const currentUser = auth?.currentUser || null;
+
+  if (!currentUser) {
+    return { success: false, error: 'Authentication required to favorite songs. Please sign in.' };
+  }
 
   try {
-    const docRef = doc(db, SONGS_COLLECTION, id);
-    await updateDoc(docRef, {
-      favorite: !currentStatus,
-      updatedAt: serverTimestamp()
+    const idToken = await currentUser.getIdToken();
+    const res = await fetch(`/api/songs/${encodeURIComponent(id)}/favorite`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({ favorite: !currentStatus })
     });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Failed to update favorite status' };
+    }
+
     updateMemorySongCache((prev) =>
       prev.map((s) => (s.id === id ? { ...s, favorite: !currentStatus } : s))
     );
@@ -338,8 +357,8 @@ export async function toggleFavoriteSong(id, currentStatus) {
     }
     return { success: true, newStatus: !currentStatus, error: null };
   } catch (err) {
-    logFirestoreDiagnostic('updateDoc (toggleFavorite)', path, err);
-    return { success: false, error: formatFirestoreError(err, `toggleFavorite(${id})`) };
+    console.error('toggleFavoriteSong error:', err);
+    return { success: false, error: err.message || 'Network error while updating favorite' };
   }
 }
 
@@ -376,7 +395,7 @@ export async function runFirebaseDiagnostics() {
 
 /**
  * Transliterates all regional language (Tamil, Hindi) songs stored in the Firestore database to English phonetics.
- * Updates the Firestore documents in place while preserving chords, structures, and metadata.
+ * Updates the Firestore documents via Trusted Backend while preserving chords, structures, and metadata.
  */
 export async function transliterateAllRegionalSongsInDb() {
   await ensureAuthReady();
@@ -398,18 +417,18 @@ export async function transliterateAllRegionalSongsInDb() {
       const { song: updatedSong, modified } = transliterateSong(songData);
 
       if (modified) {
-        try {
-          const docRef = doc(db, SONGS_COLLECTION, docSnap.id);
-          await updateDoc(docRef, {
-            title: updatedSong.title || songData.title,
-            secondaryTitle: updatedSong.secondaryTitle || songData.secondaryTitle || null,
-            sections: updatedSong.sections || [],
-            updatedAt: serverTimestamp()
-          });
+        const updateRes = await updateSong(docSnap.id, {
+          ...songData,
+          title: updatedSong.title || songData.title,
+          secondaryTitle: updatedSong.secondaryTitle || songData.secondaryTitle || null,
+          sections: updatedSong.sections || []
+        });
+
+        if (updateRes.success) {
           totalTransliterated++;
           modifiedSongs.push({ id: docSnap.id, title: updatedSong.title });
-        } catch (updateErr) {
-          errors.push({ id: docSnap.id, error: updateErr.message });
+        } else {
+          errors.push({ id: docSnap.id, error: updateRes.error });
         }
       }
     }

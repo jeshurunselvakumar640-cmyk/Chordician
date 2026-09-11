@@ -34,9 +34,10 @@ function SongCard({
   const { showToast } = useToast();
   const { isInThisSunday, toggleSong } = useThisSunday();
   const { isInCommunion, toggleSong: toggleCommunionSong } = useCommunion();
-  const { canEdit } = useAuth();
+  const { canEdit, canEditSong } = useAuth();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const { id, title, artist, originalKey, category, style, favorite, sections = [], updatedAt } = song;
+  const userCanEdit = song && canEditSong ? canEditSong(song) : canEdit;
 
   const isSunday = isInThisSunday(id);
   const isCommunion = isInCommunion(id);
@@ -219,7 +220,7 @@ function SongCard({
                 <span className="hide-extra-small">Open</span>
               </button>
 
-              {canEdit && (
+              {userCanEdit && (
                 <>
                   <button
                     type="button"
@@ -398,7 +399,7 @@ function SongCard({
                 <Share2 size={15} />
               </button>
 
-              {canEdit && (
+              {userCanEdit && (
                 <>
                   <button
                     type="button"

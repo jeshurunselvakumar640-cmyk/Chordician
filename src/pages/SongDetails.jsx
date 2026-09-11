@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { getSongById } from '../firebase/songs.js';
 import { transposeSong } from '../services/transposer.js';
-import { formatStyleCode, formatMainStyleHighlight } from '../data/songStyles.js';
+import { formatStyleCode, formatMainStyleHighlight, resolveFullStyle, getStyleNumberCode } from '../data/songStyles.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useThisSunday } from '../context/ThisSundayContext.jsx';
 import { useCommunion } from '../context/CommunionContext.jsx';
@@ -49,7 +49,7 @@ export default function SongDetails({
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { canEdit } = useAuth();
+  const { canEdit, canEditSong } = useAuth();
 
   const [song, setSong] = useState(() => {
     return (Array.isArray(cachedSongs) ? cachedSongs.find((s) => s && s.id === id) : null) || null;
@@ -356,6 +356,12 @@ export default function SongDetails({
 
   const { title, secondaryTitle, artist, originalKey, category, style, favorite } = song;
   const isTransposed = activeKey !== originalKey;
+  const userCanEdit = song && canEditSong ? canEditSong(song) : canEdit;
+
+  const resolvedStyle = resolveFullStyle(style);
+  const styleName = resolvedStyle?.name || (typeof style === 'string' ? style : style?.name) || '';
+  const styleNumber = getStyleNumberCode(style);
+  const creatorDisplayName = song.createdByUid && song.createdByName ? song.createdByName : null;
 
   return (
     <div
@@ -456,7 +462,7 @@ export default function SongDetails({
             <span className="hide-mobile">Share</span>
           </button>
 
-          {canEdit ? (
+          {userCanEdit ? (
             <>
               <Link
                 to={`/songs/${id}/edit`}
@@ -577,11 +583,17 @@ export default function SongDetails({
                 {secondaryTitle}
               </div>
             )}
-            <div className="song-details-artist-row">
+            <div className="song-details-artist-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span className="song-details-artist">
                 <User size={14} style={{ opacity: 0.7 }} />
                 {artist || 'Unknown Artist'}
               </span>
+              {creatorDisplayName && (
+                <span className="song-details-creator-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                  <span>•</span>
+                  <span>Added by: <strong style={{ color: 'var(--text-secondary)' }}>{creatorDisplayName}</strong></span>
+                </span>
+              )}
             </div>
           </div>
 
@@ -607,14 +619,28 @@ export default function SongDetails({
                  typeof category === 'string' && category.toLowerCase() === 'english' ? '🌐 English' : String(category?.name || category)}
               </span>
             )}
-            {style && (
-              <span
-                className="badge badge-style badge-style-highlight"
-                title={`Style: ${formatMainStyleHighlight(style)} (${formatStyleCode(style)})`}
+            {styleName && (
+              <div
+                className="song-viewer-style-highlight"
+                title={`Style: ${resolvedStyle?.category ? resolvedStyle.category + ' → ' : ''}${styleName} (${formatStyleCode(resolvedStyle || style)})`}
               >
-                <Sliders size={12} />
-                <span>Style: <strong>{formatMainStyleHighlight(style) || (typeof style === 'string' ? style : style?.name)}</strong></span>
-              </span>
+                <div className="style-highlight-icon-box">
+                  <Sliders size={14} />
+                </div>
+                <div className="style-highlight-content">
+                  <div className="style-highlight-tag-row">
+                    <span className="style-highlight-tag">STYLE</span>
+                    {styleNumber && (
+                      <span className="style-highlight-number">
+                        {styleNumber.includes('/') ? styleNumber.replace('/', ' / ') : styleNumber}
+                      </span>
+                    )}
+                  </div>
+                  <div className="style-highlight-name">
+                    {styleName}
+                  </div>
+                </div>
+              </div>
             )}
             {song.tempo && (
               <span className="badge badge-meta" title={`Tempo: ${song.tempo} BPM`}>

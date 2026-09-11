@@ -25,7 +25,7 @@ export default function Header({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { canEdit } = useAuth();
+  const { currentUser, isOwner, canEdit } = useAuth();
   const { showToast } = useToast();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -107,19 +107,21 @@ export default function Header({
           {mobileSearchOpen ? <X size={18} /> : <Search size={18} />}
         </button>
 
-        {/* Desktop Quick Actions (Owner Only) */}
-        {canEdit && (
+        {/* Desktop Quick Actions */}
+        {Boolean(currentUser) && (
           <>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm desktop-only-action"
-              onClick={handleQuickRefresh}
-              title="Refresh library from cloud"
-              disabled={isRefreshing}
-            >
-              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-              Sync
-            </button>
+            {isOwner && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm desktop-only-action"
+                onClick={handleQuickRefresh}
+                title="Refresh library from cloud"
+                disabled={isRefreshing}
+              >
+                <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+                Sync
+              </button>
+            )}
 
             <Link
               to="/import"

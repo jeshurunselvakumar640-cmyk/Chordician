@@ -18,10 +18,10 @@ export default function BottomNav({ totalSongs = 0, favoriteCount = 0 }) {
   const thisSundayCount = songIds ? songIds.length : 0;
   const { songIds: communionSongIds } = useCommunion();
   const communionCount = communionSongIds ? communionSongIds.length : 0;
-  const { canEdit, openAuthModal } = useAuth();
+  const { currentUser, openAuthModal } = useAuth();
 
   const handleCenterClick = (e) => {
-    if (!canEdit) {
+    if (!currentUser) {
       e.preventDefault();
       openAuthModal('login');
     }

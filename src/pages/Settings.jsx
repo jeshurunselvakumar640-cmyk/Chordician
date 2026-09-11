@@ -213,7 +213,7 @@ export default function Settings({ onSongAdded }) {
                 onClick={() => openAuthModal('login')}
               >
                 <LogIn size={14} />
-                <span>Sign In as Owner</span>
+                <span>Sign In</span>
               </button>
             )}
           </div>
@@ -249,8 +249,8 @@ export default function Settings({ onSongAdded }) {
                 gap: '6px',
                 padding: '4px 10px',
                 borderRadius: '6px',
-                background: isOwner ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.1)',
-                color: isOwner ? '#f59e0b' : 'var(--color-primary)',
+                background: isOwner ? 'rgba(245, 158, 11, 0.15)' : currentUser ? 'rgba(99, 102, 241, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+                color: isOwner ? '#f59e0b' : currentUser ? 'var(--color-primary)' : 'var(--text-muted)',
                 fontWeight: 600,
                 fontSize: '0.82rem'
               }}
@@ -258,12 +258,17 @@ export default function Settings({ onSongAdded }) {
               {isOwner ? (
                 <>
                   <Crown size={14} />
-                  <span>👑 Full Owner Access (Add, Edit, Import, Delete)</span>
+                  <span>👑 Full Owner Access (Add, Edit All, Import, Delete)</span>
+                </>
+              ) : currentUser ? (
+                <>
+                  <User size={14} />
+                  <span>🎵 Musician Access (Add, Import, Edit Personal Songs)</span>
                 </>
               ) : (
                 <>
                   <Eye size={14} />
-                  <span>👁️ View-Only Mode (All notes & chord sheets viewable)</span>
+                  <span>👁️ View-Only Guest (All notes & chord sheets viewable)</span>
                 </>
               )}
             </span>

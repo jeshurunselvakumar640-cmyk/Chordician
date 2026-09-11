@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import SongEditor from '../components/SongEditor/SongEditor';
 import { getSongById, updateSong } from '../firebase/songs';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { SongDetailsSkeleton } from '../components/UI/SkeletonLoader';
 
 export default function EditSong({ onSongUpdated }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { canEditSong } = useAuth();
 
   const [song, setSong] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +29,11 @@ export default function EditSong({ onSongUpdated }) {
         showToast(res.error, 'error');
         navigate('/songs');
       } else if (res.data) {
+        if (!canEditSong(res.data)) {
+          showToast('Permission denied: You can only edit songs you created.', 'error', 3000);
+          navigate(`/songs/${id}`);
+          return;
+        }
         setSong(res.data);
       }
       setIsLoading(false);
@@ -37,7 +44,7 @@ export default function EditSong({ onSongUpdated }) {
     return () => {
       isMounted = false;
     };
-  }, [id, navigate, showToast]);
+  }, [id, navigate, showToast, canEditSong]);
 
   const handleSave = async (updatedData) => {
     setIsSubmitting(true);

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import TransposeBar from '../Transposer/TransposeBar';
 import SectionViewer from '../SongView/SectionViewer';
-import { formatMainStyleHighlight, formatStyleCode } from '../../data/songStyles.js';
+import { formatMainStyleHighlight, formatStyleCode, resolveFullStyle, getStyleNumberCode } from '../../data/songStyles.js';
 
 export default function PerformanceModal({
   isOpen,
@@ -165,6 +165,10 @@ export default function PerformanceModal({
     timeSignature
   } = transposedSong;
 
+  const resolvedStyle = resolveFullStyle(style);
+  const styleName = resolvedStyle?.name || (typeof style === 'string' ? style : style?.name) || '';
+  const styleNumber = getStyleNumberCode(style);
+
   return (
     <div
       className="performance-overlay"
@@ -178,15 +182,6 @@ export default function PerformanceModal({
         <div className="perf-header-info">
           <div className="perf-title-row">
             <h2 className="perf-song-title">{title}</h2>
-            {style?.name && (
-              <span
-                className="badge badge-style perf-style-badge"
-                title={`Style: ${style.category || ''} → ${style.name} (${formatStyleCode(style)})`}
-              >
-                <Sliders size={11} />
-                <span>{formatMainStyleHighlight(style)}</span>
-              </span>
-            )}
           </div>
           <span className="perf-song-subtitle">
             {artist ? `${artist} • ` : ''}Key: <strong style={{ color: 'var(--color-primary)' }}>{activeKey}</strong>
@@ -194,6 +189,31 @@ export default function PerformanceModal({
             {timeSignature && ` • ${timeSignature}`}
           </span>
         </div>
+
+        {/* Primary Style Highlight Box for Musician */}
+        {styleName && (
+          <div
+            className="perf-style-highlight-box"
+            title={`Style: ${resolvedStyle?.category ? resolvedStyle.category + ' → ' : ''}${styleName} (${formatStyleCode(resolvedStyle || style)})`}
+          >
+            <div className="perf-style-badge-icon">
+              <Sliders size={15} />
+            </div>
+            <div className="perf-style-badge-body">
+              <div className="perf-style-tag-row">
+                <span className="perf-style-tag">STYLE</span>
+                {styleNumber && (
+                  <span className="perf-style-number">
+                    {styleNumber.includes('/') ? styleNumber.replace('/', ' / ') : styleNumber}
+                  </span>
+                )}
+              </div>
+              <div className="perf-style-name">
+                {styleName}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Center: Transpose & Font & Auto-Scroll Controls */}
         <div className="perf-toolbar-controls">
