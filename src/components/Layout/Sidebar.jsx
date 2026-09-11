@@ -14,7 +14,8 @@ import {
   Download,
   Crown,
   X,
-  BookOpen
+  BookOpen,
+  LogIn
 } from 'lucide-react';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
 import { useCommunion } from '../../context/CommunionContext.jsx';

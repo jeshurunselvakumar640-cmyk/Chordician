@@ -931,6 +931,18 @@ button:disabled {
   margin-top: 2px;
 }
 
+.song-card-uploader-tag {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  opacity: 0.9;
+  display: inline;
+}
+
+.song-card-uploader-tag strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 .song-card-badges {
   display: flex;
   align-items: center;

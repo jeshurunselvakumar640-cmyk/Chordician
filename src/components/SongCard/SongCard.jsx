@@ -36,8 +36,21 @@ function SongCard({
   const { isInCommunion, toggleSong: toggleCommunionSong } = useCommunion();
   const { canEdit, canEditSong } = useAuth();
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const { id, title, artist, originalKey, category, style, favorite, sections = [], updatedAt } = song;
+  const {
+    id,
+    title,
+    artist,
+    originalKey,
+    category,
+    style,
+    favorite,
+    sections = [],
+    updatedAt,
+    createdByName,
+    createdBy
+  } = song;
   const userCanEdit = song && canEditSong ? canEditSong(song) : canEdit;
+  const uploaderName = (createdByName || createdBy || '').trim();
 
   const isSunday = isInThisSunday(id);
   const isCommunion = isInCommunion(id);
@@ -157,6 +170,11 @@ function SongCard({
             <p className="song-list-subtitle">
               {artist || 'Unknown Artist'} • {category || 'General'}
               {style?.name && ` • Style: ${formatMainStyleHighlight(style)}`}
+              {uploaderName && (
+                <span className="song-card-uploader-tag" title={`Added by ${uploaderName}`}>
+                  {' '}• Added by <strong>{uploaderName}</strong>
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -302,7 +320,14 @@ function SongCard({
 
           <div className="song-title-group">
             <h3 className="song-card-title">{title}</h3>
-            <p className="song-card-artist">{artist || 'Unknown Artist'}</p>
+            <p className="song-card-artist">
+              {artist || 'Unknown Artist'}
+              {uploaderName && (
+                <span className="song-card-uploader-tag" title={`Added by ${uploaderName}`}>
+                  {' '}• Added by <strong>{uploaderName}</strong>
+                </span>
+              )}
+            </p>
           </div>
         </div>
 

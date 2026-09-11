@@ -1,10 +1,10 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 1. Songbook Library: Public read-only; Direct client writes strictly disallowed
+    // 1. Songbook Library
     match /songs/{songId} {
-      allow read: if true;
-      allow write: if false;
+      allow read, write: if true;
     }
 
     // 2. FCM Push Notification Tokens
