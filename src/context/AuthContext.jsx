@@ -15,6 +15,7 @@ import {
 import { updateProfile } from 'firebase/auth';
 import { OWNER_EMAIL, OWNER_DEFAULT_NAME, isUserOwner } from '../utils/authConstants.js';
 import { unregisterNotificationToken, initNotificationOnboarding } from '../services/fcmService.js';
+import { initUserProfileSync } from '../services/userSyncService.js';
 
 export { OWNER_EMAIL, OWNER_DEFAULT_NAME, isUserOwner };
 
@@ -113,18 +114,34 @@ export function AuthProvider({ children }) {
 
   // Listen to Firebase Auth state changes
   useEffect(() => {
+    let syncUnsub = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user && !user.isAnonymous) {
         await syncUserProfile(user);
         initNotificationOnboarding(user).catch(() => {});
+        syncUnsub = initUserProfileSync(user);
       } else {
         setUserProfile(null);
+        if (syncUnsub) {
+          try {
+            syncUnsub();
+          } catch {}
+          syncUnsub = null;
+        }
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (syncUnsub) {
+        try {
+          syncUnsub();
+        } catch {}
+      }
+    };
   }, [syncUserProfile]);
 
   // Sign in with Email and Password

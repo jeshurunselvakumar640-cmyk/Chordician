@@ -2,6 +2,8 @@
  * LocalStorage management for non-critical user preferences
  */
 
+import { pushPreferencesToCloud } from './userSyncService.js';
+
 const THEME_KEY = 'chordician_theme';
 const VIEW_PREF_KEY = 'chordician_view_mode';
 const FONT_SIZE_KEY = 'chordician_font_size';
@@ -17,6 +19,7 @@ export function getStoredTheme() {
 export function setStoredTheme(theme) {
   try {
     localStorage.setItem(THEME_KEY, theme);
+    pushPreferencesToCloud(null, { theme }).catch(() => {});
   } catch (e) {
     console.error('Failed to store theme preference', e);
   }
@@ -33,6 +36,7 @@ export function getStoredViewMode() {
 export function setStoredViewMode(mode) {
   try {
     localStorage.setItem(VIEW_PREF_KEY, mode);
+    pushPreferencesToCloud(null, { viewMode: mode }).catch(() => {});
   } catch (e) {
     console.error('Failed to store view mode', e);
   }
@@ -67,6 +71,7 @@ export function getStoredDesktopMode() {
 export function setStoredDesktopMode(enabled) {
   try {
     localStorage.setItem(DESKTOP_MODE_KEY, String(Boolean(enabled)));
+    pushPreferencesToCloud(null, { desktopMode: Boolean(enabled) }).catch(() => {});
   } catch (e) {
     console.error('Failed to store desktop mode preference', e);
   }

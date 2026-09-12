@@ -4,6 +4,8 @@
  * reordering, setlist navigation, and real-time reactive event synchronization.
  */
 
+import { pushCommunionToCloud } from './userSyncService.js';
+
 const STORAGE_KEY = 'chordician_communion_songs';
 const EVENT_NAME = 'chordician:communion-updated';
 
@@ -56,6 +58,9 @@ export function saveCommunionData(data) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: payload }));
     }
+
+    // Sync across user's devices via cloud profile
+    pushCommunionToCloud(null, payload).catch(() => {});
   } catch (err) {
     console.error('[Communion Service] Failed to save to storage:', err);
   }

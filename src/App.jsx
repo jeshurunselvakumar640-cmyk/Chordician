@@ -16,6 +16,7 @@ import ErrorBoundary from './components/UI/ErrorBoundary';
 import { SongCardSkeleton } from './components/UI/SkeletonLoader';
 import { getSongs, deleteSong, toggleFavoriteSong } from './firebase/songs';
 import { initNotificationOnboarding, setupForegroundNotificationListener } from './services/fcmService';
+import { pushFavoritesToCloud } from './services/userSyncService';
 
 // Lazy-load page components for optimal bundle splitting & rapid first contentful paint
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -88,11 +89,29 @@ function AppContent() {
     };
   }, [fetchAllSongs, showToast]);
 
+  // Listen for Remote Favorites & Preferences Sync across devices
+  useEffect(() => {
+    const handleFavoritesSync = (e) => {
+      const favIds = Array.isArray(e.detail) ? e.detail : [];
+      if (favIds.length > 0) {
+        setSongs((prev) =>
+          prev.map((s) => ({ ...s, favorite: favIds.includes(s.id) }))
+        );
+      }
+    };
+
+    window.addEventListener('chordician:favorites-updated', handleFavoritesSync);
+    return () => {
+      window.removeEventListener('chordician:favorites-updated', handleFavoritesSync);
+    };
+  }, []);
+
   // Handle Favorite Toggle
   const handleToggleFavorite = async (songId, currentStatus) => {
+    const newStatus = !currentStatus;
     // Optimistic UI update
     setSongs((prev) =>
-      prev.map((s) => (s.id === songId ? { ...s, favorite: !currentStatus } : s))
+      prev.map((s) => (s.id === songId ? { ...s, favorite: newStatus } : s))
     );
 
     const res = await toggleFavoriteSong(songId, currentStatus);
@@ -104,10 +123,17 @@ function AppContent() {
       showToast(res.error, 'error');
     } else {
       showToast(
-        !currentStatus ? 'Added to favorites' : 'Removed from favorites',
+        newStatus ? 'Added to favorites' : 'Removed from favorites',
         'info',
         2000
       );
+
+      // Sync updated favorites list to user cloud profile
+      setSongs((latestSongs) => {
+        const favoriteIds = latestSongs.filter((s) => s.favorite).map((s) => s.id);
+        pushFavoritesToCloud(null, favoriteIds).catch(() => {});
+        return latestSongs;
+      });
     }
   };
 
@@ -263,7 +289,7 @@ function AppContent() {
               path="/add-song"
               element={
                 <ProtectedRoute title="Add New Song">
-                  <AddSong onSongAdded={fetchAllSongs} />
+                  <AddSong songs={songs} onSongAdded={fetchAllSongs} />
                 </ProtectedRoute>
               }
             />

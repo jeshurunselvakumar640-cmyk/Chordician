@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { pushCustomNotesToCloud } from '../services/userSyncService.js';
 
 const STORAGE_KEY = 'chordician_saved_custom_notes';
 const DRAFT_KEY = 'chordician_custom_notes_draft';
@@ -87,7 +88,29 @@ export default function CustomNotes() {
     } catch {}
   }, [noteContent, noteTitle]);
 
-  // Persist saved notes
+  // Listen for remote sync events across devices & tabs
+  useEffect(() => {
+    const handleRemoteUpdate = (e) => {
+      try {
+        if (e.detail && Array.isArray(e.detail)) {
+          setSavedNotes(e.detail);
+        } else {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) setSavedNotes(JSON.parse(saved));
+        }
+      } catch {}
+    };
+
+    window.addEventListener('chordician:custom-notes-updated', handleRemoteUpdate);
+    window.addEventListener('storage', handleRemoteUpdate);
+
+    return () => {
+      window.removeEventListener('chordician:custom-notes-updated', handleRemoteUpdate);
+      window.removeEventListener('storage', handleRemoteUpdate);
+    };
+  }, []);
+
+  // Persist saved notes locally and to cloud profile
   const persistSavedNotes = (notesList) => {
     setSavedNotes(notesList);
     try {
@@ -95,6 +118,8 @@ export default function CustomNotes() {
     } catch (err) {
       console.warn('Failed to persist notes to localStorage:', err);
     }
+
+    pushCustomNotesToCloud(null, notesList).catch(() => {});
   };
 
   // Live content stats

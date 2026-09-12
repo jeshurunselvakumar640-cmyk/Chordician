@@ -4,6 +4,8 @@
  * custom service dates, and real-time reactive updates.
  */
 
+import { pushThisSundayToCloud } from './userSyncService.js';
+
 const STORAGE_KEY = 'chordician_this_sunday_setlist';
 const EVENT_NAME = 'chordician:this-sunday-updated';
 
@@ -184,6 +186,9 @@ export function saveThisSundayData(data) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: payload }));
     }
+
+    // Sync across user's devices via cloud profile
+    pushThisSundayToCloud(null, payload).catch(() => {});
   } catch (err) {
     console.error('[This Sunday] Failed to save to storage:', err);
   }
