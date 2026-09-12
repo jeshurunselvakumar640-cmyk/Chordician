@@ -46,23 +46,49 @@ export function buildAlignedChordString(chords = []) {
 }
 
 /**
+ * Normalizes a key or chord name to standard musical keys in ALL_KEYS, preserving minor/major quality
+ */
+export function normalizeKey(str) {
+  if (!str || typeof str !== 'string') return null;
+  const cleaned = str.trim().replace(/^key(\s+of)?[:\s]*/i, '').trim();
+  if (ALL_KEYS.includes(cleaned)) return cleaned;
+
+  const match = cleaned.match(/^([A-Ga-g])([#b♯♭]?)(.*)$/);
+  if (!match) return null;
+
+  const root = match[1].toUpperCase();
+  const accidental = (match[2] || '').replace('♯', '#').replace('♭', 'b');
+  const remainder = match[3].trim();
+
+  const isMinor = /^(m|min|minor)(?!aj)/i.test(remainder);
+  const candidate = isMinor ? `${root}${accidental}m` : `${root}${accidental}`;
+
+  if (ALL_KEYS.includes(candidate)) return candidate;
+  if (ALL_KEYS.includes(`${root}${accidental}`)) return `${root}${accidental}`;
+  return null;
+}
+
+/**
  * Infers the most likely musical key from detected chords if none was provided
  */
 export function inferOriginalKey(sections, providedKey) {
-  if (providedKey && ALL_KEYS.includes(providedKey.trim())) {
-    return providedKey.trim();
+  if (providedKey && typeof providedKey === 'string') {
+    const normalized = normalizeKey(providedKey);
+    if (normalized) {
+      return normalized;
+    }
   }
 
   // Find first non-empty chord in first section
   for (const section of sections || []) {
     for (const line of section.lines || []) {
       if (line.chords && line.chords.length > 0) {
-        const firstChord = line.chords[0].chord || '';
-        const rootMatch = firstChord.match(/^[A-Ga-g][#b]?/);
-        if (rootMatch) {
-          const root = rootMatch[0].toUpperCase();
-          if (ALL_KEYS.includes(root)) {
-            return root;
+        for (const item of line.chords) {
+          const chordStr = (item.chord || '').trim();
+          if (!chordStr) continue;
+          const inferred = normalizeKey(chordStr);
+          if (inferred) {
+            return inferred;
           }
         }
       }

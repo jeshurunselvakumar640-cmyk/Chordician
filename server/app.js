@@ -98,16 +98,17 @@ IMPORTANT RULES:
 14. Handle multiple columns correctly.
 15. Estimate the chord's horizontal character position within that lyric line.
 16. If something is uncertain, lower its confidence rather than inventing information.
+17. Crucial: Preserve exact chord qualities (e.g., distinguish minor chords like G#m, Am, Bm, Cm, Dm, Em, F#m, C#m, Bbm from major chords like G#, A, B, C, D, E, F#, C#, Bb; preserve 7, m7, maj7, dim, aug, sus2, sus4). Never drop or omit the minor 'm' indicator or quality suffix from chords or originalKey.
 
 Musical chord examples include:
-C, Cm, C#, C#m, D, Dm, D7, Dmaj7, E, Em, F, Fm, F#, G, Gm, G7, A, Am, A7, B, Bm, Bb, and slash / composite chords such as C/E, G/B, D/F#, E/G#, and C7/Am.
+C, Cm, C#, C#m, D, Dm, D7, Dmaj7, E, Em, F, Fm, F#, F#m, G, Gm, G#, G#m, G#7, G#m7, A, Am, A7, B, Bm, Bb, Bbm, C#maj7, F#dim, Asus4, and slash / composite chords such as C/E, G/B, D/F#, E/G#, and C7/Am.
 
 OUTPUT FORMAT:
 Return valid JSON adhering to this exact schema:
 {
   "title": "Song Title",
   "artist": "Artist name or empty string",
-  "originalKey": "Key of song (e.g. C, Dm, G, A#)",
+  "originalKey": "Key of song (e.g. G#m, C, Dm, G, A#, F#m)",
   "sections": [
     {
       "id": "section-1",
@@ -119,7 +120,7 @@ Return valid JSON adhering to this exact schema:
           "lyrics": "Exact line lyrics",
           "chords": [
             {
-              "chord": "Dm",
+              "chord": "G#m",
               "position": 0,
               "confidence": 0.98
             }
