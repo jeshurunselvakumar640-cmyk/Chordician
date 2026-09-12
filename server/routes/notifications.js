@@ -247,7 +247,7 @@ export async function broadcastNewSongNotification(songId, songData = null, trig
   const song = songData || (await getAuthoritativeSong(songId));
   if (!song) return { success: false, error: 'Song not found' };
 
-  const uploaderName = song.createdByName || 'Jeshurun Selvakumar';
+  const uploaderName = (song.createdByName || 'Jeshurun Selvakumar').replace(/\s*\([Oo]wner\)/g, '').trim() || 'Jeshurun Selvakumar';
   const notificationTitle = song.title || 'New Song';
   const notificationUrl = `/songs/${songId}`;
 
@@ -440,7 +440,7 @@ router.post('/send', async (req, res) => {
       triggeredBy: caller.uid,
       songTitle: title,
       message: message,
-      createdByName: caller.displayName || 'Jeshurun Selvakumar',
+      createdByName: (caller.displayName || 'Jeshurun Selvakumar').replace(/\s*\([Oo]wner\)/g, '').trim() || 'Jeshurun Selvakumar',
       sentAt: new Date().toISOString(),
       recipientCount: tokenList.length
     });

@@ -361,7 +361,7 @@ export default function SongDetails({
   const resolvedStyle = resolveFullStyle(style);
   const styleName = resolvedStyle?.name || (typeof style === 'string' ? style : style?.name) || '';
   const styleNumber = getStyleNumberCode(style);
-  const creatorDisplayName = (song.createdByName || song.createdBy || 'Jeshurun Selvakumar').trim();
+  const creatorDisplayName = (song.createdByName || song.createdBy || 'Jeshurun Selvakumar').replace(/\s*\([Oo]wner\)/g, '').trim();
 
   return (
     <div

@@ -189,9 +189,10 @@ router.post('/', async (req, res) => {
   }
 
   const isOwner = isOwnerEmail(caller.email);
-  const createdByName = isOwner
+  const rawCreator = isOwner
     ? 'Jeshurun Selvakumar'
     : (songData.createdByName || caller.displayName || (caller.email ? caller.email.split('@')[0] : 'Musician'));
+  const createdByName = (rawCreator || 'Jeshurun Selvakumar').replace(/\s*\([Oo]wner\)/g, '').trim() || 'Jeshurun Selvakumar';
 
   const nowIso = new Date().toISOString();
 

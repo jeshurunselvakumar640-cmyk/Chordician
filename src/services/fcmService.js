@@ -305,7 +305,7 @@ export function setupForegroundNotificationListener(onNotificationReceived) {
       const body = payload.notification?.body || payload.data?.body || 'A new song was added to the songbook!';
       const songId = payload.data?.songId || null;
       const url = payload.data?.url || (songId ? `/songs/${songId}` : '/songs');
-      const uploaderName = payload.data?.createdByName || 'Jeshurun Selvakumar';
+      const uploaderName = (payload.data?.createdByName || 'Jeshurun Selvakumar').replace(/\s*\([Oo]wner\)/g, '').trim();
 
       // Trigger native notification if permission is granted
       if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {

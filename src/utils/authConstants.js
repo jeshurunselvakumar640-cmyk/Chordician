@@ -2,7 +2,7 @@
  * Authentication and permission constants for Chordician.
  */
 export const OWNER_EMAIL = 'jeshurunselvakumar@gmail.com';
-export const OWNER_DEFAULT_NAME = 'Jeshurun Selvakumar (Owner)';
+export const OWNER_DEFAULT_NAME = 'Jeshurun Selvakumar';
 
 /**
  * Checks whether an account has owner / full edit permissions
