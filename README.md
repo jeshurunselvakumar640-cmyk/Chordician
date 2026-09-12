@@ -616,22 +616,18 @@ Git Repository
 
 ---
 
-# 🤝 Contributing
+# 🤝 Contributing & Repository Notice
 
-Chordician is primarily developed as a personal/project application.
+**Chordician** is an author-maintained personal worship platform built exclusively by **Jeshurun Selvakumar**.
 
-If the repository is opened for contributions in the future, contributors should:
-
-1. Create a feature branch
-2. Keep changes focused
-3. Avoid modifying unrelated systems
-4. Add appropriate tests
-5. Verify the production build
-6. Submit a pull request describing the changes
+> [!IMPORTANT]
+> **Strict Notice**: External contributions, pull requests, and forking are strictly denied and not accepted for this repository.
 
 ---
 
 # 📜 License
+
+Copyright (c) 2026 **Jeshurun Selvakumar**. All rights reserved.
 
 This project is licensed under the [MIT License](./LICENSE).
 
