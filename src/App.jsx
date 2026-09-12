@@ -77,8 +77,8 @@ function AppContent() {
   useEffect(() => {
     initNotificationOnboarding().catch(() => {});
 
-    const unsubscribe = setupForegroundNotificationListener(({ songTitle, uploaderName }) => {
-      showToast(`🎵 New song added by ${uploaderName || 'Jeshurun Selvakumar'}: "${songTitle}"`, 'info', 6000);
+    const unsubscribe = setupForegroundNotificationListener(({ body, songTitle }) => {
+      showToast(body || `Hey Musician! new song ${songTitle || 'New Song'} is added`, 'info', 6000);
       fetchAllSongs();
     });
 

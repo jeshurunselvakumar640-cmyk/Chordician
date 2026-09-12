@@ -349,9 +349,8 @@ export function setupForegroundNotificationListener(onNotificationReceived) {
           const data = change.doc.data() || {};
           const songId = change.doc.id;
           const title = data.title || 'New Song';
-          const uploaderName = (data.createdByName || data.createdBy || 'Jeshurun Selvakumar').trim();
-          const notifTitle = '🎵 Hey Musician!';
-          const notifBody = `New song added by ${uploaderName}: "${title}"`;
+          const notifTitle = title;
+          const notifBody = `Hey Musician! new song ${title} is added`;
           const url = `/songs/${songId}`;
 
           // Avoid self-notification or stale timestamps

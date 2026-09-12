@@ -144,6 +144,26 @@ async function getAuthoritativeSong(songId) {
 }
 
 /**
+ * Extracts a friendly first name from a user's display name or email.
+ *
+ * @param {string} [displayName]
+ * @param {string} [email]
+ * @returns {string}
+ */
+export function extractFirstName(displayName, email) {
+  let name = (displayName || '').replace(/\(Owner\)/gi, '').trim();
+  if (!name || name.toLowerCase() === 'guest musician' || name.toLowerCase() === 'musician') {
+    if (email && typeof email === 'string' && email.includes('@')) {
+      name = email.split('@')[0].trim();
+    } else {
+      return 'Musician';
+    }
+  }
+  const firstName = name.split(/\s+/)[0];
+  return firstName || 'Musician';
+}
+
+/**
  * Retrieves all registered tokens from /fcm_tokens collection.
  * Delivers per-device (does NOT collapse multiple tokens for a single user).
  */
@@ -162,9 +182,11 @@ export async function getRegisteredTokens() {
       const docId = docPath ? docPath.split('/').pop() : null;
       const token = doc.fields?.token?.stringValue;
       const userId = doc.fields?.userId?.stringValue;
+      const displayName = doc.fields?.displayName?.stringValue || '';
+      const email = doc.fields?.email?.stringValue || '';
 
       if (token && docId) {
-        tokens.push({ docId, token, userId });
+        tokens.push({ docId, token, userId, displayName, email });
       }
     }
 
@@ -226,8 +248,7 @@ export async function broadcastNewSongNotification(songId, songData = null, trig
   if (!song) return { success: false, error: 'Song not found' };
 
   const uploaderName = song.createdByName || 'Jeshurun Selvakumar';
-  const notificationTitle = '🎵 Hey Musician!';
-  const notificationBody = `New song added by ${uploaderName}: "${song.title}" Check it out!`;
+  const notificationTitle = song.title || 'New Song';
   const notificationUrl = `/songs/${songId}`;
 
   // Log broadcast entry in Firestore
@@ -256,8 +277,11 @@ export async function broadcastNewSongNotification(songId, songData = null, trig
     const fcmV1Url = `https://fcm.googleapis.com/v1/projects/${fcmProjectId}/messages:send`;
 
     await Promise.all(
-      tokenList.map(async ({ docId, token }) => {
+      tokenList.map(async ({ docId, token, displayName, email }) => {
         try {
+          const recipientName = extractFirstName(displayName, email);
+          const notificationBody = `Hey ${recipientName}! new song ${song.title} is added`;
+
           const payload = {
             message: {
               token,
@@ -277,12 +301,16 @@ export async function broadcastNewSongNotification(songId, songData = null, trig
                 },
                 data: {
                   songId,
-                  url: notificationUrl
+                  url: notificationUrl,
+                  title: notificationTitle,
+                  body: notificationBody
                 }
               },
               data: {
                 songId,
-                url: notificationUrl
+                url: notificationUrl,
+                title: notificationTitle,
+                body: notificationBody
               }
             }
           };
@@ -301,7 +329,11 @@ export async function broadcastNewSongNotification(songId, songData = null, trig
           } else {
             const errData = await res.json().catch(() => ({}));
             const errorCode = errData?.error?.details?.[0]?.errorCode || errData?.error?.status;
-            if (errorCode === 'UNREGISTERED' || errorCode === 'INVALID_ARGUMENT') {
+            const errorMsg = (errData?.error?.message || '').toLowerCase();
+            const isDeadToken =
+              errorCode === 'UNREGISTERED' ||
+              (errorCode === 'INVALID_ARGUMENT' && (errorMsg.includes('token') || errorMsg.includes('registration')));
+            if (isDeadToken) {
               deadDocIds.push(docId);
             }
             failureCount++;
@@ -483,7 +515,11 @@ router.post('/send', async (req, res) => {
             } else {
               const errData = await res.json().catch(() => ({}));
               const errorCode = errData?.error?.details?.[0]?.errorCode || errData?.error?.status;
-              if (errorCode === 'UNREGISTERED' || errorCode === 'INVALID_ARGUMENT') {
+              const errorMsg = (errData?.error?.message || '').toLowerCase();
+              const isDeadToken =
+                errorCode === 'UNREGISTERED' ||
+                (errorCode === 'INVALID_ARGUMENT' && (errorMsg.includes('token') || errorMsg.includes('registration')));
+              if (isDeadToken) {
                 deadDocIds.push(docId);
               }
               failureCount++;
