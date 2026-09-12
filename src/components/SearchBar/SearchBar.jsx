@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useDeferredValue } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Music } from 'lucide-react';
 import { searchSongsWithFuzzy } from '../../utils/fuzzySearch.js';
@@ -6,6 +6,7 @@ import { searchSongsWithFuzzy } from '../../utils/fuzzySearch.js';
 export default function SearchBar({
   value = '',
   onChange,
+  onSubmit,
   placeholder = 'Search by title, artist, category...',
   autoFocus = false,
   songs = [],
@@ -13,53 +14,24 @@ export default function SearchBar({
   showSuggestions = true
 }) {
   const navigate = useNavigate();
-  const [localValue, setLocalValue] = useState(value || '');
-  const [debouncedQuery, setDebouncedQuery] = useState(value || '');
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef(null);
   const inputRef = useRef(null);
-  const debounceTimerRef = useRef(null);
-  const lastTypedValueRef = useRef(value || '');
-  const lastEmittedValueRef = useRef(value || '');
 
-  // Synchronize local input state ONLY when external value prop changes legitimately
-  // (e.g. Clear Search button, URL parameter navigation, or programmatic reset).
-  // Stale parent prop echoes are prevented from overwriting active user typing.
-  useEffect(() => {
-    const incomingValue = value || '';
-    // If incoming value matches what the user typed or what was emitted, treat as an echo and ignore.
-    if (incomingValue === lastTypedValueRef.current || incomingValue === lastEmittedValueRef.current) {
-      return;
-    }
-    // Legitimate external change (e.g. reset filters, URL navigation)
-    lastTypedValueRef.current = incomingValue;
-    lastEmittedValueRef.current = incomingValue;
-    setLocalValue(incomingValue);
-    setDebouncedQuery(incomingValue);
-  }, [value]);
-
-  // Clean up debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Compute top matching song suggestions (title & scale only) lazily ONLY when suggestions are active & dropdown is open
+  // Compute top matching song suggestions (title & scale only) deferred in background to prevent typing lag
+  const deferredValue = useDeferredValue(value);
   const suggestions = useMemo(() => {
     if (!showSuggestions || !isOpen) {
       return [];
     }
-    const q = String(debouncedQuery || '').trim();
+    const q = String(deferredValue || '').trim();
     if (!q || !Array.isArray(songs) || songs.length === 0) {
       return [];
     }
     const { results } = searchSongsWithFuzzy(songs, q);
     return (results || []).slice(0, 6);
-  }, [debouncedQuery, songs, showSuggestions, isOpen]);
+  }, [deferredValue, songs, showSuggestions, isOpen]);
 
   // Click outside listener to dismiss dropdown
   useEffect(() => {
@@ -79,7 +51,6 @@ export default function SearchBar({
   }, []);
 
   const handleSelect = (song) => {
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     setIsOpen(false);
     setSelectedIndex(-1);
     if (typeof onSelectSong === 'function') {
@@ -96,13 +67,10 @@ export default function SearchBar({
         setSelectedIndex(0);
         e.preventDefault();
       } else if (e.key === 'Enter') {
-        // Flush any pending debounce immediately on enter
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
+        if (typeof onSubmit === 'function') {
+          e.preventDefault();
+          onSubmit(value);
         }
-        lastEmittedValueRef.current = localValue;
-        setDebouncedQuery(localValue);
-        if (onChange) onChange(localValue);
       }
       return;
     }
@@ -114,17 +82,12 @@ export default function SearchBar({
       e.preventDefault();
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
     } else if (e.key === 'Enter') {
+      e.preventDefault();
       if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-        e.preventDefault();
         handleSelect(suggestions[selectedIndex]);
-      } else {
-        // Flush pending search
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-        }
-        lastEmittedValueRef.current = localValue;
-        setDebouncedQuery(localValue);
-        if (onChange) onChange(localValue);
+      } else if (typeof onSubmit === 'function') {
+        setIsOpen(false);
+        onSubmit(value);
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);
@@ -134,49 +97,23 @@ export default function SearchBar({
 
   const handleChange = (e) => {
     const newVal = e.target.value;
-    lastTypedValueRef.current = newVal;
-    // 0ms immediate synchronous DOM update for buttery-smooth mobile typing
-    setLocalValue(newVal);
-    setSelectedIndex(-1);
-
-    if (!newVal.trim()) {
-      setIsOpen(false);
-      setDebouncedQuery('');
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-      lastEmittedValueRef.current = '';
-      if (onChange) onChange('');
-      return;
-    }
-
+    if (onChange) onChange(newVal);
     if (showSuggestions) {
-      setIsOpen(true);
+      setIsOpen(Boolean(newVal.trim()));
+      setSelectedIndex(-1);
     }
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      lastEmittedValueRef.current = newVal;
-      setDebouncedQuery(newVal);
-      if (onChange) onChange(newVal);
-    }, 150);
   };
 
   const handleFocus = () => {
-    if (showSuggestions && String(localValue || '').trim() && (debouncedQuery || '').trim()) {
+    if (showSuggestions && String(value || '').trim()) {
       setIsOpen(true);
     }
   };
 
   const handleClear = () => {
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    lastTypedValueRef.current = '';
-    lastEmittedValueRef.current = '';
-    setLocalValue('');
-    setDebouncedQuery('');
+    if (onChange) onChange('');
     setIsOpen(false);
     setSelectedIndex(-1);
-    if (onChange) onChange('');
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -190,7 +127,7 @@ export default function SearchBar({
         type="text"
         className="search-input"
         placeholder={placeholder}
-        value={localValue}
+        value={value || ''}
         onChange={handleChange}
         onFocus={handleFocus}
         onKeyDown={handleKeyDown}
@@ -203,7 +140,7 @@ export default function SearchBar({
         aria-expanded={isOpen && suggestions.length > 0}
         aria-autocomplete="list"
       />
-      {localValue && (
+      {Boolean(value) && (
         <button
           type="button"
           className="search-clear"

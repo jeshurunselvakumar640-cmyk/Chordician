@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useDeferredValue } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -35,28 +35,50 @@ export default function Songs({
   const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
 
+  // Track the last parameters pushed by this component to avoid feedback loops with useSearchParams
+  const lastPushedParamsRef = useRef({
+    q: searchParams.get('q') || '',
+    category: searchParams.get('category') || 'ALL',
+    artist: searchParams.get('artist') || 'ALL'
+  });
+
   // Sync state when external navigation or browser Back/Forward modifies URL search params
   useEffect(() => {
     const q = searchParams.get('q') || '';
     const cat = searchParams.get('category') || 'ALL';
     const art = searchParams.get('artist') || 'ALL';
 
-    setSearchQuery((prev) => (prev !== q ? q : prev));
-    setSelectedCategory((prev) => (prev !== cat ? cat : prev));
-    setSelectedArtist((prev) => (prev !== art ? art : prev));
+    // Only update local state if the change was external (not pushed by this component)
+    if (q !== lastPushedParamsRef.current.q) {
+      lastPushedParamsRef.current.q = q;
+      setSearchQuery(q);
+    }
+    if (cat !== lastPushedParamsRef.current.category) {
+      lastPushedParamsRef.current.category = cat;
+      setSelectedCategory(cat);
+    }
+    if (art !== lastPushedParamsRef.current.artist) {
+      lastPushedParamsRef.current.artist = art;
+      setSelectedArtist(art);
+    }
   }, [searchParams]);
 
   // Keep URL search params in sync with active filters using deferred query to avoid router thrashing
   useEffect(() => {
-    const currentQ = searchParams.get('q') || '';
-    const currentCat = searchParams.get('category') || 'ALL';
-    const currentArt = searchParams.get('artist') || 'ALL';
-
     const desiredQ = deferredSearchQuery.trim();
     const desiredCat = selectedCategory;
     const desiredArt = selectedArtist;
 
+    const currentQ = searchParams.get('q') || '';
+    const currentCat = searchParams.get('category') || 'ALL';
+    const currentArt = searchParams.get('artist') || 'ALL';
+
     if (currentQ !== desiredQ || currentCat !== desiredCat || currentArt !== desiredArt) {
+      lastPushedParamsRef.current = {
+        q: desiredQ,
+        category: desiredCat,
+        artist: desiredArt
+      };
       const newParams = {};
       if (desiredQ) newParams.q = desiredQ;
       if (desiredCat !== 'ALL') newParams.category = desiredCat;

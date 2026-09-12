@@ -85,6 +85,7 @@ export default function Header({
           <SearchBar
             value={searchQuery}
             onChange={handleSearchChange}
+            onSubmit={handleSearchCommit}
             placeholder="Search songs, artists, chords..."
             songs={songs}
             onSelectSong={(song) => {
@@ -154,9 +155,8 @@ export default function Header({
         <div className="mobile-search-dropdown">
           <SearchBar
             value={searchQuery}
-            onChange={(val) => {
-              handleSearchChange(val);
-            }}
+            onChange={handleSearchChange}
+            onSubmit={handleSearchCommit}
             placeholder="Search songs, artists, lyrics..."
             autoFocus={true}
             songs={songs}
