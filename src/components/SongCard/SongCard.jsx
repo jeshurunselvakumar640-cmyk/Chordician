@@ -50,7 +50,7 @@ function SongCard({
     createdBy
   } = song;
   const userCanEdit = song && canEditSong ? canEditSong(song) : canEdit;
-  const uploaderName = (createdByName || createdBy || '').trim();
+  const uploaderName = (createdByName || createdBy || 'Jeshurun Selvakumar').trim();
 
   const isSunday = isInThisSunday(id);
   const isCommunion = isInCommunion(id);

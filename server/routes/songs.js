@@ -1,4 +1,5 @@
 import express from 'express';
+import { broadcastNewSongNotification } from './notifications.js';
 
 const router = express.Router();
 
@@ -189,8 +190,8 @@ router.post('/', async (req, res) => {
 
   const isOwner = isOwnerEmail(caller.email);
   const createdByName = isOwner
-    ? 'Jeshurun Selvakumar (Owner)'
-    : (songData.createdByName || caller.displayName || 'Musician');
+    ? 'Jeshurun Selvakumar'
+    : (songData.createdByName || caller.displayName || (caller.email ? caller.email.split('@')[0] : 'Musician'));
 
   const nowIso = new Date().toISOString();
 
@@ -233,6 +234,12 @@ router.post('/', async (req, res) => {
     const createdDoc = await firestoreRes.json();
     const docPath = createdDoc.name || '';
     const newId = docPath ? docPath.split('/').pop() : null;
+
+    if (newId) {
+      broadcastNewSongNotification(newId, cleanData, caller.uid).catch((err) => {
+        console.warn('[Songs API] Automatic notification broadcast notice:', err.message);
+      });
+    }
 
     return res.status(201).json({
       success: true,

@@ -15,6 +15,7 @@ import ProtectedRoute from './components/UI/ProtectedRoute';
 import ErrorBoundary from './components/UI/ErrorBoundary';
 import { SongCardSkeleton } from './components/UI/SkeletonLoader';
 import { getSongs, deleteSong, toggleFavoriteSong } from './firebase/songs';
+import { initNotificationOnboarding, setupForegroundNotificationListener } from './services/fcmService';
 
 // Lazy-load page components for optimal bundle splitting & rapid first contentful paint
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -71,6 +72,20 @@ function AppContent() {
   useEffect(() => {
     fetchAllSongs();
   }, [fetchAllSongs]);
+
+  // Automatic Notification Onboarding & Real-time Broadcast Listener
+  useEffect(() => {
+    initNotificationOnboarding().catch(() => {});
+
+    const unsubscribe = setupForegroundNotificationListener(({ songTitle, uploaderName }) => {
+      showToast(`🎵 New song added by ${uploaderName || 'Jeshurun Selvakumar'}: "${songTitle}"`, 'info', 6000);
+      fetchAllSongs();
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [fetchAllSongs, showToast]);
 
   // Handle Favorite Toggle
   const handleToggleFavorite = async (songId, currentStatus) => {

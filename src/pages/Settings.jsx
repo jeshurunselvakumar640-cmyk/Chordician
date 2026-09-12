@@ -41,7 +41,8 @@ import {
   isPushNotificationSupported,
   getNotificationPermissionState,
   requestNotificationToken,
-  unregisterNotificationToken
+  unregisterNotificationToken,
+  sendLocalTestNotification
 } from '../services/fcmService.js';
 
 export default function Settings({ onSongAdded }) {
@@ -66,13 +67,9 @@ export default function Settings({ onSongAdded }) {
     }
   });
   const [isNotifLoading, setIsNotifLoading] = useState(false);
+  const [isTestNotifLoading, setIsTestNotifLoading] = useState(false);
 
   const handleToggleNotifications = async () => {
-    if (!currentUser) {
-      openAuthModal('login');
-      return;
-    }
-
     if (!isSupported) {
       showToast('Web Push is not supported in this browser.', 'warning');
       return;
@@ -81,7 +78,7 @@ export default function Settings({ onSongAdded }) {
     if (isNotifEnabled) {
       // Turn off notifications
       setIsNotifLoading(true);
-      await unregisterNotificationToken(currentUser);
+      await unregisterNotificationToken(currentUser || null);
       setIsNotifEnabled(false);
       setIsNotifLoading(false);
       showToast('New song notifications turned off', 'info');
@@ -92,7 +89,7 @@ export default function Settings({ onSongAdded }) {
         return;
       }
       setIsNotifLoading(true);
-      const res = await requestNotificationToken(currentUser);
+      const res = await requestNotificationToken(currentUser || null);
       setIsNotifLoading(false);
       setNotifPermission(res.permission || getNotificationPermissionState());
 
@@ -106,6 +103,17 @@ export default function Settings({ onSongAdded }) {
           showToast(res.error || 'Could not enable notifications', 'error');
         }
       }
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    setIsTestNotifLoading(true);
+    const res = await sendLocalTestNotification();
+    setIsTestNotifLoading(false);
+    if (res.success) {
+      showToast('✓ Test notification sent! Check your notification shade/tray.', 'success', 4000);
+    } else {
+      showToast(res.error || 'Failed to trigger test notification', 'error');
     }
   };
 
@@ -276,8 +284,8 @@ export default function Settings({ onSongAdded }) {
         </div>
       </div>
 
-      {/* Web Push Notifications (Only for Authenticated Users on Supported Browsers) */}
-      {currentUser && isSupported && (
+      {/* Web Push Notifications (Available on all supported mobile & desktop browsers) */}
+      {isSupported && (
         <div className="card settings-card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
             <h2 className="settings-section-title" style={{ marginBottom: 0 }}>
@@ -289,26 +297,41 @@ export default function Settings({ onSongAdded }) {
               New Song Notifications
             </h2>
 
-            <button
-              type="button"
-              className={`btn btn-sm ${isNotifEnabled ? 'btn-secondary' : 'btn-primary'}`}
-              onClick={handleToggleNotifications}
-              disabled={isNotifLoading}
-              style={{ minWidth: '110px' }}
-            >
-              {isNotifLoading ? (
-                <RefreshCw size={14} className="animate-spin" />
-              ) : isNotifEnabled ? (
-                <BellOff size={14} />
-              ) : (
-                <Bell size={14} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {isNotifEnabled && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleSendTestNotification}
+                  disabled={isTestNotifLoading}
+                  title="Send a test notification to verify mobile receipt"
+                >
+                  {isTestNotifLoading ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  <span>{isTestNotifLoading ? 'Sending...' : 'Test Alert'}</span>
+                </button>
               )}
-              <span>{isNotifLoading ? 'Updating...' : isNotifEnabled ? 'Disable' : 'Enable'}</span>
-            </button>
+
+              <button
+                type="button"
+                className={`btn btn-sm ${isNotifEnabled ? 'btn-secondary' : 'btn-primary'}`}
+                onClick={handleToggleNotifications}
+                disabled={isNotifLoading}
+                style={{ minWidth: '100px' }}
+              >
+                {isNotifLoading ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : isNotifEnabled ? (
+                  <BellOff size={14} />
+                ) : (
+                  <Bell size={14} />
+                )}
+                <span>{isNotifLoading ? 'Updating...' : isNotifEnabled ? 'Disable' : 'Enable'}</span>
+              </button>
+            </div>
           </div>
 
           <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginTop: '8px', marginBottom: '16px' }}>
-            Get instant push notifications when a new chord sheet is added to the songbook library.
+            Get instant notifications when a new chord sheet is added to the songbook library.
           </p>
 
           <div className="settings-db-info-list">
