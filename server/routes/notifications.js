@@ -290,6 +290,10 @@ export async function broadcastNewSongNotification(songId, songData = null, trig
                 body: notificationBody
               },
               webpush: {
+                headers: {
+                  Urgency: 'high',
+                  TTL: '86400'
+                },
                 fcm_options: {
                   link: notificationUrl
                 },
@@ -477,6 +481,10 @@ router.post('/send', async (req, res) => {
                   body: message
                 },
                 webpush: {
+                  headers: {
+                    Urgency: 'high',
+                    TTL: '86400'
+                  },
                   fcm_options: {
                     link: targetUrl
                   },

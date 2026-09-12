@@ -83,10 +83,20 @@ self.addEventListener('push', (event) => {
   const songId = payload.data?.songId || payload.songId || null;
   const targetUrl = payload.data?.url || payload.url || (songId ? `/songs/${songId}` : '/songs');
 
+  const origin = self.location ? self.location.origin : '';
+  let iconUrl = '/pwa-192x192.png';
+  let badgeUrl = '/favicon.svg';
+  try {
+    if (origin) {
+      iconUrl = new URL('/pwa-192x192.png', origin).href;
+      badgeUrl = new URL('/favicon.svg', origin).href;
+    }
+  } catch {}
+
   const options = {
     body,
-    icon: '/pwa-192x192.png',
-    badge: '/favicon.svg',
+    icon: iconUrl,
+    badge: badgeUrl,
     tag: songId ? `chordician-song-${songId}` : 'chordician-notification',
     renotify: true,
     data: {
@@ -96,7 +106,13 @@ self.addEventListener('push', (event) => {
     }
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options).catch((err) => {
+      console.warn('[ServiceWorker] Push showNotification fallback notice:', err);
+      // Fallback with minimal options if rich options failed
+      return self.registration.showNotification(title, { body });
+    })
+  );
 });
 
 // 8. Notification Click & Deep-Link Navigation
