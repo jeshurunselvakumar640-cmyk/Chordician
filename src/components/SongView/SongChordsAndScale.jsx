@@ -37,7 +37,7 @@ export default function SongChordsAndScale({ transposedSong }) {
           <Music size={18} className="song-chords-scale-icon" />
           <h3 className="song-chords-scale-title">Chords & Scale</h3>
         </div>
-        <Link to="/notes" className="btn btn-ghost btn-sm song-chords-guide-link" title="Open Full Chord Sheet & Reference Guide">
+        <Link to="/chord-guide" className="btn btn-ghost btn-sm song-chords-guide-link" title="Open Full Chord Sheet & Reference Guide">
           <BookOpen size={14} />
           <span>Full Reference Sheet</span>
         </Link>

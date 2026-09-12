@@ -30,6 +30,7 @@ const EditSong = lazy(() => import('./pages/EditSong'));
 const ImportSong = lazy(() => import('./pages/ImportSong'));
 const Settings = lazy(() => import('./pages/Settings'));
 const NotesGuide = lazy(() => import('./pages/NotesGuide'));
+const CustomNotes = lazy(() => import('./pages/CustomNotes'));
 
 function PageFallback() {
   return (
@@ -280,11 +281,23 @@ function AppContent() {
             />
             <Route
               path="/notes"
+              element={<CustomNotes />}
+            />
+            <Route
+              path="/custom-notes"
+              element={<CustomNotes />}
+            />
+            <Route
+              path="/chord-guide"
+              element={<NotesGuide />}
+            />
+            <Route
+              path="/notes-guide"
               element={<NotesGuide />}
             />
             <Route
               path="/chord-sheet"
-              element={<Navigate to="/notes" replace />}
+              element={<Navigate to="/chord-guide" replace />}
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

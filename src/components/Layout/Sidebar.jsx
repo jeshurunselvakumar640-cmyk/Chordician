@@ -15,6 +15,7 @@ import {
   Crown,
   X,
   BookOpen,
+  FileText,
   LogIn
 } from 'lucide-react';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
@@ -68,7 +69,8 @@ export default function Sidebar({
     { to: '/songs', label: 'My Songs', icon: <Music size={19} />, badge: totalSongs > 0 ? totalSongs : null },
     { to: '/favorites', label: 'Favorites', icon: <Heart size={19} />, badge: favoriteCount > 0 ? favoriteCount : null },
     { to: '/recent', label: 'Recently Added', icon: <Clock size={19} /> },
-    { to: '/notes', label: 'Notes', icon: <BookOpen size={19} /> },
+    { to: '/notes', label: 'Notes', icon: <FileText size={19} /> },
+    { to: '/chord-guide', label: 'Chord Theory', icon: <BookOpen size={19} /> },
     ...(canCreate ? [{ to: '/import', label: 'AI Import', icon: <Sparkles size={19} /> }] : []),
     { to: '/settings', label: 'Settings', icon: <Settings size={19} /> }
   ];
