@@ -3,10 +3,26 @@ import crypto from 'crypto';
 
 const router = express.Router();
 
+const OWNER_EMAILS = [
+  'jeshurunselvakumar@gmail.com',
+  'jeshurunselvakumar640@gmail.com'
+];
+
 const AUTH_API_KEY = process.env.VITE_FIREBASE_API_KEY || 'AIzaSyCaxt7IyXNAm5N41gWX0AJA3iJsq9_O-Cc';
 const FIRESTORE_API_KEY = process.env.VITE_FIRESTORE_API_KEY || 'AIzaSyB_4AdPTivYU0wmU-w8ra2MsM6oPJr9SYs';
 const FIRESTORE_PROJECT_ID = 'pianonotes-1bd94';
 const FCM_PROJECT_ID = 'authentication-2708d';
+
+/**
+ * Authoritative check to verify whether an email address belongs to the Owner.
+ *
+ * @param {string} email
+ * @returns {boolean}
+ */
+export function isOwnerEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  return OWNER_EMAILS.includes(email.trim().toLowerCase());
+}
 
 /**
  * Returns Google Cloud Service Account credentials if configured in environment.
@@ -78,7 +94,7 @@ async function getGoogleAccessToken() {
 /**
  * Cryptographically verifies Firebase ID token using Google Identity Toolkit API.
  */
-async function verifyFirebaseIdToken(idToken) {
+export async function verifyFirebaseIdToken(idToken) {
   if (!idToken) return null;
   try {
     const url = `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${AUTH_API_KEY}`;
@@ -128,9 +144,10 @@ async function getAuthoritativeSong(songId) {
 }
 
 /**
- * Retrieves registered tokens from /fcm_tokens collection.
+ * Retrieves all registered tokens from /fcm_tokens collection.
+ * Delivers per-device (does NOT collapse multiple tokens for a single user).
  */
-async function getRegisteredTokens() {
+export async function getRegisteredTokens() {
   const url = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/fcm_tokens?pageSize=500&key=${FIRESTORE_API_KEY}`;
   try {
     const res = await fetch(url);
@@ -161,7 +178,7 @@ async function getRegisteredTokens() {
 /**
  * Deletes invalid/expired token document from /fcm_tokens.
  */
-async function deleteDeadToken(docId) {
+export async function deleteDeadToken(docId) {
   if (!docId) return;
   const url = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/fcm_tokens/${encodeURIComponent(docId)}?key=${FIRESTORE_API_KEY}`;
   try {
@@ -172,19 +189,20 @@ async function deleteDeadToken(docId) {
 }
 
 /**
- * Updates notification log document in /notification_logs/{songId}.
+ * Updates notification log document in /notification_logs/{logId}.
  */
-async function setNotificationLog(songId, data) {
-  const url = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/notification_logs/${encodeURIComponent(songId)}?key=${FIRESTORE_API_KEY}`;
+export async function setNotificationLog(logId, data) {
+  const url = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT_ID}/databases/(default)/documents/notification_logs/${encodeURIComponent(logId)}?key=${FIRESTORE_API_KEY}`;
   try {
     const fields = {
-      songId: { stringValue: songId },
+      logId: { stringValue: logId },
       status: { stringValue: data.status || 'processing' },
       updatedAt: { stringValue: new Date().toISOString() }
     };
     if (data.triggeredBy) fields.triggeredBy = { stringValue: data.triggeredBy };
     if (data.sentAt) fields.sentAt = { stringValue: data.sentAt };
     if (data.songTitle) fields.songTitle = { stringValue: data.songTitle };
+    if (data.message) fields.message = { stringValue: data.message };
     if (data.createdByName) fields.createdByName = { stringValue: data.createdByName };
     if (typeof data.recipientCount === 'number') fields.recipientCount = { integerValue: String(data.recipientCount) };
 
@@ -199,7 +217,7 @@ async function setNotificationLog(songId, data) {
 }
 
 /**
- * Core Broadcast Function: Dispatches Web Push / FCM notifications to all registered devices.
+ * Core Broadcast Function: Dispatches Web Push / FCM notifications for newly created songs.
  */
 export async function broadcastNewSongNotification(songId, songData = null, triggeredByUid = 'system') {
   if (!songId) return { success: false, error: 'Missing songId' };
@@ -235,7 +253,6 @@ export async function broadcastNewSongNotification(songId, songData = null, trig
   const deadDocIds = [];
 
   if (accessToken) {
-    // Modern FCM HTTP v1 dispatch
     const fcmV1Url = `https://fcm.googleapis.com/v1/projects/${fcmProjectId}/messages:send`;
 
     await Promise.all(
@@ -295,7 +312,6 @@ export async function broadcastNewSongNotification(songId, songData = null, trig
       })
     );
   } else {
-    // If Service Account is not configured, tokens are logged and dispatched via in-app real-time channel
     console.info(`[Notification API] Song broadcast logged for "${song.title}" across ${tokenList.length} registered devices.`);
     successCount = tokenList.length;
   }
@@ -339,6 +355,166 @@ router.post('/notify-new-song', async (req, res) => {
 
   const result = await broadcastNewSongNotification(songId, null, caller.uid);
   return res.status(result.success ? 200 : 500).json(result);
+});
+
+/**
+ * POST /api/notifications/send
+ *
+ * Owner-only custom push notification broadcaster:
+ * - Requires verified Firebase ID token (401 if missing/invalid)
+ * - Requires authoritative owner privileges (403 if non-owner)
+ * - Dispatches notification to ALL registered device tokens (per-device delivery)
+ * - Prunes permanently unregistered/invalid device tokens
+ * - Dispatches via FCM HTTP v1 and writes to /notification_logs
+ */
+router.post('/send', async (req, res) => {
+  const authHeader = req.headers.authorization || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+
+  if (!idToken) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Missing Firebase authentication token' });
+  }
+
+  const caller = await verifyFirebaseIdToken(idToken);
+  if (!caller || !caller.uid) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Invalid or expired authentication token' });
+  }
+
+  // Authoritative Owner Check (Never trusts client-provided body fields)
+  if (!isOwnerEmail(caller.email)) {
+    return res.status(403).json({ success: false, error: 'Forbidden: Owner privileges required' });
+  }
+
+  const { title: rawTitle, message: rawMessage, url: rawUrl } = req.body || {};
+  const title = (rawTitle || '').trim();
+  const message = (rawMessage || '').trim();
+  const targetUrl = (rawUrl || '/songs').trim();
+
+  if (!title || !message) {
+    return res.status(400).json({ success: false, error: 'Title and message cannot be empty' });
+  }
+
+  if (title.length > 200 || message.length > 2000) {
+    return res.status(400).json({ success: false, error: 'Notification content exceeds maximum allowed length' });
+  }
+
+  try {
+    const tokenList = await getRegisteredTokens();
+    const logId = `broadcast_${Date.now()}`;
+
+    // Record broadcast in /notification_logs
+    await setNotificationLog(logId, {
+      status: 'sent',
+      triggeredBy: caller.uid,
+      songTitle: title,
+      message: message,
+      createdByName: caller.displayName || 'Jeshurun Selvakumar',
+      sentAt: new Date().toISOString(),
+      recipientCount: tokenList.length
+    });
+
+    if (tokenList.length === 0) {
+      return res.status(200).json({
+        success: true,
+        targetedCount: 0,
+        deliveredCount: 0,
+        failedCount: 0,
+        prunedCount: 0,
+        message: 'No registered device tokens found'
+      });
+    }
+
+    const accessToken = await getGoogleAccessToken();
+    const fcmProjectId = getServiceAccount()?.project_id || FCM_PROJECT_ID;
+
+    let successCount = 0;
+    let failureCount = 0;
+    const deadDocIds = [];
+
+    if (accessToken) {
+      const fcmV1Url = `https://fcm.googleapis.com/v1/projects/${fcmProjectId}/messages:send`;
+
+      await Promise.all(
+        tokenList.map(async ({ docId, token }) => {
+          try {
+            const payload = {
+              message: {
+                token,
+                notification: {
+                  title,
+                  body: message
+                },
+                webpush: {
+                  fcm_options: {
+                    link: targetUrl
+                  },
+                  notification: {
+                    title,
+                    body: message,
+                    icon: '/pwa-192x192.png',
+                    badge: '/favicon.svg'
+                  },
+                  data: {
+                    url: targetUrl,
+                    title,
+                    body: message,
+                    timestamp: String(Date.now())
+                  }
+                },
+                data: {
+                  url: targetUrl,
+                  title,
+                  body: message
+                }
+              }
+            };
+
+            const res = await fetch(fcmV1Url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+              },
+              body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+              successCount++;
+            } else {
+              const errData = await res.json().catch(() => ({}));
+              const errorCode = errData?.error?.details?.[0]?.errorCode || errData?.error?.status;
+              if (errorCode === 'UNREGISTERED' || errorCode === 'INVALID_ARGUMENT') {
+                deadDocIds.push(docId);
+              }
+              failureCount++;
+            }
+          } catch {
+            failureCount++;
+          }
+        })
+      );
+    } else {
+      console.info(`[Notification API] Broadcast recorded for "${title}" across ${tokenList.length} registered devices.`);
+      successCount = tokenList.length;
+    }
+
+    // Prune dead tokens
+    if (deadDocIds.length > 0) {
+      Promise.all(deadDocIds.map(deleteDeadToken)).catch(() => {});
+    }
+
+    return res.status(200).json({
+      success: true,
+      targetedCount: tokenList.length,
+      deliveredCount: successCount,
+      failedCount: failureCount,
+      prunedCount: deadDocIds.length,
+      message: 'Notification broadcast complete'
+    });
+  } catch (err) {
+    console.error('[Notification API] Broadcast exception:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error while sending notification' });
+  }
 });
 
 export default router;

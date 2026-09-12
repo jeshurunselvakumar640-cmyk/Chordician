@@ -25,7 +25,8 @@ import {
   Languages,
   Bell,
   BellOff,
-  BellRing
+  BellRing,
+  Send
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -33,6 +34,7 @@ import { usePWA } from '../context/PWAContext.jsx';
 import { useDeviceMode } from '../context/DeviceModeContext.jsx';
 import { useAuth, OWNER_DEFAULT_NAME } from '../context/AuthContext.jsx';
 import ContactModal from '../components/Modal/ContactModal.jsx';
+import ConfirmModal from '../components/Modal/ConfirmModal.jsx';
 import { addSong, runFirebaseDiagnostics, transliterateAllRegionalSongsInDb } from '../firebase/songs.js';
 import { firebaseConfig } from '../firebase/config.js';
 import { DEMO_PRESETS } from '../services/aiSongParser.js';
@@ -42,7 +44,8 @@ import {
   getNotificationPermissionState,
   requestNotificationToken,
   unregisterNotificationToken,
-  sendLocalTestNotification
+  sendLocalTestNotification,
+  sendOwnerNotification
 } from '../services/fcmService.js';
 
 export default function Settings({ onSongAdded }) {
@@ -114,6 +117,53 @@ export default function Settings({ onSongAdded }) {
       showToast('✓ Test notification sent! Check your notification shade/tray.', 'success', 4000);
     } else {
       showToast(res.error || 'Failed to trigger test notification', 'error');
+    }
+  };
+
+  // Owner Broadcast state
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [isConfirmBroadcastOpen, setIsConfirmBroadcastOpen] = useState(false);
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
+
+  const handleOpenConfirmBroadcast = (e) => {
+    if (e) e.preventDefault();
+    if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+      showToast('Please enter both a title and message', 'warning');
+      return;
+    }
+    setIsConfirmBroadcastOpen(true);
+  };
+
+  const handleSendBroadcastConfirmed = async () => {
+    if (isSendingBroadcast) return;
+    setIsSendingBroadcast(true);
+
+    try {
+      const res = await sendOwnerNotification({
+        title: broadcastTitle.trim(),
+        message: broadcastMessage.trim(),
+        url: '/songs'
+      });
+
+      if (res.success) {
+        showToast(
+          res.targetedCount > 0
+            ? `✓ Notification sent successfully to ${res.targetedCount} registered device${res.targetedCount === 1 ? '' : 's'}!`
+            : '✓ Notification sent successfully!',
+          'success',
+          4000
+        );
+        setBroadcastTitle('');
+        setBroadcastMessage('');
+        setIsConfirmBroadcastOpen(false);
+      } else {
+        showToast(res.error || 'Failed to send notification. Please try again.', 'error', 4000);
+      }
+    } catch (err) {
+      showToast('Failed to send notification. Please try again.', 'error', 4000);
+    } finally {
+      setIsSendingBroadcast(false);
     }
   };
 
@@ -283,6 +333,90 @@ export default function Settings({ onSongAdded }) {
           </div>
         </div>
       </div>
+
+      {/* Owner-Only: Compose & Send Push Notification Broadcast */}
+      {isOwner && (
+        <div className="card settings-card" style={{ border: '1px solid rgba(245, 158, 11, 0.35)', background: 'linear-gradient(180deg, rgba(245, 158, 11, 0.04) 0%, transparent 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+            <h2 className="settings-section-title" style={{ marginBottom: 0 }}>
+              <Send size={20} style={{ color: '#f59e0b' }} />
+              Send Notification
+            </h2>
+            <span className="badge" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', fontWeight: 600, fontSize: '0.78rem' }}>
+              👑 Owner Broadcast
+            </span>
+          </div>
+
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginTop: '0', marginBottom: '16px' }}>
+            Compose and broadcast a push notification to every registered user and device across Chordician.
+          </p>
+
+          <form onSubmit={handleOpenConfirmBroadcast} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="broadcast-notif-title" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+                Notification Title
+              </label>
+              <input
+                id="broadcast-notif-title"
+                type="text"
+                className="form-input"
+                placeholder="Notification title"
+                value={broadcastTitle}
+                onChange={(e) => setBroadcastTitle(e.target.value)}
+                disabled={isSendingBroadcast}
+                maxLength={200}
+                required
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="broadcast-notif-message" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+                Message
+              </label>
+              <textarea
+                id="broadcast-notif-message"
+                className="form-input"
+                placeholder="Write your notification..."
+                value={broadcastMessage}
+                onChange={(e) => setBroadcastMessage(e.target.value)}
+                disabled={isSendingBroadcast}
+                rows={3}
+                maxLength={2000}
+                required
+                style={{ width: '100%', resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={!broadcastTitle.trim() || !broadcastMessage.trim() || isSendingBroadcast}
+                style={{
+                  minWidth: '160px',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  border: 'none',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(245, 158, 11, 0.3)'
+                }}
+              >
+                {isSendingBroadcast ? (
+                  <>
+                    <RefreshCw size={15} className="animate-spin" />
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={15} />
+                    <span>Send Notification</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Web Push Notifications (Available on all supported mobile & desktop browsers) */}
       {isSupported && (
@@ -683,6 +817,23 @@ export default function Settings({ onSongAdded }) {
         isOpen={isContactOpen}
         onClose={() => setIsContactOpen(false)}
         initialType="Song Request"
+      />
+
+      {/* Confirmation Modal for Owner Broadcast */}
+      <ConfirmModal
+        isOpen={isConfirmBroadcastOpen}
+        title="Send notification to all users?"
+        message="This notification will be sent to all registered devices."
+        confirmText="Send"
+        cancelText="Cancel"
+        isDanger={false}
+        isLoading={isSendingBroadcast}
+        onConfirm={handleSendBroadcastConfirmed}
+        onCancel={() => {
+          if (!isSendingBroadcast) {
+            setIsConfirmBroadcastOpen(false);
+          }
+        }}
       />
     </div>
   );

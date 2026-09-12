@@ -433,3 +433,48 @@ export async function triggerNewSongNotification(songId) {
     return { success: false, error: err.message || 'Network error' };
   }
 }
+
+/**
+ * Sends an owner-composed push notification to all registered devices.
+ *
+ * @param {{ title: string, message: string, url?: string }} payload
+ * @returns {Promise<{ success: boolean, targetedCount?: number, deliveredCount?: number, failedCount?: number, prunedCount?: number, error?: string, message?: string }>}
+ */
+export async function sendOwnerNotification({ title, message, url = '/songs' }) {
+  if (!auth?.currentUser) {
+    return { success: false, error: 'Authentication required. Please sign in as Owner.' };
+  }
+
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const response = await fetch('/api/notifications/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      },
+      body: JSON.stringify({ title, message, url })
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.success) {
+      return {
+        success: false,
+        error: data.error || `Failed to send notification (HTTP ${response.status})`
+      };
+    }
+
+    return {
+      success: true,
+      targetedCount: data.targetedCount ?? 0,
+      deliveredCount: data.deliveredCount ?? 0,
+      failedCount: data.failedCount ?? 0,
+      prunedCount: data.prunedCount ?? 0,
+      message: data.message || 'Notification broadcast sent successfully'
+    };
+  } catch (err) {
+    console.error('[FCM Service] sendOwnerNotification error:', err);
+    return { success: false, error: err.message || 'Network error while sending notification' };
+  }
+}
