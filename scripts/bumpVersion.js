@@ -16,25 +16,24 @@ function bumpVersion() {
       pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     }
 
-    const currentVersion = pkg.version || '3.0.0';
+    const currentVersion = pkg.version || '4.0';
     const parts = currentVersion.split('.').map(n => parseInt(n, 10) || 0);
 
-    // Increment minor or patch
-    if (parts.length === 3) {
-      parts[2] += 1;
-    } else if (parts.length === 2) {
-      parts[1] += 1;
-    } else {
-      parts[0] += 1;
+    let major = parts[0] || 4;
+    let minor = parts.length > 1 ? parts[1] : 0;
+
+    // Increment minor; when minor reaches 9, roll over to next major and reset minor to 0
+    minor += 1;
+    if (minor > 9) {
+      major += 1;
+      minor = 0;
     }
 
-    const newVersion = parts.join('.');
-    const majorMinor = `${parts[0]}.${parts[1]}`;
-    const displayVersion = parts[2] > 0 ? `${parts[0]}.${parts[1]}.${parts[2]}` : majorMinor;
+    const displayVersion = `${major}.${minor}`;
     const versionTag = `v${displayVersion}`;
 
     // 1. Update package.json
-    pkg.version = newVersion;
+    pkg.version = displayVersion;
     fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
 
     // 2. Update src/config/version.js

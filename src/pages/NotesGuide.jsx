@@ -12,6 +12,7 @@ import {
 import { generateChordReferencePDF } from '../services/chordSheetPdfGenerator.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { MAJOR_SCALES, MINOR_SCALES } from '../utils/chordNotesCalculator.js';
+import { MAJOR_KEY_FAMILIES, MINOR_KEY_FAMILIES } from '../data/keyChordFamilies.js';
 
 export default function NotesGuide() {
   const { showToast } = useToast();
@@ -352,6 +353,105 @@ export default function NotesGuide() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Major & Minor Key Chord Families Reference */}
+      <div className="notes-chord-families-section" style={{ marginTop: '32px', marginBottom: '24px' }}>
+        <div className="card" style={{ padding: '24px' }}>
+          <div className="notes-section-header" style={{ marginBottom: '16px' }}>
+            <div>
+              <h2 className="notes-section-title" style={{ fontSize: '1.35rem', fontWeight: '700' }}>
+                Major & Minor Key Chord Families
+              </h2>
+              <p className="notes-section-desc" style={{ marginTop: '6px' }}>
+                Harmonic chord relationships across all 24 musical keys. Every major and minor key has a primary core family and relative chord pool.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ padding: '14px 18px', borderRadius: 'var(--radius-lg)', background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+              <div style={{ fontWeight: '700', color: 'var(--color-primary)', marginBottom: '6px', fontSize: '0.95rem' }}>
+                Major Key Harmonic Formula
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+                <li><strong>Core Major Chords:</strong> I – IV – V (Tonic, Subdominant, Dominant)</li>
+                <li><strong>Relative Minor Chords:</strong> ii – iii – vi (Supertonic, Mediant, Submediant)</li>
+                <li><strong>Diminished:</strong> vii° (Leading Tone)</li>
+              </ul>
+            </div>
+
+            <div style={{ padding: '14px 18px', borderRadius: 'var(--radius-lg)', background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+              <div style={{ fontWeight: '700', color: '#a855f7', marginBottom: '6px', fontSize: '0.95rem' }}>
+                Minor Key Harmonic Formula
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+                <li><strong>Core Minor Chords:</strong> i – iv – v (Minor Tonic, Subdominant, Dominant)</li>
+                <li><strong>Relative Major Chords:</strong> III – VI – VII (Subtonic / Mediant)</li>
+                <li><strong>Diminished:</strong> ii° (Supertonic Diminished)</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Complete 24 Key Tables */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+            {/* 12 Major Keys Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="badge badge-primary" style={{ fontSize: '0.78rem' }}>12 Major Keys</span>
+              </h3>
+              <table className="table" style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Key</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Core (I–IV–V)</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Relative (ii–iii–vi)</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Dim (vii°)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {MAJOR_KEY_FAMILIES.map((k) => (
+                    <tr key={k.key} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: '700', color: 'var(--color-primary)' }}>{k.key}</td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>{k.core.join('  ')}</td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{k.relative.join('  ')}</td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#f59e0b' }}>{k.dim}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 12 Minor Keys Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="badge badge-secondary" style={{ fontSize: '0.78rem', backgroundColor: 'rgba(168, 85, 247, 0.2)', color: '#c084fc' }}>
+                  12 Minor Keys
+                </span>
+              </h3>
+              <table className="table" style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Key</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Core (i–iv–v)</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Relative Major</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left' }}>Dim (ii°)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {MINOR_KEY_FAMILIES.map((k) => (
+                    <tr key={k.key} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: '700', color: '#c084fc' }}>{k.key}</td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>{k.core.join('  ')}</td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{k.relativeMajor.join('  ')}</td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#f59e0b' }}>{k.dim}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Scale Reference Tables */}

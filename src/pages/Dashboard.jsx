@@ -15,23 +15,31 @@ import {
   FileDown,
   CheckSquare,
   Check,
-  Wine
+  Wine,
+  Sliders,
+  Search,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import SongCard from '../components/SongCard/SongCard';
 import EmptyState from '../components/UI/EmptyState';
 import BatchExportModal from '../components/Modal/BatchExportModal';
+import StyleSelectorModal from '../components/SongEditor/StyleSelectorModal';
 import { StatsSkeleton, SongCardSkeleton } from '../components/UI/SkeletonLoader';
 import { PRIMARY_LANGUAGES } from '../utils/musicConstants.js';
 import { useThisSunday } from '../context/ThisSundayContext.jsx';
 import { useCommunion } from '../context/CommunionContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { exportSongsToPDF } from '../services/shareService.js';
+import { updateSong } from '../firebase/songs.js';
+import { detectKeyFromSong } from '../utils/keyDetector.js';
 
 export default function Dashboard({
   songs = [],
   isLoading = false,
   onToggleFavorite,
-  onDeleteRequest
+  onDeleteRequest,
+  onSongUpdated
 }) {
   const { showToast } = useToast();
   const [selectedLanguage, setSelectedLanguage] = useState('ALL');
@@ -40,6 +48,13 @@ export default function Dashboard({
   const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [exportProgress, setExportProgress] = useState(null);
+
+  // Pending Styles management state
+  const [pendingFilterMode, setPendingFilterMode] = useState('ALL'); // 'ALL' | 'MAJOR' | 'MINOR'
+  const [pendingSearchQuery, setPendingSearchQuery] = useState('');
+  const [isExpandedPending, setIsExpandedPending] = useState(false);
+  const [assigningSong, setAssigningSong] = useState(null);
+
 
   const { songIds, serviceDate, formatServiceDate, getDaysUntil, getDaysUntilNumber } = useThisSunday();
   const { songIds: communionSongIds } = useCommunion();
@@ -120,6 +135,74 @@ export default function Dashboard({
     };
   }, [songs]);
 
+  // Complete global /songs scan for songs without an assigned style
+  const pendingStyleSongs = useMemo(() => {
+    const safeSongs = Array.isArray(songs) ? songs.filter(Boolean) : [];
+    return safeSongs.filter((s) => {
+      if (!s.style) return true;
+      if (typeof s.style === 'string') return !s.style.trim();
+      if (typeof s.style === 'object') return !s.style.name || !s.style.name.trim();
+      return true;
+    });
+  }, [songs]);
+
+  // Major and Minor counts within pending styles
+  const { pendingMajorCount, pendingMinorCount } = useMemo(() => {
+    let major = 0;
+    let minor = 0;
+    pendingStyleSongs.forEach((song) => {
+      const keyInfo = detectKeyFromSong(song);
+      if (keyInfo.isMinor) minor++;
+      else major++;
+    });
+    return { pendingMajorCount: major, pendingMinorCount: minor };
+  }, [pendingStyleSongs]);
+
+  // Filtered and searched pending styles
+  const displayedPendingSongs = useMemo(() => {
+    let list = pendingStyleSongs;
+    if (pendingFilterMode === 'MAJOR') {
+      list = list.filter((s) => !detectKeyFromSong(s).isMinor);
+    } else if (pendingFilterMode === 'MINOR') {
+      list = list.filter((s) => detectKeyFromSong(s).isMinor);
+    }
+    if (pendingSearchQuery.trim()) {
+      const q = pendingSearchQuery.toLowerCase().trim();
+      list = list.filter(
+        (s) =>
+          (s.title || '').toLowerCase().includes(q) ||
+          (s.artist || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [pendingStyleSongs, pendingFilterMode, pendingSearchQuery]);
+
+  // Surgical Style Assignment Handler
+  const handleAssignStyle = async (selectedStyle) => {
+    if (!assigningSong || !selectedStyle) return;
+    try {
+      // Surgical update: Preserve all existing fields and update ONLY style
+      const updatedPayload = { ...assigningSong, style: selectedStyle };
+      const res = await updateSong(assigningSong.id, updatedPayload);
+      if (res.success) {
+        showToast(`Assigned style "${selectedStyle.name}" to "${assigningSong.title}"`, 'success');
+        if (onSongUpdated) {
+          onSongUpdated(updatedPayload);
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('chordician:song-updated', { detail: updatedPayload }));
+        }
+      } else {
+        showToast(res.error || 'Failed to update style', 'error');
+      }
+    } catch (err) {
+      console.error('handleAssignStyle error:', err);
+      showToast('Error assigning style', 'error');
+    } finally {
+      setAssigningSong(null);
+    }
+  };
+
   const displayedSongs = useMemo(() => {
     let list = [...songs];
     if (selectedLanguage !== 'ALL') {
@@ -127,6 +210,7 @@ export default function Dashboard({
     }
     return list.slice(0, 6);
   }, [songs, selectedLanguage]);
+
 
   return (
     <div className="dashboard-page">
@@ -453,6 +537,279 @@ export default function Dashboard({
         </div>
       )}
 
+      {/* Pending Song Styles Section */}
+      <div
+        className="card dashboard-pending-styles-section"
+        style={{
+          marginBottom: '28px',
+          padding: '22px 24px',
+          borderRadius: 'var(--radius-xl)',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '14px',
+            marginBottom: '16px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: 'var(--radius-lg)',
+                background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(236, 72, 153, 0.25)'
+              }}
+            >
+              <Sliders size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: '700', margin: 0 }}>Pending Song Styles</h2>
+                <span
+                  className="badge"
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '2px 8px',
+                    backgroundColor: pendingStyleSongs.length > 0 ? 'rgba(236, 72, 153, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                    color: pendingStyleSongs.length > 0 ? '#ec4899' : '#10b981',
+                    border: `1px solid ${pendingStyleSongs.length > 0 ? 'rgba(236, 72, 153, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
+                  }}
+                >
+                  {pendingStyleSongs.length} {pendingStyleSongs.length === 1 ? 'song pending' : 'songs pending'}
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                {pendingStyleSongs.length > 0
+                  ? 'Songs awaiting keyboard / rhythm style assignment. Detect keys and assign styles for accompaniment.'
+                  : 'All songs in your library have an assigned musical style! 🎉'}
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Filter Pills + Search Bar */}
+          {pendingStyleSongs.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {/* Filter Pills */}
+              <div className="dashboard-filter-pills" style={{ marginBottom: 0 }}>
+                <button
+                  type="button"
+                  className={`dashboard-filter-pill ${pendingFilterMode === 'ALL' ? 'active' : ''}`}
+                  onClick={() => setPendingFilterMode('ALL')}
+                >
+                  All ({pendingStyleSongs.length})
+                </button>
+                <button
+                  type="button"
+                  className={`dashboard-filter-pill ${pendingFilterMode === 'MAJOR' ? 'active' : ''}`}
+                  onClick={() => setPendingFilterMode('MAJOR')}
+                >
+                  Major ({pendingMajorCount})
+                </button>
+                <button
+                  type="button"
+                  className={`dashboard-filter-pill ${pendingFilterMode === 'MINOR' ? 'active' : ''}`}
+                  onClick={() => setPendingFilterMode('MINOR')}
+                >
+                  Minor ({pendingMinorCount})
+                </button>
+              </div>
+
+              {/* Quick Search */}
+              <div style={{ position: 'relative', minWidth: '180px' }}>
+                <Search
+                  size={15}
+                  style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)',
+                    pointerEvents: 'none'
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Filter pending..."
+                  value={pendingSearchQuery}
+                  onChange={(e) => setPendingSearchQuery(e.target.value)}
+                  style={{
+                    padding: '6px 12px 6px 32px',
+                    fontSize: '0.82rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-subtle)',
+                    backgroundColor: 'var(--bg-surface)',
+                    color: 'var(--text-main)',
+                    width: '100%',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pending Songs List or Empty State */}
+        {pendingStyleSongs.length === 0 ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '24px 16px',
+              borderRadius: 'var(--radius-lg)',
+              background: 'rgba(16, 185, 129, 0.05)',
+              border: '1px dashed rgba(16, 185, 129, 0.25)'
+            }}
+          >
+            <Sparkles size={28} style={{ color: '#10b981', marginBottom: '8px' }} />
+            <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: '0 0 4px', color: 'var(--text-main)' }}>
+              100% Styled Library
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              Every song in your complete repertoire has a rhythm style assigned.
+            </p>
+          </div>
+        ) : displayedPendingSongs.length === 0 ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '20px 16px',
+              borderRadius: 'var(--radius-lg)',
+              background: 'var(--bg-surface)',
+              border: '1px dashed var(--border-subtle)'
+            }}
+          >
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              No pending songs found matching "{pendingSearchQuery}" ({pendingFilterMode} mode).
+            </p>
+          </div>
+        ) : (
+          <div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: '10px',
+                marginTop: '12px'
+              }}
+            >
+              {(isExpandedPending ? displayedPendingSongs : displayedPendingSongs.slice(0, 6)).map((song) => {
+                const keyInfo = detectKeyFromSong(song);
+                const isMinor = keyInfo.isMinor;
+                return (
+                  <div
+                    key={song.id}
+                    className="card"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      gap: '12px',
+                      transition: 'all var(--transition-fast)'
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <Link
+                        to={`/songs/${song.id}`}
+                        style={{
+                          textDecoration: 'none',
+                          color: 'var(--text-main)',
+                          fontWeight: '600',
+                          fontSize: '0.9rem',
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {song.title}
+                      </Link>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
+                        {song.artist && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '110px' }}>
+                            {song.artist}
+                          </span>
+                        )}
+                        {/* Key & Mode badge */}
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: '0.72rem',
+                            padding: '1px 6px',
+                            fontWeight: '600',
+                            backgroundColor: isMinor ? 'rgba(168, 85, 247, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+                            color: isMinor ? '#a855f7' : '#3b82f6',
+                            border: `1px solid ${isMinor ? 'rgba(168, 85, 247, 0.25)' : 'rgba(59, 130, 246, 0.25)'}`
+                          }}
+                          title={`Detected Key: ${keyInfo.detectedKey} (${keyInfo.mode})`}
+                        >
+                          {keyInfo.detectedKey} ({keyInfo.mode})
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setAssigningSong(song)}
+                      style={{
+                        padding: '5px 10px',
+                        fontSize: '0.78rem',
+                        whiteSpace: 'nowrap',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Sliders size={13} style={{ color: 'var(--color-primary)' }} />
+                      <span>Assign Style</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {displayedPendingSongs.length > 6 && (
+              <div style={{ textAlign: 'center', marginTop: '14px' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setIsExpandedPending((prev) => !prev)}
+                  style={{ fontSize: '0.84rem' }}
+                >
+                  {isExpandedPending ? (
+                    <>
+                      <span>Show Less</span>
+                      <ChevronUp size={14} />
+                    </>
+                  ) : (
+                    <>
+                      <span>Show All {displayedPendingSongs.length} Pending Songs</span>
+                      <ChevronDown size={14} />
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Recent Songs Section with Quick Filter Pills & Selection Mode */}
       <div className="dashboard-recent-section">
         <div className="dashboard-section-header">
@@ -675,6 +1032,16 @@ export default function Dashboard({
         title="Export Songs to PDF"
         subtitle="Chordician Songbook"
       />
+
+      {/* Style Selector Modal for Pending Style Assignment */}
+      {assigningSong && (
+        <StyleSelectorModal
+          isOpen={Boolean(assigningSong)}
+          onClose={() => setAssigningSong(null)}
+          selectedStyle={assigningSong.style}
+          onSelectStyle={handleAssignStyle}
+        />
+      )}
     </div>
   );
 }

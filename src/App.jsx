@@ -113,9 +113,20 @@ function AppContent() {
       );
     };
 
+    const handleSongUpdated = (e) => {
+      const updatedSong = e.detail;
+      if (updatedSong && updatedSong.id) {
+        setSongs((prev) =>
+          prev.map((s) => (s.id === updatedSong.id ? { ...s, ...updatedSong } : s))
+        );
+      }
+    };
+
     window.addEventListener('chordician:favorites-updated', handleFavoritesSync);
+    window.addEventListener('chordician:song-updated', handleSongUpdated);
     return () => {
       window.removeEventListener('chordician:favorites-updated', handleFavoritesSync);
+      window.removeEventListener('chordician:song-updated', handleSongUpdated);
     };
   }, []);
 
@@ -202,6 +213,13 @@ function AppContent() {
                   isLoading={isLoading}
                   onToggleFavorite={handleToggleFavorite}
                   onDeleteRequest={handleDeleteRequest}
+                  onSongUpdated={(updatedSong) => {
+                    if (updatedSong && updatedSong.id) {
+                      setSongs((prev) =>
+                        prev.map((s) => (s.id === updatedSong.id ? { ...s, ...updatedSong } : s))
+                      );
+                    }
+                  }}
                 />
               }
             />
