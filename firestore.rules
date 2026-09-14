@@ -2,7 +2,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 1. Songbook Library
+    // Helper function to check if the caller is an authorized owner / musician
+    function isAuthorizedMusician() {
+      return request.auth != null && (
+        (request.auth.token.email != null && (
+          request.auth.token.email.lower() == 'jeshurunselvakumar@gmail.com' ||
+          request.auth.token.email.lower() == 'jeshurunselvakumar640@gmail.com'
+        )) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'musician', 'admin'])
+      );
+    }
+
+    // 1. Songbook Library (Global Shared)
     match /songs/{songId} {
       allow read, write: if true;
     }
@@ -12,9 +24,15 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // 3. User Profiles
+    // 3. User Profiles (Strict User Isolation - Account A cannot access Account B)
     match /users/{userId} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 4. Global Communion Setlist (Shared Across All Accounts, Write restricted to authorized musicians/owners)
+    match /communion/{docId} {
+      allow read: if true;
+      allow write: if isAuthorizedMusician();
     }
   }
 }

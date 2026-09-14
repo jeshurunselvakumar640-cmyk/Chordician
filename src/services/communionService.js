@@ -1,13 +1,17 @@
 /**
  * Communion Songs Service.
  * Manages the Communion / Lord's Supper songs collection with persistence,
- * reordering, setlist navigation, and real-time reactive event synchronization.
+ * reordering, setlist navigation, and global real-time synchronization across all accounts.
  */
 
-import { pushCommunionToCloud } from './userSyncService.js';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db, auth } from '../firebase/config.js';
 
 const STORAGE_KEY = 'chordician_communion_songs';
 const EVENT_NAME = 'chordician:communion-updated';
+
+let _activeCommunionUnsub = null;
+let _isApplyingRemoteCommunion = false;
 
 /**
  * Loads the current Communion Songs data from localStorage.
@@ -43,7 +47,36 @@ export function getCommunionData() {
 }
 
 /**
+ * Pushes updated Communion setlist to the global shared document (/communion/default).
+ *
+ * @param {Object} communionData
+ */
+export async function pushGlobalCommunionToCloud(communionData = null) {
+  const currentUser = auth?.currentUser;
+  if (!currentUser || !db || _isApplyingRemoteCommunion) return;
+
+  const data = communionData || getCommunionData();
+  try {
+    const communionRef = doc(db, 'communion', 'default');
+    await setDoc(
+      communionRef,
+      {
+        songIds: Array.isArray(data.songIds) ? data.songIds : [],
+        notes: data.notes || '',
+        updatedAt: data.updatedAt || new Date().toISOString(),
+        updatedByUid: currentUser.uid || null,
+        updatedByName: currentUser.displayName || null
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('[Communion Service] pushGlobalCommunionToCloud notice:', err.message);
+  }
+}
+
+/**
  * Saves Communion Songs data to localStorage and emits a reactive event.
+ * Also synchronizes the shared setlist to Firestore (/communion/default).
  * @param {{ songIds: string[], notes?: string }} data
  */
 export function saveCommunionData(data) {
@@ -59,10 +92,78 @@ export function saveCommunionData(data) {
       window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: payload }));
     }
 
-    // Sync across user's devices via cloud profile
-    pushCommunionToCloud(null, payload).catch(() => {});
+    // Synchronize to the shared global communion document
+    pushGlobalCommunionToCloud(payload).catch(() => {});
   } catch (err) {
     console.error('[Communion Service] Failed to save to storage:', err);
+  }
+}
+
+/**
+ * Initializes real-time listener for the global Communion document (/communion/default).
+ * Ensures all accounts on all devices see the identical, live Communion setlist.
+ *
+ * @returns {Function} Unsubscribe cleanup function
+ */
+export function initGlobalCommunionSync() {
+  if (!db) return () => {};
+
+  if (_activeCommunionUnsub) {
+    try {
+      _activeCommunionUnsub();
+    } catch {}
+    _activeCommunionUnsub = null;
+  }
+
+  try {
+    const communionRef = doc(db, 'communion', 'default');
+    const unsub = onSnapshot(
+      communionRef,
+      (docSnap) => {
+        if (!docSnap.exists()) {
+          // If cloud document is empty but local has items, seed the cloud
+          const localData = getCommunionData();
+          if (localData.songIds.length > 0) {
+            pushGlobalCommunionToCloud(localData).catch(() => {});
+          }
+          return;
+        }
+
+        const remoteData = docSnap.data();
+        if (remoteData && Array.isArray(remoteData.songIds)) {
+          _isApplyingRemoteCommunion = true;
+          try {
+            const localData = getCommunionData();
+            const remoteTime = remoteData.updatedAt ? new Date(remoteData.updatedAt).getTime() : 0;
+            const localTime = localData.updatedAt ? new Date(localData.updatedAt).getTime() : 0;
+
+            // Apply remote data if remote is newer or local is empty
+            if (remoteTime >= localTime || localData.songIds.length === 0) {
+              const merged = {
+                songIds: remoteData.songIds || [],
+                notes: remoteData.notes || '',
+                updatedAt: remoteData.updatedAt || new Date().toISOString()
+              };
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: merged }));
+              }
+            }
+          } finally {
+            _isApplyingRemoteCommunion = false;
+          }
+        }
+      },
+      (err) => {
+        console.warn('[Communion Service] Realtime communion sync notice:', err.message);
+      }
+    );
+
+    _activeCommunionUnsub = unsub;
+    return unsub;
+  } catch (err) {
+    console.warn('[Communion Service] initGlobalCommunionSync exception:', err.message);
+    return () => {};
   }
 }
 

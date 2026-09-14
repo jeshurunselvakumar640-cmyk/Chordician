@@ -15,7 +15,7 @@ import {
 import { updateProfile } from 'firebase/auth';
 import { OWNER_EMAIL, OWNER_DEFAULT_NAME, isUserOwner } from '../utils/authConstants.js';
 import { unregisterNotificationToken, initNotificationOnboarding } from '../services/fcmService.js';
-import { initUserProfileSync } from '../services/userSyncService.js';
+import { initUserProfileSync, clearLocalUserData } from '../services/userSyncService.js';
 
 export { OWNER_EMAIL, OWNER_DEFAULT_NAME, isUserOwner };
 
@@ -130,6 +130,7 @@ export function AuthProvider({ children }) {
           } catch {}
           syncUnsub = null;
         }
+        clearLocalUserData();
       }
       setLoading(false);
     });
@@ -188,6 +189,7 @@ export function AuthProvider({ children }) {
       if (currentUser) {
         await unregisterNotificationToken(currentUser).catch(() => {});
       }
+      clearLocalUserData();
       await signOut(auth);
       setCurrentUser(null);
       setUserProfile(null);

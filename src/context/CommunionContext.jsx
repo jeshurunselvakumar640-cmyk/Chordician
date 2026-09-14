@@ -8,7 +8,8 @@ import {
   isSongInCommunion,
   reorderCommunionSongs,
   clearCommunionSongs,
-  getAdjacentCommunionSongs
+  getAdjacentCommunionSongs,
+  initGlobalCommunionSync
 } from '../services/communionService.js';
 
 const CommunionContext = createContext(null);
@@ -23,6 +24,9 @@ export function CommunionProvider({ children }) {
   useEffect(() => {
     // Initial check
     reloadData();
+
+    // Start global real-time synchronization with Firestore /communion/default
+    const unsubCloud = initGlobalCommunionSync();
 
     // Listen for custom update events across components
     const handleUpdate = () => {
@@ -40,6 +44,11 @@ export function CommunionProvider({ children }) {
     window.addEventListener('storage', handleStorage);
 
     return () => {
+      if (typeof unsubCloud === 'function') {
+        try {
+          unsubCloud();
+        } catch {}
+      }
       window.removeEventListener('chordician:communion-updated', handleUpdate);
       window.removeEventListener('storage', handleStorage);
     };

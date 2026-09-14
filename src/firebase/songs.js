@@ -320,45 +320,44 @@ export async function deleteSong(id) {
 }
 
 /**
- * Toggle favorite status of a song (/songs/{id})
- * Routes exclusively via Trusted Backend (/api/songs/:id/favorite)
+ * Toggle favorite status of a song per user profile (/users/{uid}.favorites)
  */
 export async function toggleFavoriteSong(id, currentStatus) {
   if (!id) return { success: false, error: 'Song ID is required' };
-  await ensureAuthReady();
-  const currentUser = auth?.currentUser || null;
-
-  if (!currentUser) {
-    return { success: false, error: 'Authentication required to favorite songs. Please sign in.' };
-  }
 
   try {
-    const idToken = await currentUser.getIdToken();
-    const res = await fetch(`/api/songs/${encodeURIComponent(id)}/favorite`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
-      },
-      body: JSON.stringify({ favorite: !currentStatus })
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.success) {
-      return { success: false, error: data.error || 'Failed to update favorite status' };
+    let currentFavorites = [];
+    try {
+      const raw = localStorage.getItem('chordician_user_favorites');
+      currentFavorites = raw ? JSON.parse(raw) : [];
+    } catch {
+      currentFavorites = [];
     }
 
-    updateMemorySongCache((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, favorite: !currentStatus } : s))
-    );
-    if (_songMapCache.has(id)) {
-      const existing = _songMapCache.get(id);
-      _songMapCache.set(id, { ...existing, favorite: !currentStatus });
+    const newStatus = !currentStatus;
+    const nextFavorites = newStatus
+      ? Array.from(new Set([...currentFavorites, id]))
+      : currentFavorites.filter((favId) => favId !== id);
+
+    try {
+      localStorage.setItem('chordician_user_favorites', JSON.stringify(nextFavorites));
+    } catch {}
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('chordician:favorites-updated', { detail: nextFavorites }));
     }
-    return { success: true, newStatus: !currentStatus, error: null };
+
+    // If authenticated, push updated favorites to cloud profile
+    if (auth?.currentUser) {
+      import('../services/userSyncService.js').then(({ pushFavoritesToCloud }) => {
+        pushFavoritesToCloud(auth.currentUser, nextFavorites).catch(() => {});
+      }).catch(() => {});
+    }
+
+    return { success: true, newStatus, error: null };
   } catch (err) {
     console.error('toggleFavoriteSong error:', err);
-    return { success: false, error: err.message || 'Network error while updating favorite' };
+    return { success: false, error: err.message || 'Error updating favorite' };
   }
 }
 

@@ -48,6 +48,15 @@ function PageFallback() {
 function AppContent() {
   const { showToast } = useToast();
 
+  const [userFavorites, setUserFavorites] = useState(() => {
+    try {
+      const raw = localStorage.getItem('chordician_user_favorites');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [songs, setSongs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [firestoreError, setFirestoreError] = useState(null);
@@ -66,10 +75,15 @@ function AppContent() {
       showToast(res.error, 'error');
     } else {
       setFirestoreError(null);
-      setSongs(res.data || []);
+      let currentFavs = userFavorites;
+      try {
+        const raw = localStorage.getItem('chordician_user_favorites');
+        currentFavs = raw ? JSON.parse(raw) : userFavorites;
+      } catch {}
+      setSongs((res.data || []).map((s) => ({ ...s, favorite: currentFavs.includes(s.id) })));
     }
     setIsLoading(false);
-  }, [showToast]);
+  }, [showToast, userFavorites]);
 
   useEffect(() => {
     fetchAllSongs();
@@ -93,11 +107,10 @@ function AppContent() {
   useEffect(() => {
     const handleFavoritesSync = (e) => {
       const favIds = Array.isArray(e.detail) ? e.detail : [];
-      if (favIds.length > 0) {
-        setSongs((prev) =>
-          prev.map((s) => ({ ...s, favorite: favIds.includes(s.id) }))
-        );
-      }
+      setUserFavorites(favIds);
+      setSongs((prev) =>
+        prev.map((s) => ({ ...s, favorite: favIds.includes(s.id) }))
+      );
     };
 
     window.addEventListener('chordician:favorites-updated', handleFavoritesSync);
@@ -106,35 +119,29 @@ function AppContent() {
     };
   }, []);
 
-  // Handle Favorite Toggle
+  // Handle Favorite Toggle per profile
   const handleToggleFavorite = async (songId, currentStatus) => {
     const newStatus = !currentStatus;
-    // Optimistic UI update
+    const nextFavorites = newStatus
+      ? Array.from(new Set([...userFavorites, songId]))
+      : userFavorites.filter((id) => id !== songId);
+
+    setUserFavorites(nextFavorites);
     setSongs((prev) =>
       prev.map((s) => (s.id === songId ? { ...s, favorite: newStatus } : s))
     );
 
-    const res = await toggleFavoriteSong(songId, currentStatus);
-    if (res.error) {
-      // Revert optimistic update on failure
-      setSongs((prev) =>
-        prev.map((s) => (s.id === songId ? { ...s, favorite: currentStatus } : s))
-      );
-      showToast(res.error, 'error');
-    } else {
-      showToast(
-        newStatus ? 'Added to favorites' : 'Removed from favorites',
-        'info',
-        2000
-      );
+    try {
+      localStorage.setItem('chordician_user_favorites', JSON.stringify(nextFavorites));
+    } catch {}
 
-      // Sync updated favorites list to user cloud profile
-      setSongs((latestSongs) => {
-        const favoriteIds = latestSongs.filter((s) => s.favorite).map((s) => s.id);
-        pushFavoritesToCloud(null, favoriteIds).catch(() => {});
-        return latestSongs;
-      });
-    }
+    pushFavoritesToCloud(null, nextFavorites).catch(() => {});
+
+    showToast(
+      newStatus ? 'Added to favorites' : 'Removed from favorites',
+      'info',
+      2000
+    );
   };
 
   // Handle Delete Confirmation from List/Grid Cards
