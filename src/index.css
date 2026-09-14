@@ -8730,3 +8730,218 @@ body.desktop-mode-forced {
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   KEY GUIDE COMPONENT (Song Editor v4.1)
+   ========================================================================== */
+.key-guide-card {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast);
+}
+
+.key-guide-card:hover {
+  border-color: var(--border-medium);
+}
+
+.key-guide-header-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--bg-card-secondary);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-main);
+  transition: background var(--transition-fast);
+}
+
+.key-guide-header-btn:hover {
+  background: var(--bg-surface-elevated);
+}
+
+.key-guide-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.key-guide-icon {
+  font-size: 1.15rem;
+}
+
+.key-guide-title-text {
+  letter-spacing: -0.01em;
+}
+
+.key-guide-toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.key-guide-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.key-guide-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.key-guide-section-heading {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.key-guide-scale-row,
+.key-guide-all-chords-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+}
+
+.key-guide-scale-note {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.key-guide-all-chord-badge {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--chord-text);
+  background: var(--chord-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--chord-border);
+}
+
+.key-guide-dot {
+  color: var(--text-dim);
+  font-weight: 700;
+  user-select: none;
+}
+
+.key-guide-groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.key-guide-group-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.key-guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-size: 0.88rem;
+}
+
+.key-guide-table thead tr {
+  background: var(--bg-card-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.key-guide-table th {
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.key-guide-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.key-guide-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.key-guide-chord-cell {
+  width: 85px;
+  font-weight: 700;
+}
+
+.key-guide-chord-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--chord-text);
+  background: var(--chord-bg);
+  border: 1px solid var(--chord-border);
+  border-radius: var(--radius-xs);
+}
+
+.key-guide-dim-badge {
+  color: var(--color-warning);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.key-guide-notes-cell {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-main);
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 640px) {
+  .key-guide-card {
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+  .key-guide-header-btn {
+    padding: 12px 14px;
+  }
+  .key-guide-body {
+    padding: 14px;
+    gap: 14px;
+  }
+  .key-guide-groups-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}

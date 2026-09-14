@@ -16,6 +16,7 @@ import { formatStyleCode } from '../../data/songStyles.js';
 import { mergeSections, splitSection, insertSection } from '../../utils/linkedChordEditorHelper.js';
 import SongSectionEditor from './SongSectionEditor';
 import StyleSelectorModal from './StyleSelectorModal';
+import KeyGuide from './KeyGuide';
 
 export default function SongEditor({
   initialSong = null,
@@ -471,6 +472,9 @@ export default function SongEditor({
           Add Another Section (Chorus, Bridge, Outro...)
         </button>
       </div>
+
+      {/* Contextual Key Guide */}
+      <KeyGuide selectedKey={originalKey} />
 
       {/* Bottom Save Bar (Sticky on Mobile) */}
       <div className="editor-bottom-bar">
