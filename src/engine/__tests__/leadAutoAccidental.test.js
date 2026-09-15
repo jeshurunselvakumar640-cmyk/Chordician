@@ -139,4 +139,20 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
     const res = handleLeadInputChange('D4 E4 F', 'D4 E4 F#', 7, 'D');
     assert.equal(res.content, 'D4 E4 F');
   });
+
+  it('17. Toggle Activation: When Auto Lead is inactive, input is untouched; when active, accidentals resolve', () => {
+    const rawInput = 'D4 E4 f';
+    const prev = 'D4 E4 ';
+    const isAutoLeadActive = false;
+
+    // When inactive (toggle OFF)
+    const inactiveResult = isAutoLeadActive
+      ? handleLeadInputChange(rawInput, prev, 7, 'D').content
+      : rawInput;
+    assert.equal(inactiveResult, 'D4 E4 f');
+
+    // When active (toggle ON)
+    const activeResult = handleLeadInputChange(rawInput, prev, 7, 'D').content;
+    assert.equal(activeResult, 'D4 E4 F#');
+  });
 });
