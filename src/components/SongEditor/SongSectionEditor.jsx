@@ -98,7 +98,7 @@ export default function SongSectionEditor({
     const currentRow = rows[rIndex];
     if (!currentRow) return;
 
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
       e.preventDefault();
 
       if (currentRow.type === 'lyrics') {
@@ -233,7 +233,7 @@ export default function SongSectionEditor({
           }, 50);
         }
       }
-    } else if (e.key === 'Backspace') {
+    } else if (e.key === 'Backspace' || e.keyCode === 8 || e.which === 8) {
       if (currentRow.type === 'lyrics') {
         const inputEl = e.target;
         if (inputEl.selectionStart === 0 && inputEl.selectionEnd === 0) {

@@ -155,6 +155,7 @@ export default function SongRowEditor({
       <input
         id={`row-input-${row.id}`}
         type="text"
+        enterKeyHint="enter"
         className={`form-input editor-row-input ${isMono ? 'font-mono-input' : ''}`}
         value={row.content || ''}
         onChange={handleContentChange}

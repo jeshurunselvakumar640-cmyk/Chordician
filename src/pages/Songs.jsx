@@ -368,7 +368,6 @@ export default function Songs({
               onChange={handleSearchChange}
               placeholder="Search by title, artist, lyrics..."
               songs={songs}
-              showSuggestions={false}
             />
           </div>
         </div>
