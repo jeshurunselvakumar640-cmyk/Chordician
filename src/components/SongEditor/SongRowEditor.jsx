@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { ROW_TYPES } from '../../utils/musicConstants.js';
 import ChordHelper from './ChordHelper';
+import { handleLeadInputChange } from '../../utils/leadNoteHelper.js';
 
 export default function SongRowEditor({
   row,
@@ -29,6 +30,7 @@ export default function SongRowEditor({
 }) {
   const [showHelper, setShowHelper] = useState(false);
   const [showInsertMenu, setShowInsertMenu] = useState(false);
+  const isPastingRef = React.useRef(false);
 
   const handleTypeChange = (e) => {
     onChange({
@@ -37,10 +39,45 @@ export default function SongRowEditor({
     });
   };
 
+  const handlePaste = () => {
+    isPastingRef.current = true;
+  };
+
   const handleContentChange = (e) => {
+    const rawValue = e.target.value;
+    const isPaste = isPastingRef.current || (e.nativeEvent && e.nativeEvent.inputType === 'insertFromPaste');
+    isPastingRef.current = false;
+
+    if (row.type === 'lead' && selectedKey && !isPaste) {
+      const cursor = e.target.selectionStart;
+      const { content: transformed, cursorOffset } = handleLeadInputChange(
+        rawValue,
+        row.content || '',
+        cursor,
+        selectedKey,
+        isPaste
+      );
+
+      onChange({
+        ...row,
+        content: transformed
+      });
+
+      if (cursorOffset !== 0 && typeof cursor === 'number') {
+        const inputEl = e.target;
+        const newPos = cursor + cursorOffset;
+        setTimeout(() => {
+          if (inputEl && typeof inputEl.setSelectionRange === 'function') {
+            inputEl.setSelectionRange(newPos, newPos);
+          }
+        }, 0);
+      }
+      return;
+    }
+
     onChange({
       ...row,
-      content: e.target.value
+      content: rawValue
     });
   };
 
@@ -160,6 +197,7 @@ export default function SongRowEditor({
         className={`form-input editor-row-input ${isMono ? 'font-mono-input' : ''}`}
         value={row.content || ''}
         onChange={handleContentChange}
+        onPaste={handlePaste}
         onKeyDown={(e) => onKeyDown?.(e, index)}
         placeholder={getPlaceholder()}
         aria-label={`${row.type} content`}
