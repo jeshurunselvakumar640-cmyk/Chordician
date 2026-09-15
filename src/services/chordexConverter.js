@@ -181,7 +181,7 @@ export function convertChordexToChordician(chordexData) {
     style: validatedStyle,
     tempo: null,
     timeSignature: '4/4',
-    notes: 'Imported via Chordex AI Vision',
+    notes: chordexData.notes || '',
     sections,
     // Keep source metadata
     _chordexMeta: {

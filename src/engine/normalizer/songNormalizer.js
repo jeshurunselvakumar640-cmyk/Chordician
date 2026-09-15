@@ -171,7 +171,7 @@ export function normalizeToChordicianSong(parsed, sourceUrl = '') {
     style: null,
     tempo,
     timeSignature,
-    notes: sourceUrl ? `Imported from: ${sourceUrl}` : 'Imported via Chordician Engine',
+    notes: parsed.notes || '',
     sections,
     _chordexMeta: {
       sourceUrl,
