@@ -23,7 +23,8 @@ export default function SongRowEditor({
   onInsertBelow,
   onInsertAbove,
   onSplitSection,
-  onInsertSectionBelow
+  onInsertSectionBelow,
+  onKeyDown
 }) {
   const [showHelper, setShowHelper] = useState(false);
   const [showInsertMenu, setShowInsertMenu] = useState(false);
@@ -152,10 +153,12 @@ export default function SongRowEditor({
       </div>
 
       <input
+        id={`row-input-${row.id}`}
         type="text"
         className={`form-input editor-row-input ${isMono ? 'font-mono-input' : ''}`}
         value={row.content || ''}
         onChange={handleContentChange}
+        onKeyDown={(e) => onKeyDown?.(e, index)}
         placeholder={getPlaceholder()}
         aria-label={`${row.type} content`}
       />

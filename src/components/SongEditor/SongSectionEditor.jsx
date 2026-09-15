@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import SongRowEditor from './SongRowEditor';
 import { COMMON_SECTION_NAMES } from '../../utils/musicConstants.js';
+import { splitLinkedLine, mergeLinkedLines } from '../../utils/linkedChordEditorHelper.js';
 
 export default function SongSectionEditor({
   section,
@@ -90,6 +91,237 @@ export default function SongSectionEditor({
       ...section,
       rows
     });
+  };
+
+  const handleRowKeyDown = (e, rIndex) => {
+    const rows = section.rows || [];
+    const currentRow = rows[rIndex];
+    if (!currentRow) return;
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+
+      if (currentRow.type === 'lyrics') {
+        const inputEl = e.target;
+        const cursorIndex = inputEl.selectionStart ?? (currentRow.content || '').length;
+
+        // Identify associated chord row (immediately above) and lead row (immediately below)
+        const chordRow = rIndex > 0 && rows[rIndex - 1].type === 'chords' ? rows[rIndex - 1] : null;
+        const leadRow = rIndex + 1 < rows.length && rows[rIndex + 1].type === 'lead' ? rows[rIndex + 1] : null;
+
+        const splitResult = splitLinkedLine(
+          chordRow?.content || '',
+          currentRow.content || '',
+          cursorIndex,
+          leadRow ? (leadRow.content || '') : null
+        );
+
+        const newChordId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_c';
+        const newLyricId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_l';
+        const newLeadId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_ld';
+
+        const newRows = [];
+        for (let r = 0; r < rows.length; r++) {
+          if (chordRow && r === rIndex - 1) {
+            newRows.push({ ...chordRow, content: splitResult.line1.chords });
+          } else if (r === rIndex) {
+            newRows.push({ ...currentRow, content: splitResult.line1.lyrics });
+            if (!leadRow) {
+              if (chordRow) {
+                newRows.push({
+                  id: newChordId,
+                  type: 'chords',
+                  content: splitResult.line2.chords
+                });
+              }
+              newRows.push({
+                id: newLyricId,
+                type: 'lyrics',
+                content: splitResult.line2.lyrics
+              });
+            }
+          } else if (leadRow && r === rIndex + 1) {
+            newRows.push({ ...leadRow, content: splitResult.line1.lead || '' });
+            if (chordRow) {
+              newRows.push({
+                id: newChordId,
+                type: 'chords',
+                content: splitResult.line2.chords
+              });
+            }
+            newRows.push({
+              id: newLyricId,
+              type: 'lyrics',
+              content: splitResult.line2.lyrics
+            });
+            newRows.push({
+              id: newLeadId,
+              type: 'lead',
+              content: splitResult.line2.lead || ''
+            });
+          } else {
+            newRows.push(rows[r]);
+          }
+        }
+
+        onChange({
+          ...section,
+          rows: newRows
+        });
+
+        setTimeout(() => {
+          const nextInput = document.getElementById(`row-input-${newLyricId}`);
+          if (nextInput) {
+            nextInput.focus();
+            nextInput.setSelectionRange(0, 0);
+          }
+        }, 50);
+      } else if (currentRow.type === 'chords') {
+        // If lyrics row immediately below exists, advance focus to it
+        if (rIndex + 1 < rows.length && rows[rIndex + 1].type === 'lyrics') {
+          const nextInput = document.getElementById(`row-input-${rows[rIndex + 1].id}`);
+          if (nextInput) {
+            nextInput.focus();
+            const len = nextInput.value?.length || 0;
+            nextInput.setSelectionRange(len, len);
+          }
+        } else {
+          // Insert a lyrics row below
+          const newLyricId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_l';
+          const newLyricRow = { id: newLyricId, type: 'lyrics', content: '' };
+          const newRows = [...rows];
+          newRows.splice(rIndex + 1, 0, newLyricRow);
+          onChange({
+            ...section,
+            rows: newRows
+          });
+          setTimeout(() => {
+            const nextInput = document.getElementById(`row-input-${newLyricId}`);
+            if (nextInput) {
+              nextInput.focus();
+            }
+          }, 50);
+        }
+      } else if (currentRow.type === 'lead') {
+        // If next row is chords or lyrics, advance focus to it
+        if (rIndex + 1 < rows.length && (rows[rIndex + 1].type === 'chords' || rows[rIndex + 1].type === 'lyrics')) {
+          const nextInput = document.getElementById(`row-input-${rows[rIndex + 1].id}`);
+          if (nextInput) {
+            nextInput.focus();
+          }
+        } else {
+          // If at the end of section, add a new chord-lyric-lead triplet or line pair
+          const hasChordsInSec = rows.some((r) => r.type === 'chords');
+          const newChordId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_c';
+          const newLyricId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_l';
+          const newLeadId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_ld';
+          const newRows = [...rows];
+          if (hasChordsInSec) {
+            newRows.push({ id: newChordId, type: 'chords', content: '' });
+          }
+          newRows.push({ id: newLyricId, type: 'lyrics', content: '' });
+          newRows.push({ id: newLeadId, type: 'lead', content: '' });
+          onChange({
+            ...section,
+            rows: newRows
+          });
+          setTimeout(() => {
+            const nextInput = document.getElementById(`row-input-${newLyricId}`);
+            if (nextInput) {
+              nextInput.focus();
+            }
+          }, 50);
+        }
+      }
+    } else if (e.key === 'Backspace') {
+      if (currentRow.type === 'lyrics') {
+        const inputEl = e.target;
+        if (inputEl.selectionStart === 0 && inputEl.selectionEnd === 0) {
+          // Find the previous lyric row in this section
+          let prevLyricIndex = -1;
+          for (let i = rIndex - 1; i >= 0; i--) {
+            if (rows[i].type === 'lyrics') {
+              prevLyricIndex = i;
+              break;
+            }
+          }
+
+          if (prevLyricIndex >= 0) {
+            e.preventDefault();
+
+            const prevLyricRow = rows[prevLyricIndex];
+            const prevChordRow = prevLyricIndex > 0 && rows[prevLyricIndex - 1].type === 'chords' ? rows[prevLyricIndex - 1] : null;
+            const prevLeadRow = prevLyricIndex + 1 < rows.length && rows[prevLyricIndex + 1].type === 'lead' ? rows[prevLyricIndex + 1] : null;
+
+            const currChordRow = rIndex > 0 && rows[rIndex - 1].type === 'chords' ? rows[rIndex - 1] : null;
+            const currLyricRow = currentRow;
+            const currLeadRow = rIndex + 1 < rows.length && rows[rIndex + 1].type === 'lead' ? rows[rIndex + 1] : null;
+
+            const mergeRes = mergeLinkedLines(
+              {
+                chords: prevChordRow?.content || '',
+                lyrics: prevLyricRow?.content || '',
+                lead: prevLeadRow ? (prevLeadRow.content || '') : null
+              },
+              {
+                chords: currChordRow?.content || '',
+                lyrics: currLyricRow?.content || '',
+                lead: currLeadRow ? (currLeadRow.content || '') : null
+              }
+            );
+
+            const newRows = [];
+            for (let r = 0; r < rows.length; r++) {
+              if (prevChordRow && r === prevLyricIndex - 1) {
+                newRows.push({ ...prevChordRow, content: mergeRes.chords });
+              } else if (r === prevLyricIndex) {
+                // If previous had no chords, but current had chords, add a chords row above previous lyric
+                if (!prevChordRow && currChordRow && mergeRes.chords.trim()) {
+                  newRows.push({
+                    id: 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_c',
+                    type: 'chords',
+                    content: mergeRes.chords
+                  });
+                }
+                newRows.push({ ...prevLyricRow, content: mergeRes.lyrics });
+                // If previous had no lead, but current had lead, add a lead row below previous lyric
+                if (!prevLeadRow && currLeadRow && mergeRes.lead && mergeRes.lead.trim()) {
+                  newRows.push({
+                    id: 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_ld',
+                    type: 'lead',
+                    content: mergeRes.lead
+                  });
+                }
+              } else if (prevLeadRow && r === prevLyricIndex + 1) {
+                newRows.push({ ...prevLeadRow, content: mergeRes.lead || '' });
+              } else if (
+                (currChordRow && r === rIndex - 1) ||
+                r === rIndex ||
+                (currLeadRow && r === rIndex + 1)
+              ) {
+                // Skip current row(s) because they merged into previous
+                continue;
+              } else {
+                newRows.push(rows[r]);
+              }
+            }
+
+            onChange({
+              ...section,
+              rows: newRows
+            });
+
+            setTimeout(() => {
+              const prevInput = document.getElementById(`row-input-${prevLyricRow.id}`);
+              if (prevInput) {
+                prevInput.focus();
+                prevInput.setSelectionRange(mergeRes.mergeOffset, mergeRes.mergeOffset);
+              }
+            }, 50);
+          }
+        }
+      }
+    }
   };
 
   return (
@@ -267,6 +499,7 @@ export default function SongSectionEditor({
                 onInsertAbove={(type) => handleInsertRow(rIndex, type)}
                 onSplitSection={() => onSplitSection?.(rIndex)}
                 onInsertSectionBelow={onInsertBelow}
+                onKeyDown={(e) => handleRowKeyDown(e, rIndex)}
               />
             ))}
           </>
