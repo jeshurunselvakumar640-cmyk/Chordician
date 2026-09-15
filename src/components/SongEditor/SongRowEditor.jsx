@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Trash2,
   ChevronUp,
@@ -7,8 +7,7 @@ import {
   Plus,
   X,
   Split,
-  Layers,
-  Wand2
+  Layers
 } from 'lucide-react';
 import { ROW_TYPES } from '../../utils/musicConstants.js';
 import ChordHelper from './ChordHelper';
@@ -19,6 +18,7 @@ export default function SongRowEditor({
   index,
   totalRows,
   selectedKey,
+  smartLead = false,
   onChange,
   onDelete,
   onMoveUp,
@@ -32,35 +32,6 @@ export default function SongRowEditor({
   const [showHelper, setShowHelper] = useState(false);
   const [showInsertMenu, setShowInsertMenu] = useState(false);
   const isPastingRef = React.useRef(false);
-
-  const [autoLead, setAutoLead] = useState(() => {
-    try {
-      return localStorage.getItem('chordician_auto_lead_enabled') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    const handleSync = (e) => {
-      if (typeof e.detail === 'boolean') {
-        setAutoLead(e.detail);
-      }
-    };
-    window.addEventListener('chordician_auto_lead_toggled', handleSync);
-    return () => window.removeEventListener('chordician_auto_lead_toggled', handleSync);
-  }, []);
-
-  const toggleAutoLead = () => {
-    setAutoLead((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('chordician_auto_lead_enabled', String(next));
-      } catch {}
-      window.dispatchEvent(new CustomEvent('chordician_auto_lead_toggled', { detail: next }));
-      return next;
-    });
-  };
 
   const handleTypeChange = (e) => {
     onChange({
@@ -78,7 +49,7 @@ export default function SongRowEditor({
     const isPaste = isPastingRef.current || (e.nativeEvent && e.nativeEvent.inputType === 'insertFromPaste');
     isPastingRef.current = false;
 
-    if (row.type === 'lead' && autoLead && selectedKey && !isPaste) {
+    if (row.type === 'lead' && smartLead && selectedKey && !isPaste) {
       const cursor = e.target.selectionStart;
       const { content: transformed, cursorOffset } = handleLeadInputChange(
         rawValue,
@@ -166,27 +137,6 @@ export default function SongRowEditor({
             >
               <Sparkles size={13} />
               <span className="hide-extra-small">Quick Chips</span>
-            </button>
-          )}
-
-          {row.type === 'lead' && (
-            <button
-              type="button"
-              className={`btn btn-sm editor-helper-toggle-btn ${autoLead ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={toggleAutoLead}
-              title={
-                autoLead
-                  ? `Auto Lead is ON (${selectedKey || 'Key'}) — Bare notes auto-resolve to key accidentals. Click to turn OFF.`
-                  : `Auto Lead is OFF — Click to activate auto-accidentals for key (${selectedKey || 'selected key'}).`
-              }
-              aria-label="Toggle Auto Lead loader"
-              style={{
-                borderColor: autoLead ? 'var(--color-primary)' : undefined,
-                fontWeight: autoLead ? 700 : 500
-              }}
-            >
-              <Wand2 size={13} style={{ color: autoLead ? '#fbbf24' : 'inherit' }} />
-              <span className="hide-extra-small">Auto Lead{autoLead ? ' (ON)' : ''}</span>
             </button>
           )}
         </div>

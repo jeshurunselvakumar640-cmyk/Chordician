@@ -140,13 +140,13 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
     assert.equal(res.content, 'D4 E4 F');
   });
 
-  it('17. Toggle Activation: When Auto Lead is inactive, input is untouched; when active, accidentals resolve', () => {
+  it('17. Smart Lead Toggle: When Smart Lead is inactive, input is untouched; when active, accidentals resolve', () => {
     const rawInput = 'D4 E4 f';
     const prev = 'D4 E4 ';
-    const isAutoLeadActive = false;
+    const isSmartLeadActive = false;
 
     // When inactive (toggle OFF)
-    const inactiveResult = isAutoLeadActive
+    const inactiveResult = isSmartLeadActive
       ? handleLeadInputChange(rawInput, prev, 7, 'D').content
       : rawInput;
     assert.equal(inactiveResult, 'D4 E4 f');

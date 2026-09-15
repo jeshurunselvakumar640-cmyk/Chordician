@@ -9,7 +9,8 @@ import {
   Sliders,
   ChevronDown,
   X,
-  Sparkles
+  Sparkles,
+  Wand2
 } from 'lucide-react';
 import { ALL_KEYS, MAJOR_KEYS, MINOR_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../../utils/musicConstants.js';
 import { formatStyleCode } from '../../data/songStyles.js';
@@ -36,6 +37,23 @@ export default function SongEditor({
   const [tempo, setTempo] = useState(initialSong?.tempo || '');
   const [timeSignature, setTimeSignature] = useState(initialSong?.timeSignature || '4/4');
   const [notes, setNotes] = useState(initialSong?.notes || '');
+  const [smartLead, setSmartLead] = useState(() => {
+    try {
+      return localStorage.getItem('chordician_smart_lead_enabled') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSmartLead = () => {
+    setSmartLead((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('chordician_smart_lead_enabled', String(next));
+      } catch {}
+      return next;
+    });
+  };
   const [sections, setSections] = useState(
     initialSong?.sections?.length
       ? initialSong.sections
@@ -436,14 +454,34 @@ export default function SongEditor({
       <div className="editor-sections-wrapper">
         <div className="editor-sections-header">
           <h2 className="editor-sections-title">Song Sections</h2>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={handleAddSection}
-          >
-            <Plus size={16} />
-            <span>Add Section</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${smartLead ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={toggleSmartLead}
+              title={
+                smartLead
+                  ? `Smart Lead is ON (${originalKey || 'Key'}) — Bare notes auto-resolve to key accidentals. Click to turn OFF.`
+                  : `Smart Lead is OFF — Click to automatically supply ${originalKey || 'key'} accidentals when typing Lead notes.`
+              }
+              aria-label="Toggle Smart Lead note auto-accidentals"
+              style={{
+                borderColor: smartLead ? 'var(--color-primary)' : undefined,
+                fontWeight: smartLead ? 700 : 500
+              }}
+            >
+              <Wand2 size={14} style={{ color: smartLead ? '#fbbf24' : 'inherit' }} />
+              <span>Smart Lead{smartLead ? ' (ON)' : ''}</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleAddSection}
+            >
+              <Plus size={16} />
+              <span>Add Section</span>
+            </button>
+          </div>
         </div>
 
         {sections.map((section, sIndex) => (
@@ -453,6 +491,7 @@ export default function SongEditor({
             index={sIndex}
             totalSections={sections.length}
             selectedKey={originalKey}
+            smartLead={smartLead}
             onChange={(updated) => handleSectionChange(sIndex, updated)}
             onDelete={() => handleDeleteSection(sIndex)}
             onMoveUp={() => handleMoveSection(sIndex, -1)}
