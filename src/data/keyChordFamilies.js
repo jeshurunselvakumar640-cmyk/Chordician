@@ -21,16 +21,16 @@ export const MAJOR_KEY_FAMILIES = [
     relativeMinorKey: 'Am'
   },
   {
-    key: 'C#',
+    key: 'Db',
     mode: 'major',
-    tonic: 'C#',
-    scale: ['C#', 'D#', 'F', 'F#', 'G#', 'A#', 'C'],
-    core: ['C#', 'F#', 'G#'],
-    relative: ['D#m', 'Fm', 'A#m'],
+    tonic: 'Db',
+    scale: ['Db', 'Eb', 'F', 'Gb', 'Ab', 'Bb', 'C'],
+    core: ['Db', 'Gb', 'Ab'],
+    relative: ['Ebm', 'Fm', 'Bbm'],
     dim: 'Cdim',
-    allChords: ['C#', 'D#m', 'Fm', 'F#', 'G#', 'A#m', 'Cdim'],
-    dominant7: 'G#7',
-    relativeMinorKey: 'A#m'
+    allChords: ['Db', 'Ebm', 'Fm', 'Gb', 'Ab', 'Bbm', 'Cdim'],
+    dominant7: 'Ab7',
+    relativeMinorKey: 'Bbm'
   },
   {
     key: 'D',

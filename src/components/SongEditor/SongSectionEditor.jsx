@@ -16,6 +16,7 @@ export default function SongSectionEditor({
   section,
   index,
   totalSections,
+  selectedKey,
   onChange,
   onDelete,
   onMoveUp,
@@ -491,6 +492,7 @@ export default function SongSectionEditor({
                 row={row}
                 index={rIndex}
                 totalRows={(section.rows || []).length}
+                selectedKey={selectedKey}
                 onChange={(updated) => handleRowChange(rIndex, updated)}
                 onDelete={() => handleDeleteRow(rIndex)}
                 onMoveUp={() => handleMoveRow(rIndex, -1)}

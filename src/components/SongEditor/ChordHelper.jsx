@@ -1,12 +1,42 @@
 import React, { useState } from 'react';
 import { MAJOR_KEYS, COMMON_CHORD_QUALITIES } from '../../utils/musicConstants.js';
+import { getKeyGuideData } from '../../data/keyChordFamilies.js';
 
-export default function ChordHelper({ rowType, onInsert }) {
+export default function ChordHelper({ rowType, onInsert, selectedKey }) {
   const [selectedRoot, setSelectedRoot] = useState('C');
 
   if (rowType === 'chords') {
+    const guideData = selectedKey ? getKeyGuideData(selectedKey) : null;
+    const keyChords = guideData?.allChords || [];
+
     return (
       <div className="chord-helper-panel">
+        {/* Key-specific Diatonic Chords */}
+        {keyChords.length > 0 && (
+          <div className="chord-helper-key-group" style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div className="chord-helper-header" style={{ marginBottom: '6px' }}>
+              <span className="chord-helper-label" style={{ color: 'var(--color-primary, #6366f1)', fontWeight: 700 }}>
+                Key Chords ({selectedKey}):
+              </span>
+              <span className="chord-helper-hint">Diatonic scale chords</span>
+            </div>
+            <div className="chord-helper-roots-grid" style={{ flexWrap: 'wrap', gap: '6px' }}>
+              {keyChords.map((chord) => (
+                <button
+                  key={chord}
+                  type="button"
+                  className="btn btn-secondary btn-sm font-mono-input chord-root-chip"
+                  onClick={() => onInsert(`${chord} `)}
+                  title={`Insert ${chord}`}
+                  style={{ fontWeight: 700, borderColor: 'rgba(99, 102, 241, 0.35)', background: 'rgba(99, 102, 241, 0.12)' }}
+                >
+                  {chord}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="chord-helper-header">
           <span className="chord-helper-label">Quick Chords:</span>
           <span className="chord-helper-hint">Root + Quality</span>

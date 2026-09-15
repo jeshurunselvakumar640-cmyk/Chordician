@@ -16,6 +16,7 @@ export default function SongRowEditor({
   row,
   index,
   totalRows,
+  selectedKey,
   onChange,
   onDelete,
   onMoveUp,
@@ -165,7 +166,7 @@ export default function SongRowEditor({
       />
 
       {showHelper && canUseHelper && (
-        <ChordHelper rowType={row.type} onInsert={handleInsertSnippet} />
+        <ChordHelper rowType={row.type} onInsert={handleInsertSnippet} selectedKey={selectedKey} />
       )}
 
       {/* Insert Row In-Between Panel */}

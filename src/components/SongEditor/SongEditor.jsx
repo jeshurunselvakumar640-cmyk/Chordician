@@ -452,6 +452,7 @@ export default function SongEditor({
             section={section}
             index={sIndex}
             totalSections={sections.length}
+            selectedKey={originalKey}
             onChange={(updated) => handleSectionChange(sIndex, updated)}
             onDelete={() => handleDeleteSection(sIndex)}
             onMoveUp={() => handleMoveSection(sIndex, -1)}
