@@ -5,12 +5,13 @@ import { PWAProvider } from './context/PWAContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { ThisSundayProvider } from './context/ThisSundayContext';
 import { CommunionProvider } from './context/CommunionContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { DeviceModeProvider } from './context/DeviceModeContext';
 import Layout from './components/Layout/Layout';
 import ReloadPrompt from './components/UI/ReloadPrompt';
 import ConfirmModal from './components/Modal/ConfirmModal';
 import AuthModal from './components/Modal/AuthModal';
+import AppSplash from './components/UI/AppSplash';
 import ProtectedRoute from './components/UI/ProtectedRoute';
 import ErrorBoundary from './components/UI/ErrorBoundary';
 import { SongCardSkeleton } from './components/UI/SkeletonLoader';
@@ -47,6 +48,7 @@ function PageFallback() {
 
 function AppContent() {
   const { showToast } = useToast();
+  const { loading: authLoading } = useAuth();
 
   const [userFavorites, setUserFavorites] = useState(() => {
     try {
@@ -61,6 +63,9 @@ function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [firestoreError, setFirestoreError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Application readiness flag based on real auth & songs hydration
+  const isAppReady = !isLoading && !authLoading;
 
   // Delete modal state
   const [songToDelete, setSongToDelete] = useState(null);
@@ -355,6 +360,9 @@ function AppContent() {
         </Routes>
       </Suspense>
     </ErrorBoundary>
+
+      {/* Chordician Branded Musical Startup Splash Screen */}
+      <AppSplash isReady={isAppReady} />
 
       {/* App-wide Delete Confirm Modal */}
       <ConfirmModal

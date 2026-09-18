@@ -37,6 +37,81 @@ import LinkedChordPreviewEditor from '../components/SongView/LinkedChordPreviewE
 import KeyBadge from '../components/UI/KeyBadge';
 import ImportInternetModal from '../components/Modal/ImportInternetModal';
 
+/**
+ * Chordex Musical Scan Loading Experience
+ * High-tech musical radar stave and laser scanning playhead
+ */
+function MusicalScanLoader({ modeTitle, currentStep = 1, message, targetInfo }) {
+  return (
+    <div className="chordex-musical-scan-card" role="status" aria-live="polite">
+      <div className="chordex-scan-header">
+        <div className="chordex-scan-badge-row">
+          <span className="badge badge-primary">{modeTitle}</span>
+          <span className="chordex-scan-step-indicator">Stage {currentStep} of 4</span>
+        </div>
+        <h3 className="chordex-scan-status-title">{message}</h3>
+        {targetInfo && (
+          <p className="chordex-scan-target-desc">
+            <span className="chordex-scan-target-dot" />
+            <span>{targetInfo}</span>
+          </p>
+        )}
+      </div>
+
+      {/* Musical Staff Radar Viewport */}
+      <div className="chordex-scan-stave-viewport" aria-hidden="true">
+        <div className="chordex-stave-grid">
+          <div className="chordex-stave-line" />
+          <div className="chordex-stave-line" />
+          <div className="chordex-stave-line" />
+          <div className="chordex-stave-line" />
+          <div className="chordex-stave-line" />
+        </div>
+
+        {/* Treble Clef Emblem */}
+        <div className="chordex-clef-symbol">𝄞</div>
+
+        {/* Dynamic Harmonic Chords revealing across the staff */}
+        <div className="chordex-stave-chords">
+          <span className={`chordex-stave-pill ${currentStep >= 1 ? 'revealed' : ''}`} style={{ left: '16%', top: '22%' }}>C</span>
+          <span className={`chordex-stave-pill ${currentStep >= 2 ? 'revealed' : ''}`} style={{ left: '38%', top: '48%' }}>Am7</span>
+          <span className={`chordex-stave-pill ${currentStep >= 3 ? 'revealed' : ''}`} style={{ left: '60%', top: '15%' }}>Fmaj7</span>
+          <span className={`chordex-stave-pill ${currentStep >= 4 ? 'revealed' : ''}`} style={{ left: '80%', top: '38%' }}>G13</span>
+        </div>
+
+        {/* Laser Scanning Playhead Sweep */}
+        <div className="chordex-scan-playhead">
+          <div className="chordex-playhead-beam" />
+          <div className="chordex-playhead-pulse" />
+        </div>
+      </div>
+
+      {/* Sequential Deterministic Stage Pills */}
+      <div className="chordex-scan-stages">
+        <div className={`chordex-stage-pill ${currentStep >= 1 ? (currentStep > 1 ? 'done' : 'active') : ''}`}>
+          <span className="chordex-stage-num">{currentStep > 1 ? '✓' : '1'}</span>
+          <span className="chordex-stage-label">Input</span>
+        </div>
+        <div className="chordex-stage-connector" />
+        <div className={`chordex-stage-pill ${currentStep >= 2 ? (currentStep > 2 ? 'done' : 'active') : ''}`}>
+          <span className="chordex-stage-num">{currentStep > 2 ? '✓' : '2'}</span>
+          <span className="chordex-stage-label">Lyrics & Text</span>
+        </div>
+        <div className="chordex-stage-connector" />
+        <div className={`chordex-stage-pill ${currentStep >= 3 ? (currentStep > 3 ? 'done' : 'active') : ''}`}>
+          <span className="chordex-stage-num">{currentStep > 3 ? '✓' : '3'}</span>
+          <span className="chordex-stage-label">Chord Detection</span>
+        </div>
+        <div className="chordex-stage-connector" />
+        <div className={`chordex-stage-pill ${currentStep >= 4 ? 'active' : ''}`}>
+          <span className="chordex-stage-num">4</span>
+          <span className="chordex-stage-label">Songbook</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ImportSong() {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -583,105 +658,19 @@ export default function ImportSong() {
             </div>
           </div>
 
-          {/* Active URL Loading Status Card with Progressive Steps */}
+          {/* Active URL Loading Status Card with Musical Scan */}
           {isAnalyzingUrl && (
-            <div className="url-import-loading-card">
-              <div className="url-loading-header">
-                <div className="url-loading-orbit">
-                  <Globe size={26} className="url-loading-globe-icon" />
-                  <div className="url-loading-sparkle">
-                    <Sparkles size={14} />
-                  </div>
-                  <div className="url-loading-spinner-ring"></div>
-                </div>
-                <div className="url-loading-title-group">
-                  <div className="url-loading-badge-row">
-                    <span className="badge badge-primary">CHORDEX AI URL PARSER</span>
-                    <span className="url-loading-step-tag">Step {urlLoadingStep} of 4</span>
-                  </div>
-                  <h3 className="url-loading-main-title">
-                    {urlLoadingStep === 1 && 'Connecting & Fetching Webpage...'}
-                    {urlLoadingStep === 2 && 'Scanning & Extracting Lyric & Chord Blocks...'}
-                    {urlLoadingStep === 3 && 'Restructuring Chord Alignment with Chordex AI...'}
-                    {urlLoadingStep >= 4 && 'Synthesizing Song Structure & Key...'}
-                  </h3>
-                  <p className="url-loading-target-url" title={urlInput}>
-                    <ExternalLink size={12} />
-                    <span>{urlInput || 'Selected sample chord sheet'}</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Animated Progress Bar */}
-              <div className="url-progress-bar-track">
-                <div
-                  className="url-progress-bar-fill"
-                  style={{ width: `${Math.min(100, urlLoadingStep * 25)}%` }}
-                ></div>
-              </div>
-
-              {/* Multi-Step Indicator */}
-              <div className="url-steps-grid">
-                <div className={`url-step-item ${urlLoadingStep >= 1 ? (urlLoadingStep > 1 ? 'completed' : 'active') : ''}`}>
-                  <div className="url-step-bullet">
-                    {urlLoadingStep > 1 ? <Check size={12} /> : urlLoadingStep === 1 ? <Loader2 size={12} className="animate-spin" /> : '1'}
-                  </div>
-                  <div className="url-step-text">
-                    <span className="url-step-name">Fetch Webpage</span>
-                    <span className="url-step-sub">Connecting to URL</span>
-                  </div>
-                </div>
-
-                <div className={`url-step-item ${urlLoadingStep >= 2 ? (urlLoadingStep > 2 ? 'completed' : 'active') : ''}`}>
-                  <div className="url-step-bullet">
-                    {urlLoadingStep > 2 ? <Check size={12} /> : urlLoadingStep === 2 ? <Loader2 size={12} className="animate-spin" /> : '2'}
-                  </div>
-                  <div className="url-step-text">
-                    <span className="url-step-name">Extract Chords</span>
-                    <span className="url-step-sub">Scanning text blocks</span>
-                  </div>
-                </div>
-
-                <div className={`url-step-item ${urlLoadingStep >= 3 ? (urlLoadingStep > 3 ? 'completed' : 'active') : ''}`}>
-                  <div className="url-step-bullet">
-                    {urlLoadingStep > 3 ? <Check size={12} /> : urlLoadingStep === 3 ? <Loader2 size={12} className="animate-spin" /> : '3'}
-                  </div>
-                  <div className="url-step-text">
-                    <span className="url-step-name">Chordex AI</span>
-                    <span className="url-step-sub">Aligning chords</span>
-                  </div>
-                </div>
-
-                <div className={`url-step-item ${urlLoadingStep >= 4 ? 'active' : ''}`}>
-                  <div className="url-step-bullet">
-                    {urlLoadingStep >= 4 ? <Loader2 size={12} className="animate-spin" /> : '4'}
-                  </div>
-                  <div className="url-step-text">
-                    <span className="url-step-name">Build Song</span>
-                    <span className="url-step-sub">Ready for review</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Shimmer Skeleton Preview */}
-              <div className="url-loading-skeleton-preview">
-                <div className="skeleton-chord-row">
-                  <div className="skeleton-pill" style={{ width: '65px' }}></div>
-                  <div className="skeleton-pill" style={{ width: '45px' }}></div>
-                  <div className="skeleton-pill" style={{ width: '55px' }}></div>
-                </div>
-                <div className="skeleton-lyric-row">
-                  <div className="skeleton-line" style={{ width: '85%' }}></div>
-                </div>
-                <div className="skeleton-chord-row" style={{ marginTop: '8px' }}>
-                  <div className="skeleton-pill" style={{ width: '50px' }}></div>
-                  <div className="skeleton-pill" style={{ width: '70px' }}></div>
-                </div>
-                <div className="skeleton-lyric-row">
-                  <div className="skeleton-line" style={{ width: '70%' }}></div>
-                </div>
-              </div>
-            </div>
+            <MusicalScanLoader
+              modeTitle="CHORDEX AI URL PARSER"
+              currentStep={urlLoadingStep}
+              message={
+                urlLoadingStep === 1 ? 'Connecting & Fetching Webpage...' :
+                urlLoadingStep === 2 ? 'Scanning & Extracting Lyric & Chord Blocks...' :
+                urlLoadingStep === 3 ? 'Restructuring Chord Alignment with Chordex AI...' :
+                'Synthesizing Song Structure & Key...'
+              }
+              targetInfo={urlInput || 'Selected sample chord sheet'}
+            />
           )}
 
           {/* Sample URL Presets */}
@@ -820,86 +809,14 @@ export default function ImportSong() {
               </div>
             </div>
 
-            {/* Smart Paste Dynamic Step Progress & Skeleton Loading Indicator */}
+            {/* Smart Paste Loading with Musical Scan */}
             {isAnalyzingText && (
-              <div className="url-loading-indicator" style={{ marginTop: '20px' }}>
-                <div className="url-loading-header">
-                  <div className="url-loading-spinner-wrap">
-                    <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
-                  </div>
-                  <div className="url-loading-info">
-                    <h4 className="url-loading-title">Reconstructing Chords & Lyrics</h4>
-                    <p className="url-loading-desc">{pasteLoadingMessage}</p>
-                  </div>
-                  <span className="badge badge-primary url-loading-badge">
-                    Step {pasteLoadingStep} of 4
-                  </span>
-                </div>
-
-                {/* Progress Track */}
-                <div className="url-steps-track">
-                  <div className={`url-step-item ${pasteLoadingStep >= 1 ? (pasteLoadingStep > 1 ? 'completed' : 'active') : ''}`}>
-                    <div className="url-step-bullet">
-                      {pasteLoadingStep > 1 ? <Check size={12} /> : <Loader2 size={12} className="animate-spin" />}
-                    </div>
-                    <div className="url-step-text">
-                      <span className="url-step-name">Read Text</span>
-                      <span className="url-step-sub">Pasted stream</span>
-                    </div>
-                  </div>
-
-                  <div className={`url-step-item ${pasteLoadingStep >= 2 ? (pasteLoadingStep > 2 ? 'completed' : 'active') : ''}`}>
-                    <div className="url-step-bullet">
-                      {pasteLoadingStep > 2 ? <Check size={12} /> : pasteLoadingStep === 2 ? <Loader2 size={12} className="animate-spin" /> : '2'}
-                    </div>
-                    <div className="url-step-text">
-                      <span className="url-step-name">Detect Chords</span>
-                      <span className="url-step-sub">Attached letters</span>
-                    </div>
-                  </div>
-
-                  <div className={`url-step-item ${pasteLoadingStep >= 3 ? (pasteLoadingStep > 3 ? 'completed' : 'active') : ''}`}>
-                    <div className="url-step-bullet">
-                      {pasteLoadingStep > 3 ? <Check size={12} /> : pasteLoadingStep === 3 ? <Loader2 size={12} className="animate-spin" /> : '3'}
-                    </div>
-                    <div className="url-step-text">
-                      <span className="url-step-name">Chordex AI</span>
-                      <span className="url-step-sub">Aligning lyrics</span>
-                    </div>
-                  </div>
-
-                  <div className={`url-step-item ${pasteLoadingStep >= 4 ? 'active' : ''}`}>
-                    <div className="url-step-bullet">
-                      {pasteLoadingStep >= 4 ? <Loader2 size={12} className="animate-spin" /> : '4'}
-                    </div>
-                    <div className="url-step-text">
-                      <span className="url-step-name">Build Song</span>
-                      <span className="url-step-sub">Sections & rows</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Shimmer Skeleton Preview */}
-                <div className="url-loading-skeleton-preview">
-                  <div className="skeleton-chord-row">
-                    <div className="skeleton-pill" style={{ width: '60px' }}></div>
-                    <div className="skeleton-pill" style={{ width: '45px' }}></div>
-                    <div className="skeleton-pill" style={{ width: '55px' }}></div>
-                    <div className="skeleton-pill" style={{ width: '40px' }}></div>
-                  </div>
-                  <div className="skeleton-lyric-row">
-                    <div className="skeleton-line" style={{ width: '80%' }}></div>
-                  </div>
-                  <div className="skeleton-chord-row" style={{ marginTop: '10px' }}>
-                    <div className="skeleton-pill" style={{ width: '50px' }}></div>
-                    <div className="skeleton-pill" style={{ width: '65px' }}></div>
-                    <div className="skeleton-pill" style={{ width: '40px' }}></div>
-                  </div>
-                  <div className="skeleton-lyric-row">
-                    <div className="skeleton-line" style={{ width: '65%' }}></div>
-                  </div>
-                </div>
-              </div>
+              <MusicalScanLoader
+                modeTitle="CHORDEX SMART PASTER"
+                currentStep={pasteLoadingStep}
+                message={pasteLoadingMessage}
+                targetInfo={textTitle ? `${textTitle} (${textInput.length} chars)` : `${textInput.length} characters pasted`}
+              />
             )}
           </div>
 
@@ -1044,98 +961,14 @@ export default function ImportSong() {
             </button>
           </div>
 
-          {/* Vision AI Dynamic Step Progress & Skeleton Loading Indicator */}
+          {/* Vision AI Loading with Musical Scan */}
           {isAnalyzingImage && (
-            <div className="url-loading-indicator" style={{ marginTop: '20px' }}>
-              <div className="url-loading-header">
-                <div className="url-loading-spinner-wrap">
-                  <div className="url-loading-spinner-ring"></div>
-                </div>
-                <div className="url-loading-title-group">
-                  <div className="url-loading-badge-row">
-                    <span className="badge badge-primary">CHORDEX AI VISION</span>
-                    <span className="url-loading-step-tag">Step {imageLoadingStep} of 4</span>
-                  </div>
-                  <h3 className="url-loading-main-title">
-                    {imageLoadingMessage}
-                  </h3>
-                  <p className="url-loading-target-url">
-                    <ImageIcon size={12} />
-                    <span>{imageFile ? imageFile.name : selectedImagePreset ? 'Sample Chord Sheet Image' : 'Uploaded Image'}</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Animated Progress Bar */}
-              <div className="url-progress-bar-track">
-                <div
-                  className="url-progress-bar-fill"
-                  style={{ width: `${Math.min(100, imageLoadingStep * 25)}%` }}
-                ></div>
-              </div>
-
-              {/* Multi-Step Indicator */}
-              <div className="url-steps-grid">
-                <div className={`url-step-item ${imageLoadingStep >= 1 ? (imageLoadingStep > 1 ? 'completed' : 'active') : ''}`}>
-                  <div className="url-step-bullet">
-                    {imageLoadingStep > 1 ? <Check size={12} /> : imageLoadingStep === 1 ? <Loader2 size={12} className="animate-spin" /> : '1'}
-                  </div>
-                  <div className="url-step-text">
-                    <span className="url-step-name">Process Image</span>
-                    <span className="url-step-sub">Preprocessing pixels</span>
-                  </div>
-                </div>
-
-                <div className={`url-step-item ${imageLoadingStep >= 2 ? (imageLoadingStep > 2 ? 'completed' : 'active') : ''}`}>
-                  <div className="url-step-bullet">
-                    {imageLoadingStep > 2 ? <Check size={12} /> : imageLoadingStep === 2 ? <Loader2 size={12} className="animate-spin" /> : '2'}
-                  </div>
-                  <div className="url-step-text">
-                    <span className="url-step-name">Vision OCR</span>
-                    <span className="url-step-sub">Scanning symbols</span>
-                  </div>
-                </div>
-
-                <div className={`url-step-item ${imageLoadingStep >= 3 ? (imageLoadingStep > 3 ? 'completed' : 'active') : ''}`}>
-                  <div className="url-step-bullet">
-                    {imageLoadingStep > 3 ? <Check size={12} /> : imageLoadingStep === 3 ? <Loader2 size={12} className="animate-spin" /> : '3'}
-                  </div>
-                  <div className="url-step-text">
-                    <span className="url-step-name">Chordex AI</span>
-                    <span className="url-step-sub">Spatial alignment</span>
-                  </div>
-                </div>
-
-                <div className={`url-step-item ${imageLoadingStep >= 4 ? 'active' : ''}`}>
-                  <div className="url-step-bullet">
-                    {imageLoadingStep >= 4 ? <Loader2 size={12} className="animate-spin" /> : '4'}
-                  </div>
-                  <div className="url-step-text">
-                    <span className="url-step-name">Build Song</span>
-                    <span className="url-step-sub">Ready for review</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Shimmer Skeleton Preview */}
-              <div className="url-loading-skeleton-preview">
-                <div className="skeleton-chord-row">
-                  <div className="skeleton-pill" style={{ width: '60px' }}></div>
-                  <div className="skeleton-pill" style={{ width: '45px' }}></div>
-                  <div className="skeleton-pill" style={{ width: '55px' }}></div>
-                </div>
-                <div className="skeleton-lyric-row">
-                  <div className="skeleton-line" style={{ width: '80%' }}></div>
-                </div>
-                <div className="skeleton-chord-row" style={{ marginTop: '8px' }}>
-                  <div className="skeleton-pill" style={{ width: '50px' }}></div>
-                  <div className="skeleton-pill" style={{ width: '65px' }}></div>
-                </div>
-                <div className="skeleton-lyric-row">
-                  <div className="skeleton-line" style={{ width: '65%' }}></div>
-                </div>
-              </div>
-            </div>
+            <MusicalScanLoader
+              modeTitle="CHORDEX AI VISION"
+              currentStep={imageLoadingStep}
+              message={imageLoadingMessage}
+              targetInfo={imageFile ? imageFile.name : selectedImagePreset ? 'Sample Chord Sheet Image' : 'Uploaded Image'}
+            />
           )}
         </div>
       )}

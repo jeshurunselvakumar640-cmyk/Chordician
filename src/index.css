@@ -23,10 +23,21 @@
   --bottom-nav-height: 64px;
   --sidebar-width: 260px;
 
-  /* Transitions */
+  /* Transitions & Motion System */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --motion-duration-instant: 80ms;
+  --motion-duration-micro: 140ms;
+  --motion-duration-normal: 220ms;
+  --motion-duration-panel: 300ms;
+  --motion-duration-splash: 450ms;
+
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Brand Accents */
   --color-primary: #6366f1;
@@ -8962,5 +8973,572 @@ body.desktop-mode-forced {
   .key-guide-groups-grid {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+}
+
+/* ==========================================================================
+   CHORDICIAN PHASE 1 MOTION & ANIMATION SYSTEM
+   ========================================================================== */
+
+/* --- 1. CHORDICIAN STARTUP / APP OPEN SPLASH --- */
+.app-splash-container {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #080c14;
+  color: #f8fafc;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: opacity var(--motion-duration-panel) var(--motion-ease-exit),
+              transform var(--motion-duration-panel) var(--motion-ease-exit);
+}
+
+.app-splash-container.app-splash-exit {
+  opacity: 0;
+  transform: scale(1.025);
+  pointer-events: none;
+}
+
+.app-splash-backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(99, 102, 241, 0.14) 0%, rgba(8, 12, 20, 0.95) 70%, #080c14 100%);
+  pointer-events: none;
+}
+
+.app-splash-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+  max-width: 360px;
+}
+
+.app-splash-logo-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  animation: splashMarkEnter 420ms var(--motion-ease-enter) forwards;
+}
+
+.app-splash-glow-ring {
+  position: absolute;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(245, 158, 11, 0.15) 50%, transparent 75%);
+  filter: blur(12px);
+  animation: splashGlowPulse 2.8s ease-in-out infinite;
+}
+
+.app-splash-logo-svg {
+  width: 72px;
+  height: 72px;
+  filter: drop-shadow(0 4px 16px rgba(99, 102, 241, 0.35));
+}
+
+.app-splash-wordmark-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: splashWordmarkEnter 480ms var(--motion-ease-enter) forwards;
+}
+
+.app-splash-wordmark {
+  font-family: var(--font-sans);
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: #f8fafc;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.app-splash-harmony-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 140px;
+  margin: 10px 0 12px 0;
+  opacity: 0.85;
+}
+
+.app-splash-line-segment {
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.6), rgba(99, 102, 241, 0.6));
+}
+
+.app-splash-harmony-line .app-splash-line-segment:last-child {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.6), rgba(245, 158, 11, 0.6), transparent);
+}
+
+.app-splash-line-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background-color: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+.app-splash-tagline {
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: rgba(226, 232, 240, 0.75);
+  margin: 0;
+  animation: splashTaglineEnter 520ms var(--motion-ease-enter) forwards;
+}
+
+.app-splash-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 32px;
+  font-size: 0.78rem;
+  color: rgba(148, 163, 184, 0.7);
+  animation: splashTaglineEnter 600ms var(--motion-ease-enter) forwards;
+}
+
+.app-splash-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  box-shadow: 0 0 6px var(--color-primary);
+  animation: splashDotPulse 1.6s ease-in-out infinite;
+}
+
+.app-splash-status-text {
+  letter-spacing: 0.04em;
+}
+
+@keyframes splashMarkEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes splashWordmarkEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+    letter-spacing: 0.12em;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    letter-spacing: 0.18em;
+  }
+}
+
+@keyframes splashTaglineEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashGlowPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes splashDotPulse {
+  0%, 100% {
+    transform: scale(0.85);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+
+/* --- 2. MOBILE SONG NEXT/PREVIOUS SWIPE TRACK --- */
+.song-swipe-viewport {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.song-swipe-viewport:active {
+  cursor: grabbing;
+}
+
+.song-swipe-track {
+  width: 100%;
+  will-change: transform, opacity;
+  transition: transform var(--motion-duration-normal) var(--motion-ease-standard),
+              opacity var(--motion-duration-normal) ease;
+}
+
+.song-swipe-track.is-dragging {
+  transition: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* --- 3. CHORDEX / VISUAL AI "MUSICAL SCAN" LOADING --- */
+.chordex-musical-scan-card {
+  margin-top: 20px;
+  padding: 22px 20px;
+  background: linear-gradient(180deg, rgba(18, 26, 45, 0.95) 0%, rgba(10, 15, 26, 0.98) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='light'] .chordex-musical-scan-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.12);
+}
+
+.chordex-scan-header {
+  margin-bottom: 16px;
+}
+
+.chordex-scan-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.chordex-scan-step-indicator {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.chordex-scan-status-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+}
+
+.chordex-scan-target-desc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.chordex-scan-target-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-success);
+}
+
+/* Stave Radar Viewport */
+.chordex-scan-stave-viewport {
+  position: relative;
+  height: 104px;
+  background: rgba(11, 17, 31, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+:root[data-theme='light'] .chordex-scan-stave-viewport {
+  background: rgba(241, 245, 249, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.chordex-stave-grid {
+  position: absolute;
+  inset: 16px 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.chordex-stave-line {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme='light'] .chordex-stave-line {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.chordex-clef-symbol {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 3.4rem;
+  line-height: 1;
+  color: rgba(129, 140, 248, 0.3);
+  pointer-events: none;
+}
+
+:root[data-theme='light'] .chordex-clef-symbol {
+  color: rgba(99, 102, 241, 0.25);
+}
+
+.chordex-stave-chords {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.chordex-stave-pill {
+  position: absolute;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--chord-text);
+  background: var(--chord-bg);
+  border: 1px solid var(--chord-border);
+  border-radius: var(--radius-xs);
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity var(--motion-duration-normal) var(--motion-ease-spring),
+              transform var(--motion-duration-normal) var(--motion-ease-spring);
+}
+
+.chordex-stave-pill.revealed {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.35);
+  animation: chordPillPop 260ms var(--motion-ease-spring);
+}
+
+/* Playhead Scanning Beam */
+.chordex-scan-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30px;
+  transform: translateX(-10%);
+  animation: chordexPlayheadSweep 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.chordex-playhead-beam {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, #f59e0b 0%, #6366f1 50%, #10b981 100%);
+  box-shadow: 0 0 10px #6366f1, 0 0 20px #f59e0b;
+}
+
+.chordex-playhead-pulse {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.18), transparent);
+}
+
+@keyframes chordexPlayheadSweep {
+  0% {
+    transform: translateX(-10%);
+  }
+  50% {
+    transform: translateX(calc(100% + 280px));
+  }
+  100% {
+    transform: translateX(-10%);
+  }
+}
+
+@keyframes chordPillPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(4px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Deterministic Stage Track */
+.chordex-scan-stages {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.chordex-stage-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  transition: all var(--motion-duration-normal) var(--motion-ease-enter);
+}
+
+:root[data-theme='light'] .chordex-stage-pill {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.chordex-stage-pill.active {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-color: rgba(99, 102, 241, 0.35);
+  font-weight: 600;
+}
+
+.chordex-stage-pill.done {
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.chordex-stage-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.chordex-stage-connector {
+  flex: 1;
+  height: 1.5px;
+  background: var(--border-subtle);
+}
+
+@media (max-width: 480px) {
+  .chordex-stage-label {
+    display: none;
+  }
+  .chordex-stage-pill {
+    padding: 4px 8px;
+  }
+}
+
+/* --- 4. SEARCH SUGGESTIONS ENTRANCE --- */
+.search-suggestions-dropdown,
+.search-suggestions {
+  animation: searchDropdownEnter 160ms var(--motion-ease-enter) forwards;
+  transform-origin: top center;
+}
+
+@keyframes searchDropdownEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- 5. SONG CARD PRESS FEEDBACK --- */
+.song-card,
+.song-card-list {
+  transition: transform var(--motion-duration-instant) ease,
+              box-shadow var(--motion-duration-micro) ease,
+              border-color var(--motion-duration-micro) ease;
+}
+
+.song-card:active,
+.song-card-list:active {
+  transform: scale(0.985);
+}
+
+/* --- 6. FAVORITE HEART MICRO-ANIMATION --- */
+.heart-pop-active {
+  animation: heartPop 220ms var(--motion-ease-spring) forwards !important;
+}
+
+@keyframes heartPop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.24);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* --- 7. REDUCED MOTION SAFEGUARDS --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .app-splash-container,
+  .app-splash-logo-wrap,
+  .app-splash-wordmark-wrap,
+  .app-splash-tagline,
+  .app-splash-status,
+  .search-suggestions-dropdown,
+  .search-suggestions,
+  .chordex-scan-playhead,
+  .chordex-stave-pill,
+  .song-swipe-track,
+  .heart-pop-active,
+  .song-card:active,
+  .song-card-list:active {
+    animation: none !important;
+    transform: none !important;
+  }
+  .chordex-scan-playhead {
+    display: none;
+  }
+  .chordex-stave-pill {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

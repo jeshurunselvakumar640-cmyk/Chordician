@@ -36,6 +36,7 @@ function SongCard({
   const { isInCommunion, toggleSong: toggleCommunionSong } = useCommunion();
   const { canEdit, canEditSong } = useAuth();
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isHeartPopping, setIsHeartPopping] = useState(false);
   const {
     id,
     title,
@@ -78,6 +79,8 @@ function SongCard({
   const handleFavoriteClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsHeartPopping(true);
+    setTimeout(() => setIsHeartPopping(false), 240);
     if (onToggleFavorite) {
       onToggleFavorite(id, !!favorite);
     }
@@ -158,7 +161,7 @@ function SongCard({
               title={favorite ? 'Remove from favorites' : 'Add to favorites'}
               aria-label="Toggle favorite"
             >
-              <Heart size={20} fill={favorite ? 'currentColor' : 'none'} />
+              <Heart size={20} fill={favorite ? 'currentColor' : 'none'} className={isHeartPopping ? 'heart-pop-active' : ''} />
             </button>
           )}
 
@@ -361,7 +364,7 @@ function SongCard({
             title={favorite ? 'Remove from favorites' : 'Add to favorites'}
             aria-label="Toggle favorite"
           >
-            <Heart size={22} fill={favorite ? 'currentColor' : 'none'} />
+            <Heart size={22} fill={favorite ? 'currentColor' : 'none'} className={isHeartPopping ? 'heart-pop-active' : ''} />
           </button>
         </div>
       </div>

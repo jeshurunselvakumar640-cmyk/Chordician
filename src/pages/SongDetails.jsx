@@ -250,46 +250,136 @@ export default function SongDetails({
     return transposeSong(song, activeKey || song.originalKey || 'C');
   }, [song, activeKey]);
 
-  // Touch Gesture Swipe Navigation (Left swipe -> Next Song, Right swipe -> Previous Song)
-  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+  // Mobile Songbook Swipe Gesture (Physical finger tracking with boundary resistance)
+  const swipeContainerRef = useRef(null);
+  const swipeTrackRef = useRef(null);
+  const pointerStateRef = useRef({
+    isTracking: false,
+    isSwiping: false,
+    isVerticalScroll: false,
+    startX: 0,
+    startY: 0,
+    currentDx: 0,
+    startTime: 0,
+    pointerId: null
+  });
 
-  const handleTouchStart = (e) => {
-    if (!e.touches || e.touches.length !== 1) return;
-    touchStartRef.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-      time: Date.now()
+  const [isHeartPopping, setIsHeartPopping] = useState(false);
+
+  // Reset swipe track position when route/song changes
+  useEffect(() => {
+    if (swipeTrackRef.current) {
+      swipeTrackRef.current.style.transition = 'none';
+      swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+      swipeTrackRef.current.style.opacity = '1';
+    }
+  }, [id]);
+
+  const handlePointerDown = (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const target = e.target;
+    if (target && (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('select') || target.closest('.modal-backdrop'))) {
+      return;
+    }
+    pointerStateRef.current = {
+      isTracking: true,
+      isSwiping: false,
+      isVerticalScroll: false,
+      startX: e.clientX,
+      startY: e.clientY,
+      currentDx: 0,
+      startTime: Date.now(),
+      pointerId: e.pointerId
     };
   };
 
-  const handleTouchEnd = (e) => {
-    if (!e.changedTouches || e.changedTouches.length !== 1) return;
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const deltaX = endX - touchStartRef.current.x;
-    const deltaY = endY - touchStartRef.current.y;
-    const deltaTime = Date.now() - touchStartRef.current.time;
+  const handlePointerMove = (e) => {
+    const state = pointerStateRef.current;
+    if (!state.isTracking || state.isVerticalScroll) return;
 
-    // Must be predominantly horizontal swipe and fast (< 650ms)
-    if (deltaTime < 650 && Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
-      const target = e.target;
-      if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target?.tagName)) {
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+
+    if (!state.isSwiping) {
+      // Protect vertical scrolling
+      if (Math.abs(dy) > Math.abs(dx) * 1.25 && Math.abs(dy) > 8) {
+        state.isVerticalScroll = true;
         return;
       }
-
-      if (deltaX < 0) {
-        // Swiped Left -> Next Song
-        handleNextSong();
-      } else {
-        // Swiped Right -> Previous Song
-        handlePrevSong();
+      // Activate horizontal swipe
+      if (Math.abs(dx) > Math.abs(dy) * 1.35 && Math.abs(dx) > 10) {
+        state.isSwiping = true;
+        try {
+          if (e.currentTarget && typeof e.currentTarget.setPointerCapture === 'function') {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }
+        } catch {}
       }
+    }
+
+    if (state.isSwiping && swipeTrackRef.current) {
+      // Elastic resistance at boundaries
+      let offset = dx;
+      if (dx > 0 && !prevSong) {
+        offset = dx * 0.22;
+      } else if (dx < 0 && !nextSong) {
+        offset = dx * 0.22;
+      }
+      state.currentDx = offset;
+      swipeTrackRef.current.style.transition = 'none';
+      swipeTrackRef.current.style.transform = `translate3d(${offset}px, 0, 0)`;
+      swipeTrackRef.current.classList.add('is-dragging');
+    }
+  };
+
+  const handlePointerUpOrCancel = (e) => {
+    const state = pointerStateRef.current;
+    if (!state.isTracking) return;
+    state.isTracking = false;
+
+    try {
+      if (e.currentTarget && typeof e.currentTarget.releasePointerCapture === 'function') {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+
+    if (state.isSwiping && swipeTrackRef.current) {
+      swipeTrackRef.current.classList.remove('is-dragging');
+      const deltaTime = Math.max(1, Date.now() - state.startTime);
+      const velocity = Math.abs(state.currentDx) / deltaTime;
+      const viewportWidth = window.innerWidth || 360;
+      const distanceThreshold = viewportWidth * 0.22;
+      const isFastFlick = velocity > 0.45 && Math.abs(state.currentDx) > 35;
+      const isDistanceMet = Math.abs(state.currentDx) > distanceThreshold;
+
+      if (isDistanceMet || isFastFlick) {
+        if (state.currentDx < 0 && nextSong) {
+          swipeTrackRef.current.style.transition = 'transform 180ms ease-out, opacity 180ms ease-out';
+          swipeTrackRef.current.style.transform = 'translate3d(-100vw, 0, 0)';
+          swipeTrackRef.current.style.opacity = '0.3';
+          handleNextSong();
+          return;
+        } else if (state.currentDx > 0 && prevSong) {
+          swipeTrackRef.current.style.transition = 'transform 180ms ease-out, opacity 180ms ease-out';
+          swipeTrackRef.current.style.transform = 'translate3d(100vw, 0, 0)';
+          swipeTrackRef.current.style.opacity = '0.3';
+          handlePrevSong();
+          return;
+        }
+      }
+
+      // Snap back smoothly
+      swipeTrackRef.current.style.transition = 'transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms ease';
+      swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+      swipeTrackRef.current.style.opacity = '1';
     }
   };
 
   const handleFavoriteClick = async () => {
     if (!song) return;
     const newStatus = !song.favorite;
+    setIsHeartPopping(true);
+    setTimeout(() => setIsHeartPopping(false), 240);
     setSong((prev) => ({ ...prev, favorite: newStatus }));
     if (onToggleFavorite) {
       await onToggleFavorite(song.id, !newStatus);
@@ -445,7 +535,7 @@ export default function SongDetails({
             aria-label="Toggle favorite"
             style={{ minWidth: '40px', minHeight: '40px', padding: '8px' }}
           >
-            <Heart size={20} fill={favorite ? 'currentColor' : 'none'} />
+            <Heart size={20} fill={favorite ? 'currentColor' : 'none'} className={isHeartPopping ? 'heart-pop-active' : ''} />
           </button>
 
           <button
@@ -678,15 +768,26 @@ export default function SongDetails({
         />
       </div>
 
-      {/* Structured Song Content (Piano Friendly Reading with Zoom Support) */}
+      {/* Structured Song Content (Piano Friendly Reading with Mobile Swipe Support) */}
       <ErrorBoundary
         title="Error Displaying Chord Sheet"
         message="An unexpected error occurred while rendering the chord sheet for this song."
       >
-        <SongViewer
-          transposedSong={transposedSong}
-          zoomLevel={zoomLevel}
-        />
+        <div
+          className="song-swipe-viewport"
+          ref={swipeContainerRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUpOrCancel}
+          onPointerCancel={handlePointerUpOrCancel}
+        >
+          <div className="song-swipe-track" ref={swipeTrackRef}>
+            <SongViewer
+              transposedSong={transposedSong}
+              zoomLevel={zoomLevel}
+            />
+          </div>
+        </div>
       </ErrorBoundary>
 
       {/* Performance Mode Modal (Supports Portrait & Landscape) */}
