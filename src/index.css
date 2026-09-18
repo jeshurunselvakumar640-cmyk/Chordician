@@ -2058,6 +2058,26 @@ button:disabled {
   flex-wrap: wrap;
   gap: 12px;
   z-index: 20;
+  transition: transform var(--motion-duration-normal) var(--motion-ease-standard),
+              opacity var(--motion-duration-normal) ease;
+  will-change: transform, opacity;
+}
+
+.performance-toolbar.is-collapsed {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.perf-toolbar-edge-hitbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  z-index: 25;
+  cursor: pointer;
+  background: transparent;
 }
 
 .perf-header-info {

@@ -55,6 +55,9 @@ export default function PerformanceModal({
   const toolbarRef = useRef(null);
   const animationFrameRef = useRef(null);
   const [measuredHeights, setMeasuredHeights] = useState([]);
+  const [isToolbarVisible, setIsToolbarVisible] = useState(true);
+  const lastScrollTopRef = useRef(0);
+  const scrollRafRef = useRef(null);
 
   // Viewport tracking for responsive layout calculation
   const [viewportSize, setViewportSize] = useState(() => ({
@@ -93,6 +96,47 @@ export default function PerformanceModal({
     return () => {
       if (resizeObserver) resizeObserver.disconnect();
       else window.removeEventListener('resize', updateSize);
+    };
+  }, [isOpen]);
+
+  // Scroll-aware Collapsing Toolbar (Hides on scroll down, reveals on scroll up or top)
+  useEffect(() => {
+    if (!isOpen) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    lastScrollTopRef.current = container.scrollTop || 0;
+    setIsToolbarVisible(true);
+
+    const handleScroll = () => {
+      if (scrollRafRef.current) return;
+
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        if (!container) return;
+        const currentScrollTop = container.scrollTop;
+        const prevScrollTop = lastScrollTopRef.current;
+        const delta = currentScrollTop - prevScrollTop;
+
+        // Force visible at the top
+        if (currentScrollTop <= 15) {
+          setIsToolbarVisible((prev) => (prev ? prev : true));
+        } else if (delta > 8 && currentScrollTop > 40) {
+          // Scrolling down -> collapse toolbar
+          setIsToolbarVisible((prev) => (prev ? false : prev));
+        } else if (delta < -8) {
+          // Scrolling up -> reveal toolbar
+          setIsToolbarVisible((prev) => (!prev ? true : prev));
+        }
+
+        lastScrollTopRef.current = currentScrollTop;
+      });
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
     };
   }, [isOpen]);
 
@@ -370,8 +414,21 @@ export default function PerformanceModal({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Top Edge Touch/Click Hitbox to restore toolbar when hidden */}
+      {!isToolbarVisible && (
+        <div
+          className="perf-toolbar-edge-hitbox"
+          onClick={() => setIsToolbarVisible(true)}
+          title="Click to reveal toolbar"
+          aria-label="Reveal toolbar"
+        />
+      )}
+
       {/* Performance Top Sticky Toolbar */}
-      <div className="performance-toolbar" ref={toolbarRef}>
+      <div
+        className={`performance-toolbar ${!isToolbarVisible ? 'is-collapsed' : ''}`}
+        ref={toolbarRef}
+      >
         {/* Left: Title & Key Info */}
         <div className="perf-header-info">
           <div className="perf-title-row">
