@@ -13,8 +13,8 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
     assert.equal(resolveLeadToken('f', scaleMap), 'F#');
 
     const res = handleLeadInputChange('D4 E4 f', 'D4 E4 ', 7, 'D');
-    assert.equal(res.content, 'D4 E4 F#');
-    assert.equal(res.cursorOffset, 1);
+    assert.equal(res.content, 'D4 E4 F# ');
+    assert.equal(res.cursorOffset, 2);
   });
 
   it('2. D Major: Bare C -> C#', () => {
@@ -23,8 +23,8 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
     assert.equal(resolveLeadToken('c', scaleMap), 'C#');
 
     const res = handleLeadInputChange('D4 E4 F#4 c', 'D4 E4 F#4 ', 11, 'D');
-    assert.equal(res.content, 'D4 E4 F#4 C#');
-    assert.equal(res.cursorOffset, 1);
+    assert.equal(res.content, 'D4 E4 F#4 C# ');
+    assert.equal(res.cursorOffset, 2);
   });
 
   it('3. D Major: Natural notes remain natural (D, E, G, A, B)', () => {
@@ -125,7 +125,7 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
     // Existing line has natural F4 (intentional chromatic note). User types 'a4' at end in D Major.
     const res = handleLeadInputChange('D4 E4 F4 G4 a4', 'D4 E4 F4 G4 ', 14, 'D');
     // Existing F4 remains untouched!
-    assert.equal(res.content, 'D4 E4 F4 G4 A4');
+    assert.equal(res.content, 'D4 E4 F4 G4 A4 ');
   });
 
   it('15. Pasted multi-note Lead content remains raw and literal', () => {
@@ -153,7 +153,7 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
 
     // When active (toggle ON)
     const activeResult = handleLeadInputChange(rawInput, prev, 7, 'D').content;
-    assert.equal(activeResult, 'D4 E4 F#');
+    assert.equal(activeResult, 'D4 E4 F# ');
   });
 
   it('18. Smart Lead Preference Resolution: No preference defaults to ON, stored true/false respected', () => {
@@ -169,71 +169,74 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
     assert.equal(resolvePreference('false'), false, 'Stored "false" must be OFF');
   });
 
-  it('19. Mobile/Manual Lead Typing Sequence in D Major (D, E, F -> D E F#, F4 -> F#4, C5 -> C#5, Bb4, G#5)', () => {
-    // Step-by-step typing
-    let content = '';
-    let res = handleLeadInputChange('D', content, 1, 'D');
-    content = res.content;
-    assert.equal(content, 'D');
-
-    res = handleLeadInputChange('D ', content, 2, 'D');
-    content = res.content;
-    assert.equal(content, 'D ');
-
-    res = handleLeadInputChange('D E', content, 3, 'D');
-    content = res.content;
-    assert.equal(content, 'D E');
-
-    res = handleLeadInputChange('D E ', content, 4, 'D');
-    content = res.content;
-    assert.equal(content, 'D E ');
-
-    res = handleLeadInputChange('D E f', content, 5, 'D');
-    content = res.content;
-    assert.equal(content, 'D E F#');
+  it('19. Mobile/Manual Lead Typing Sequence in D Major (d -> D , f -> F# , a -> A , c -> C# )', () => {
+    // 1. D key: 'd' -> 'D '
+    let res = handleLeadInputChange('d', '', 1, 'D');
+    assert.equal(res.content, 'D ');
     assert.equal(res.cursorOffset, 1);
+
+    // 2. D key: next note 'f' typed after 'D ' -> 'D F# '
+    res = handleLeadInputChange('D f', 'D ', 3, 'D');
+    assert.equal(res.content, 'D F# ');
+    assert.equal(res.cursorOffset, 2);
+
+    // 3. D key: next note 'a' typed after 'D F# ' -> 'D F# A '
+    res = handleLeadInputChange('D F# a', 'D F# ', 6, 'D');
+    assert.equal(res.content, 'D F# A ');
+    assert.equal(res.cursorOffset, 1);
+
+    // 4. D key: next note 'c' typed after 'D F# A ' -> 'D F# A C# '
+    res = handleLeadInputChange('D F# A c', 'D F# A ', 8, 'D');
+    assert.equal(res.content, 'D F# A C# ');
+    assert.equal(res.cursorOffset, 2);
 
     // Direct octave notes
     const resF4 = handleLeadInputChange('D E F4', 'D E ', 6, 'D');
-    assert.equal(resF4.content, 'D E F#4');
-    assert.equal(resF4.cursorOffset, 1);
+    assert.equal(resF4.content, 'D E F#4 ');
+    assert.equal(resF4.cursorOffset, 2);
 
     const resC5 = handleLeadInputChange('D E C5', 'D E ', 6, 'D');
-    assert.equal(resC5.content, 'D E C#5');
-    assert.equal(resC5.cursorOffset, 1);
+    assert.equal(resC5.content, 'D E C#5 ');
+    assert.equal(resC5.cursorOffset, 2);
 
     const resBb4 = handleLeadInputChange('D E Bb4', 'D E ', 7, 'D');
-    assert.equal(resBb4.content, 'D E Bb4');
-    assert.equal(resBb4.cursorOffset, 0);
-
-    const resGsharp5 = handleLeadInputChange('D E G#5', 'D E ', 7, 'D');
-    assert.equal(resGsharp5.content, 'D E G#5');
-    assert.equal(resGsharp5.cursorOffset, 0);
+    assert.equal(resBb4.content, 'D E Bb4 ');
+    assert.equal(resBb4.cursorOffset, 1);
   });
 
-  it('20. Subsequent note typing and caret offset continuity across full melody line', () => {
-    let line = 'D4 E4 F#4 ';
-    // User types 'g4'
-    let step1 = handleLeadInputChange(line + 'g4', line, line.length + 2, 'D');
-    line = step1.content;
-    assert.equal(line, 'D4 E4 F#4 G4');
+  it('20. Trailing space deduplication: pressing Space after auto-space does not create double space', () => {
+    // Current text is 'D ' (len 2, cursor at 2). User presses Space -> raw input is 'D  ' (len 3, cursor at 3).
+    const res = handleLeadInputChange('D  ', 'D ', 3, 'D');
+    assert.equal(res.content, 'D ', 'Redundant space must be collapsed');
+    assert.equal(res.cursorOffset, -1, 'Cursor offset adjusts back to position 2');
 
-    line += ' ';
-    // User types 'a4'
-    let step2 = handleLeadInputChange(line + 'a4', line, line.length + 2, 'D');
-    line = step2.content;
-    assert.equal(line, 'D4 E4 F#4 G4 A4');
+    // Current text is 'D F# ' (len 5, cursor at 5). User presses Space -> 'D F#  ' (len 6, cursor at 6).
+    const res2 = handleLeadInputChange('D F#  ', 'D F# ', 6, 'D');
+    assert.equal(res2.content, 'D F# ');
+    assert.equal(res2.cursorOffset, -1);
+  });
 
-    line += ' ';
-    // User types 'b4'
-    let step3 = handleLeadInputChange(line + 'b4', line, line.length + 2, 'D');
-    line = step3.content;
-    assert.equal(line, 'D4 E4 F#4 G4 A4 B4');
+  it('21. Continuous sequence: "d f a c" naturally becomes "D F# A C# "', () => {
+    let text = '';
 
-    line += ' ';
-    // User types 'c5'
-    let step4 = handleLeadInputChange(line + 'c5', line, line.length + 2, 'D');
-    line = step4.content;
-    assert.equal(line, 'D4 E4 F#4 G4 A4 B4 C#5');
+    // Type 'd'
+    let step = handleLeadInputChange(text + 'd', text, text.length + 1, 'D');
+    text = step.content;
+    assert.equal(text, 'D ');
+
+    // Type 'f'
+    step = handleLeadInputChange(text + 'f', text, text.length + 1, 'D');
+    text = step.content;
+    assert.equal(text, 'D F# ');
+
+    // Type 'a'
+    step = handleLeadInputChange(text + 'a', text, text.length + 1, 'D');
+    text = step.content;
+    assert.equal(text, 'D F# A ');
+
+    // Type 'c'
+    step = handleLeadInputChange(text + 'c', text, text.length + 1, 'D');
+    text = step.content;
+    assert.equal(text, 'D F# A C# ');
   });
 });
