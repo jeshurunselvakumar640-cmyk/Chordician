@@ -9040,10 +9040,12 @@ body.desktop-mode-forced {
   animation: splashGlowPulse 2.8s ease-in-out infinite;
 }
 
-.app-splash-logo-svg {
+.app-splash-brand-logo {
   width: 72px;
   height: 72px;
-  filter: drop-shadow(0 4px 16px rgba(99, 102, 241, 0.35));
+  min-width: 72px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
 }
 
 .app-splash-wordmark-wrap {

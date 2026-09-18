@@ -454,11 +454,7 @@ export default function SongDetails({
   const creatorDisplayName = (song.createdByName || song.createdBy || 'Jeshurun Selvakumar').replace(/\s*\([Oo]wner\)/g, '').trim();
 
   return (
-    <div
-      className="song-details-page"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="song-details-page">
       {/* Top Navigation & Action Row */}
       <div className="song-details-top-bar">
         <button
