@@ -84,8 +84,8 @@ function isLeadNoteToken(token) {
  * - Only operates on manual keyboard entry (never on paste or import).
  * - Only modifies the active token at the cursor without reprocessing earlier/later notes.
  * - Deletion/Backspace leaves notes as-is without re-sharpening/re-flattening.
- * - Automatically appends exactly one trailing space after each normalized note.
- * - Prevents duplicate spaces when user manually presses Space after an auto-inserted space.
+ * - Automatically appends exactly one trailing space after each normalized note when followed by no space.
+ * - Manually typed spaces are preserved verbatim.
  *
  * @param {string} newValue - The new raw string from input onChange
  * @param {string} prevValue - The previous string before onChange
@@ -117,12 +117,6 @@ export function handleLeadInputChange(newValue, prevValue, cursorPosition, selec
 
   const wordBeforeMatch = textBefore.match(/(\S+)$/);
   if (!wordBeforeMatch) {
-    // If the user manually pressed Space right after a space (e.g. "D  " from "D "),
-    // collapse the redundant duplicate space so we never produce double spaces.
-    if (textBefore.endsWith('  ')) {
-      const collapsedContent = newValue.slice(0, pos - 1) + textAfter;
-      return { content: collapsedContent, cursorOffset: -1 };
-    }
     return { content: newValue, cursorOffset: 0 };
   }
 

@@ -204,16 +204,21 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
     assert.equal(resBb4.cursorOffset, 1);
   });
 
-  it('20. Trailing space deduplication: pressing Space after auto-space does not create double space', () => {
-    // Current text is 'D ' (len 2, cursor at 2). User presses Space -> raw input is 'D  ' (len 3, cursor at 3).
-    const res = handleLeadInputChange('D  ', 'D ', 3, 'D');
-    assert.equal(res.content, 'D ', 'Redundant space must be collapsed');
-    assert.equal(res.cursorOffset, -1, 'Cursor offset adjusts back to position 2');
+  it('20. Manual Space presses are preserved verbatim (d -> "D ", +Space -> "D  ", +Space -> "D   ")', () => {
+    // 1. User types 'd' -> 'D ' (len 2, cursor at 2)
+    const step1 = handleLeadInputChange('d', '', 1, 'D');
+    assert.equal(step1.content, 'D ');
+    assert.equal(step1.cursorOffset, 1);
 
-    // Current text is 'D F# ' (len 5, cursor at 5). User presses Space -> 'D F#  ' (len 6, cursor at 6).
-    const res2 = handleLeadInputChange('D F#  ', 'D F# ', 6, 'D');
-    assert.equal(res2.content, 'D F# ');
-    assert.equal(res2.cursorOffset, -1);
+    // 2. User presses Space -> raw input is 'D  ' (len 3, cursor at 3)
+    const step2 = handleLeadInputChange('D  ', 'D ', 3, 'D');
+    assert.equal(step2.content, 'D  ', 'Explicit user space must be preserved');
+    assert.equal(step2.cursorOffset, 0, 'No cursor shift for normal space entry');
+
+    // 3. User presses Space again -> raw input is 'D   ' (len 4, cursor at 4)
+    const step3 = handleLeadInputChange('D   ', 'D  ', 4, 'D');
+    assert.equal(step3.content, 'D   ', 'Consecutive user spaces must be preserved');
+    assert.equal(step3.cursorOffset, 0);
   });
 
   it('21. Continuous sequence: "d f a c" naturally becomes "D F# A C# "', () => {
@@ -238,5 +243,12 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
     step = handleLeadInputChange(text + 'c', text, text.length + 1, 'D');
     text = step.content;
     assert.equal(text, 'D F# A C# ');
+  });
+
+  it('22. Typing a note immediately before existing text beginning with a space does not add double space', () => {
+    // Current text: ' G4' (cursor at 0). User types 'f' before space -> raw input is 'f G4' (cursor at 1)
+    const res = handleLeadInputChange('f G4', ' G4', 1, 'D');
+    assert.equal(res.content, 'F# G4', 'Resolves f to F# without adding extra space because space already exists');
+    assert.equal(res.cursorOffset, 1, 'Cursor shifts past # (len diff 1)');
   });
 });
