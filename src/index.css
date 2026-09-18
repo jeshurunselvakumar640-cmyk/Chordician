@@ -2118,38 +2118,101 @@ button:disabled {
 
 .performance-content {
   flex: 1;
-  max-width: 1080px;
+  max-width: 1560px;
   width: 100%;
   margin: 0 auto;
-  padding: 32px 20px calc(80px + env(safe-area-inset-bottom));
+  padding: 18px 20px calc(80px + env(safe-area-inset-bottom));
 }
 
-.perf-font-small .row-chords { font-size: clamp(1rem, 2.5vw, 1.15rem); }
-.perf-font-small .row-lyrics { font-size: clamp(0.9rem, 2.2vw, 1.05rem); }
+.perf-columns-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+  align-items: start;
+}
+
+.perf-column {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+.perf-column-single {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+@media (max-width: 767px) {
+  .perf-columns-dual {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* --- Performance Mode Spacing & Density Overrides --- */
+.performance-overlay .song-section-card {
+  padding: 12px 18px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.performance-overlay .section-header {
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+}
+
+.performance-overlay .section-title {
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+}
+
+.performance-overlay .section-rows-container {
+  gap: 4px;
+}
+
+.performance-overlay .song-row-display {
+  padding: 1px 0;
+}
+
+/* --- Absolute Musical Row Integrity in Performance Mode --- */
+.performance-overlay .row-chords,
+.performance-overlay .row-lyrics,
+.performance-overlay .row-lead,
+.performance-overlay .row-bass {
+  white-space: pre !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.perf-font-small .row-chords { font-size: clamp(0.95rem, 2.2vw, 1.1rem); }
+.perf-font-small .row-lyrics { font-size: clamp(0.85rem, 2vw, 1rem); }
 .perf-font-small .row-lead,
 .perf-font-small .row-bass {
-  font-size: clamp(0.85rem, 2.2vw, 1rem);
+  font-size: clamp(0.8rem, 2vw, 0.95rem);
 }
 
-.perf-font-normal .row-chords { font-size: clamp(1.2rem, 3.2vw, 1.45rem); }
-.perf-font-normal .row-lyrics { font-size: clamp(1.05rem, 2.8vw, 1.25rem); }
+.perf-font-normal .row-chords { font-size: clamp(1.15rem, 3vw, 1.35rem); }
+.perf-font-normal .row-lyrics { font-size: clamp(1rem, 2.6vw, 1.18rem); }
 .perf-font-normal .row-lead,
 .perf-font-normal .row-bass {
-  font-size: clamp(1rem, 2.8vw, 1.2rem);
+  font-size: clamp(0.95rem, 2.6vw, 1.12rem);
 }
 
-.perf-font-large .row-chords { font-size: clamp(1.45rem, 4.2vw, 1.85rem); }
-.perf-font-large .row-lyrics { font-size: clamp(1.25rem, 3.5vw, 1.55rem); }
+.perf-font-large .row-chords { font-size: clamp(1.35rem, 3.8vw, 1.65rem); }
+.perf-font-large .row-lyrics { font-size: clamp(1.18rem, 3.2vw, 1.42rem); }
 .perf-font-large .row-lead,
 .perf-font-large .row-bass {
-  font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+  font-size: clamp(1.12rem, 3.2vw, 1.38rem);
 }
 
-.perf-font-xlarge .row-chords { font-size: clamp(1.8rem, 5.5vw, 2.4rem); }
-.perf-font-xlarge .row-lyrics { font-size: clamp(1.5rem, 4.5vw, 1.95rem); }
+.perf-font-xlarge .row-chords { font-size: clamp(1.7rem, 5vw, 2.2rem); }
+.perf-font-xlarge .row-lyrics { font-size: clamp(1.42rem, 4.2vw, 1.85rem); }
 .perf-font-xlarge .row-lead,
 .perf-font-xlarge .row-bass {
-  font-size: clamp(1.45rem, 4.5vw, 1.85rem);
+  font-size: clamp(1.38rem, 4.2vw, 1.75rem);
 }
 
 /* ==========================================================================
@@ -6274,7 +6337,8 @@ button:disabled {
     width: 100%;
   }
 
-  .perf-font-group button {
+  .perf-font-group button,
+  .perf-layout-group button {
     padding: 3px 6px !important;
     font-size: 0.74rem !important;
   }

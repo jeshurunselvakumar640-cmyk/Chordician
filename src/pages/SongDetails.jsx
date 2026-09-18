@@ -94,7 +94,9 @@ export default function SongDetails({
 
   const isSelectedForSunday = song ? isInThisSunday(song.id) : false;
   const isSelectedForCommunion = song ? isInCommunion(song.id) : false;
-  const adjacentInfo = song ? getAdjacentSongs(song.id, cachedSongs || []) : null;
+  const adjacentInfo = useMemo(() => {
+    return id ? getAdjacentSongs(id, cachedSongs || []) : null;
+  }, [id, getAdjacentSongs, cachedSongs]);
   const inSundaySetlist = Boolean(adjacentInfo && adjacentInfo.currentIndex !== -1);
 
   // General library navigation fallback when not in Sunday setlist
@@ -441,6 +443,12 @@ export default function SongDetails({
       if ((isDistanceMet || isFastFlick) && !state.isNavigating) {
         if (state.currentDx < 0 && nextSong) {
           state.isNavigating = true;
+          state.isTracking = false;
+          state.isSwiping = false;
+          state.currentDx = 0;
+          if (state.rafId) cancelAnimationFrame(state.rafId);
+          if (state.navTimeoutId) clearTimeout(state.navTimeoutId);
+
           swipeTrackRef.current.style.transition = 'transform 180ms ease-out, opacity 180ms ease-out';
           swipeTrackRef.current.style.transform = 'translate3d(-100vw, 0, 0)';
           swipeTrackRef.current.style.opacity = '0.3';
@@ -450,14 +458,20 @@ export default function SongDetails({
           state.navTimeoutId = setTimeout(() => {
             state.isNavigating = false;
             if (swipeTrackRef.current) {
-              swipeTrackRef.current.style.transition = 'transform 200ms ease, opacity 200ms ease';
+              swipeTrackRef.current.style.transition = 'none';
               swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
               swipeTrackRef.current.style.opacity = '1';
             }
-          }, 400);
+          }, 350);
           return;
         } else if (state.currentDx > 0 && prevSong) {
           state.isNavigating = true;
+          state.isTracking = false;
+          state.isSwiping = false;
+          state.currentDx = 0;
+          if (state.rafId) cancelAnimationFrame(state.rafId);
+          if (state.navTimeoutId) clearTimeout(state.navTimeoutId);
+
           swipeTrackRef.current.style.transition = 'transform 180ms ease-out, opacity 180ms ease-out';
           swipeTrackRef.current.style.transform = 'translate3d(100vw, 0, 0)';
           swipeTrackRef.current.style.opacity = '0.3';
@@ -467,11 +481,11 @@ export default function SongDetails({
           state.navTimeoutId = setTimeout(() => {
             state.isNavigating = false;
             if (swipeTrackRef.current) {
-              swipeTrackRef.current.style.transition = 'transform 200ms ease, opacity 200ms ease';
+              swipeTrackRef.current.style.transition = 'none';
               swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
               swipeTrackRef.current.style.opacity = '1';
             }
-          }, 400);
+          }, 350);
           return;
         }
       }
