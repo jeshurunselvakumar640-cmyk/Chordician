@@ -202,6 +202,10 @@ export default function SongRowEditor({
         onKeyDown={(e) => onKeyDown?.(e, index)}
         placeholder={getPlaceholder()}
         aria-label={`${row.type} content`}
+        autoCapitalize={row.type === 'lead' ? 'none' : undefined}
+        autoCorrect={row.type === 'lead' ? 'off' : undefined}
+        spellCheck={row.type === 'lead' ? false : undefined}
+        autoComplete={row.type === 'lead' ? 'off' : undefined}
       />
 
       {showHelper && canUseHelper && (

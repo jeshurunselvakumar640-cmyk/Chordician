@@ -39,9 +39,13 @@ export default function SongEditor({
   const [notes, setNotes] = useState(initialSong?.notes || '');
   const [smartLead, setSmartLead] = useState(() => {
     try {
-      return localStorage.getItem('chordician_smart_lead_enabled') === 'true';
+      const stored = localStorage.getItem('chordician_smart_lead_enabled');
+      if (stored === 'false') return false;
+      if (stored === 'true') return true;
+      // Default to ON for new/mobile sessions when no explicit preference is set
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
 

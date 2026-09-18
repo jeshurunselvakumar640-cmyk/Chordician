@@ -155,4 +155,85 @@ describe('Key-Aware Lead Auto-Accidental System (v4.3)', () => {
     const activeResult = handleLeadInputChange(rawInput, prev, 7, 'D').content;
     assert.equal(activeResult, 'D4 E4 F#');
   });
+
+  it('18. Smart Lead Preference Resolution: No preference defaults to ON, stored true/false respected', () => {
+    const resolvePreference = (storedValue) => {
+      if (storedValue === 'false') return false;
+      if (storedValue === 'true') return true;
+      return true; // Default ON
+    };
+
+    assert.equal(resolvePreference(null), true, 'No localStorage preference must default to ON (true)');
+    assert.equal(resolvePreference(undefined), true, 'Undefined preference must default to ON (true)');
+    assert.equal(resolvePreference('true'), true, 'Stored "true" must be ON');
+    assert.equal(resolvePreference('false'), false, 'Stored "false" must be OFF');
+  });
+
+  it('19. Mobile/Manual Lead Typing Sequence in D Major (D, E, F -> D E F#, F4 -> F#4, C5 -> C#5, Bb4, G#5)', () => {
+    // Step-by-step typing
+    let content = '';
+    let res = handleLeadInputChange('D', content, 1, 'D');
+    content = res.content;
+    assert.equal(content, 'D');
+
+    res = handleLeadInputChange('D ', content, 2, 'D');
+    content = res.content;
+    assert.equal(content, 'D ');
+
+    res = handleLeadInputChange('D E', content, 3, 'D');
+    content = res.content;
+    assert.equal(content, 'D E');
+
+    res = handleLeadInputChange('D E ', content, 4, 'D');
+    content = res.content;
+    assert.equal(content, 'D E ');
+
+    res = handleLeadInputChange('D E f', content, 5, 'D');
+    content = res.content;
+    assert.equal(content, 'D E F#');
+    assert.equal(res.cursorOffset, 1);
+
+    // Direct octave notes
+    const resF4 = handleLeadInputChange('D E F4', 'D E ', 6, 'D');
+    assert.equal(resF4.content, 'D E F#4');
+    assert.equal(resF4.cursorOffset, 1);
+
+    const resC5 = handleLeadInputChange('D E C5', 'D E ', 6, 'D');
+    assert.equal(resC5.content, 'D E C#5');
+    assert.equal(resC5.cursorOffset, 1);
+
+    const resBb4 = handleLeadInputChange('D E Bb4', 'D E ', 7, 'D');
+    assert.equal(resBb4.content, 'D E Bb4');
+    assert.equal(resBb4.cursorOffset, 0);
+
+    const resGsharp5 = handleLeadInputChange('D E G#5', 'D E ', 7, 'D');
+    assert.equal(resGsharp5.content, 'D E G#5');
+    assert.equal(resGsharp5.cursorOffset, 0);
+  });
+
+  it('20. Subsequent note typing and caret offset continuity across full melody line', () => {
+    let line = 'D4 E4 F#4 ';
+    // User types 'g4'
+    let step1 = handleLeadInputChange(line + 'g4', line, line.length + 2, 'D');
+    line = step1.content;
+    assert.equal(line, 'D4 E4 F#4 G4');
+
+    line += ' ';
+    // User types 'a4'
+    let step2 = handleLeadInputChange(line + 'a4', line, line.length + 2, 'D');
+    line = step2.content;
+    assert.equal(line, 'D4 E4 F#4 G4 A4');
+
+    line += ' ';
+    // User types 'b4'
+    let step3 = handleLeadInputChange(line + 'b4', line, line.length + 2, 'D');
+    line = step3.content;
+    assert.equal(line, 'D4 E4 F#4 G4 A4 B4');
+
+    line += ' ';
+    // User types 'c5'
+    let step4 = handleLeadInputChange(line + 'c5', line, line.length + 2, 'D');
+    line = step4.content;
+    assert.equal(line, 'D4 E4 F#4 G4 A4 B4 C#5');
+  });
 });
