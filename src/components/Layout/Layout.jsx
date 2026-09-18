@@ -11,7 +11,8 @@ export default function Layout({
   onSearchChange,
   firestoreError = null,
   onRetryFirestore,
-  onRefresh
+  onRefresh,
+  leadNotesCount = 0
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [copiedRule, setCopiedRule] = useState(false);
@@ -50,6 +51,7 @@ service cloud.firestore {
         onCloseMobile={() => setMobileOpen(false)}
         totalSongs={totalSongs}
         favoriteCount={favoriteCount}
+        leadNotesCount={leadNotesCount}
       />
 
       <div className="main-wrapper">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import SongEditor from '../components/SongEditor/SongEditor';
 import { getSongById, updateSong } from '../firebase/songs';
+import { hasMeaningfulLead, addSongToLeadNotes } from '../services/leadNotesService';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { SongDetailsSkeleton } from '../components/UI/SkeletonLoader';
@@ -57,6 +58,10 @@ export default function EditSong({ onSongUpdated }) {
     if (res.error) {
       showToast(res.error, 'error');
     } else {
+      // Auto-inclusion hook: If song now contains meaningful Lead content, add to user's Lead Notes
+      if (hasMeaningfulLead(updatedData)) {
+        addSongToLeadNotes(id);
+      }
       showToast(`"${updatedData.title}" updated successfully!`, 'success');
       if (onSongUpdated) {
         onSongUpdated();

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import SongEditor from '../components/SongEditor/SongEditor';
 import DuplicateSongModal from '../components/Modal/DuplicateSongModal';
 import { addSong, getSongs } from '../firebase/songs';
+import { hasMeaningfulLead, addSongToLeadNotes } from '../services/leadNotesService';
 import { useToast } from '../context/ToastContext';
 import { triggerNewSongNotification } from '../services/fcmService';
 import { findPotentialDuplicateSong } from '../utils/duplicateDetection';
@@ -43,6 +44,11 @@ export default function AddSong({ onSongAdded, songs = [] }) {
     if (res.error) {
       showToast(res.error, 'error');
     } else if (res.id) {
+      // Auto-inclusion hook: If newly created song contains meaningful Lead content, add to user's Lead Notes
+      if (hasMeaningfulLead(songData)) {
+        addSongToLeadNotes(res.id);
+      }
+
       showToast(`"${songData.title}" added to your songbook!`, 'success');
       
       // Asynchronously trigger push notification for new song (non-blocking)

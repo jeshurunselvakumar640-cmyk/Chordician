@@ -16,7 +16,8 @@ import {
   X,
   BookOpen,
   FileText,
-  LogIn
+  LogIn,
+  Music2
 } from 'lucide-react';
 import { useThisSunday } from '../../context/ThisSundayContext.jsx';
 import { useCommunion } from '../../context/CommunionContext.jsx';
@@ -28,7 +29,8 @@ export default function Sidebar({
   mobileOpen = false,
   onCloseMobile,
   totalSongs = 0,
-  favoriteCount = 0
+  favoriteCount = 0,
+  leadNotesCount = 0
 }) {
   const location = useLocation();
   const { songIds } = useThisSunday();
@@ -68,6 +70,7 @@ export default function Sidebar({
     { to: '/communion', label: 'Communion', icon: <Wine size={19} />, badge: communionCount > 0 ? communionCount : null },
     { to: '/songs', label: 'My Songs', icon: <Music size={19} />, badge: totalSongs > 0 ? totalSongs : null },
     { to: '/favorites', label: 'Favorites', icon: <Heart size={19} />, badge: favoriteCount > 0 ? favoriteCount : null },
+    { to: '/lead-notes', label: 'Lead Notes', icon: <Music2 size={19} />, badge: leadNotesCount > 0 ? leadNotesCount : null },
     { to: '/recent', label: 'Recently Added', icon: <Clock size={19} /> },
     { to: '/notes', label: 'Notes', icon: <FileText size={19} /> },
     { to: '/chord-guide', label: 'Chord Theory', icon: <BookOpen size={19} /> },

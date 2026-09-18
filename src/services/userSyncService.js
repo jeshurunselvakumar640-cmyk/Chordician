@@ -12,6 +12,7 @@ import {
 
 export const NOTES_STORAGE_KEY = 'chordician_saved_custom_notes';
 export const FAVORITES_STORAGE_KEY = 'chordician_user_favorites';
+export const LEAD_NOTES_STORAGE_KEY = 'chordician_user_lead_notes';
 export const THIS_SUNDAY_STORAGE_KEY = 'chordician_this_sunday_setlist';
 export const NOTES_DRAFT_KEY = 'chordician_custom_notes_draft';
 export const NOTES_DRAFT_TITLE_KEY = 'chordician_custom_notes_draft_title';
@@ -73,6 +74,12 @@ export function clearLocalUserData() {
     } catch {}
     emitSyncEvent('chordician:custom-notes-updated', []);
 
+    // 4. Reset Lead Notes in localStorage & dispatch event
+    try {
+      localStorage.removeItem(LEAD_NOTES_STORAGE_KEY);
+    } catch {}
+    emitSyncEvent('chordician:lead-notes-updated', []);
+
     // Note: Global Communion and All Songs library are preserved!
   } finally {
     _isApplyingRemoteSnapshot = false;
@@ -82,6 +89,7 @@ export function clearLocalUserData() {
 let _sundayPushQueue = Promise.resolve();
 let _notesPushQueue = Promise.resolve();
 let _favoritesPushQueue = Promise.resolve();
+let _leadNotesPushQueue = Promise.resolve();
 let _prefsPushQueue = Promise.resolve();
 
 
@@ -212,6 +220,51 @@ export async function pushFavoritesToCloud(user = null, favoriteSongIds = null) 
   }).catch(() => {});
 
   return _favoritesPushQueue;
+}
+
+/**
+ * Pushes Lead Notes song IDs array to Firestore (/users/{uid}.leadNotes).
+ * Serialized to ensure rapid toggles (Add -> Remove -> Add) always converge to latest state.
+ *
+ * @param {Object|null} user
+ * @param {Array} leadNoteSongIds
+ */
+export async function pushLeadNotesToCloud(user = null, leadNoteSongIds = null) {
+  const currentUser = user || auth?.currentUser;
+  if (!currentUser || !currentUser.uid || !db || _isApplyingRemoteSnapshot || !_isInitialHydrationComplete) return;
+
+  const targetUid = currentUser.uid;
+  if (_activeSyncUid && _activeSyncUid !== targetUid) return;
+
+  _leadNotesPushQueue = _leadNotesPushQueue.then(async () => {
+    if (_activeSyncUid !== targetUid || !_isInitialHydrationComplete) return;
+
+    let leadNotes = leadNoteSongIds;
+    if (!leadNotes) {
+      try {
+        const raw = localStorage.getItem(LEAD_NOTES_STORAGE_KEY);
+        leadNotes = raw ? JSON.parse(raw) : [];
+      } catch {
+        leadNotes = [];
+      }
+    }
+
+    try {
+      const userRef = doc(db, 'users', targetUid);
+      await setDoc(
+        userRef,
+        {
+          leadNotes: Array.isArray(leadNotes) ? leadNotes : [],
+          updatedAt: new Date().toISOString()
+        },
+        { merge: true }
+      );
+    } catch (err) {
+      console.warn('[UserSync] pushLeadNotesToCloud notice:', err.message);
+    }
+  }).catch(() => {});
+
+  return _leadNotesPushQueue;
 }
 
 /**
@@ -360,7 +413,34 @@ export function applyRemoteUserDataToLocal(remoteData, uid = null) {
       }
     }
 
-    // 4. Sync "Preferences" (viewMode, theme, desktopMode)
+    // 4. Sync "Lead Notes"
+    // If the field exists remotely (even if []), REMOTE WINS.
+    if ('leadNotes' in remoteData && remoteData.leadNotes !== null && remoteData.leadNotes !== undefined) {
+      const remoteLeadNotes = Array.isArray(remoteData.leadNotes) ? remoteData.leadNotes : [];
+      try {
+        localStorage.setItem(LEAD_NOTES_STORAGE_KEY, JSON.stringify(remoteLeadNotes));
+        emitSyncEvent('chordician:lead-notes-updated', remoteLeadNotes);
+      } catch {}
+    } else {
+      // Field is missing from remote profile -> check legacy local lead notes for one-time migration
+      let legacyLead = [];
+      try {
+        const raw = localStorage.getItem(LEAD_NOTES_STORAGE_KEY);
+        legacyLead = raw ? JSON.parse(raw) : [];
+      } catch {}
+      if (Array.isArray(legacyLead) && legacyLead.length > 0) {
+        setTimeout(() => {
+          pushLeadNotesToCloud(currentUser, legacyLead).catch(() => {});
+        }, 0);
+      } else {
+        try {
+          localStorage.setItem(LEAD_NOTES_STORAGE_KEY, JSON.stringify([]));
+          emitSyncEvent('chordician:lead-notes-updated', []);
+        } catch {}
+      }
+    }
+
+    // 5. Sync "Preferences" (viewMode, theme, desktopMode)
     // If the field exists remotely (even if {}), REMOTE WINS.
     if ('preferences' in remoteData && remoteData.preferences !== null && remoteData.preferences !== undefined) {
       const prefs = remoteData.preferences;

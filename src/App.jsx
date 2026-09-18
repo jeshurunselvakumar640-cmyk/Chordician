@@ -25,6 +25,7 @@ const ThisSunday = lazy(() => import('./pages/ThisSunday'));
 const CommunionSongs = lazy(() => import('./pages/CommunionSongs'));
 const Songs = lazy(() => import('./pages/Songs'));
 const Favorites = lazy(() => import('./pages/Favorites'));
+const LeadNotes = lazy(() => import('./pages/LeadNotes'));
 const Recent = lazy(() => import('./pages/Recent'));
 const SongDetails = lazy(() => import('./pages/SongDetails'));
 const AddSong = lazy(() => import('./pages/AddSong'));
@@ -53,6 +54,15 @@ function AppContent() {
   const [userFavorites, setUserFavorites] = useState(() => {
     try {
       const raw = localStorage.getItem('chordician_user_favorites');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [userLeadNotes, setUserLeadNotes] = useState(() => {
+    try {
+      const raw = localStorage.getItem('chordician_user_lead_notes');
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -108,7 +118,7 @@ function AppContent() {
     };
   }, [fetchAllSongs, showToast]);
 
-  // Listen for Remote Favorites & Preferences Sync across devices
+  // Listen for Remote Favorites, Lead Notes & Preferences Sync across devices
   useEffect(() => {
     const handleFavoritesSync = (e) => {
       const favIds = Array.isArray(e.detail) ? e.detail : [];
@@ -116,6 +126,11 @@ function AppContent() {
       setSongs((prev) =>
         prev.map((s) => ({ ...s, favorite: favIds.includes(s.id) }))
       );
+    };
+
+    const handleLeadNotesSync = (e) => {
+      const leadIds = Array.isArray(e.detail) ? e.detail : [];
+      setUserLeadNotes(leadIds);
     };
 
     const handleSongUpdated = (e) => {
@@ -128,9 +143,11 @@ function AppContent() {
     };
 
     window.addEventListener('chordician:favorites-updated', handleFavoritesSync);
+    window.addEventListener('chordician:lead-notes-updated', handleLeadNotesSync);
     window.addEventListener('chordician:song-updated', handleSongUpdated);
     return () => {
       window.removeEventListener('chordician:favorites-updated', handleFavoritesSync);
+      window.removeEventListener('chordician:lead-notes-updated', handleLeadNotesSync);
       window.removeEventListener('chordician:song-updated', handleSongUpdated);
     };
   }, []);
@@ -207,6 +224,7 @@ function AppContent() {
                   firestoreError={firestoreError}
                   onRetryFirestore={fetchAllSongs}
                   onRefresh={fetchAllSongs}
+                  leadNotesCount={userLeadNotes.length}
                 />
               }
             >
@@ -261,6 +279,17 @@ function AppContent() {
               path="/favorites"
               element={
                 <Favorites
+                  songs={songs}
+                  isLoading={isLoading}
+                  onToggleFavorite={handleToggleFavorite}
+                  onDeleteRequest={handleDeleteRequest}
+                />
+              }
+            />
+            <Route
+              path="/lead-notes"
+              element={
+                <LeadNotes
                   songs={songs}
                   isLoading={isLoading}
                   onToggleFavorite={handleToggleFavorite}
