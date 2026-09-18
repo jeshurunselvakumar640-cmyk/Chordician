@@ -224,7 +224,18 @@ export default function SongDetails({
         setError(res.error);
         showToast(res.error, 'error');
       } else if (res.data) {
-        setSong(res.data);
+        const cached = Array.isArray(cachedSongs) ? cachedSongs.find((s) => s && s.id === id) : null;
+        let fav = cached ? Boolean(cached.favorite) : Boolean(res.data.favorite);
+        if (!fav) {
+          try {
+            const raw = localStorage.getItem('chordician_user_favorites');
+            const favs = raw ? JSON.parse(raw) : [];
+            if (Array.isArray(favs) && favs.includes(id)) {
+              fav = true;
+            }
+          } catch {}
+        }
+        setSong({ ...res.data, favorite: fav });
         setActiveKey(res.data.originalKey || 'C');
       }
       setIsLoading(false);
@@ -244,15 +255,39 @@ export default function SongDetails({
     }
   }, [song, activeKey]);
 
+  // Derive favorite status from cachedSongs, active song, or localStorage
+  const isFavorite = useMemo(() => {
+    if (Array.isArray(cachedSongs) && cachedSongs.length > 0) {
+      const cached = cachedSongs.find((s) => s && s.id === id);
+      if (cached && typeof cached.favorite === 'boolean') {
+        return cached.favorite;
+      }
+    }
+    if (song && typeof song.favorite === 'boolean') {
+      return song.favorite;
+    }
+    try {
+      const raw = localStorage.getItem('chordician_user_favorites');
+      const favs = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(favs)) {
+        return favs.includes(id);
+      }
+    } catch {}
+    return false;
+  }, [cachedSongs, id, song]);
+
   // Dynamically Transposed Song Model (Pure calculation - does not mutate original)
   const transposedSong = useMemo(() => {
     if (!song) return null;
     return transposeSong(song, activeKey || song.originalKey || 'C');
   }, [song, activeKey]);
 
-  // Mobile Songbook Swipe Gesture (Physical finger tracking with boundary resistance)
+  // Mobile Songbook Swipe Gesture (Physical finger tracking with transition lock & RAF)
   const swipeContainerRef = useRef(null);
   const swipeTrackRef = useRef(null);
+  const swipeHintRef = useRef(null);
+  const swipeHintTextRef = useRef(null);
+
   const pointerStateRef = useRef({
     isTracking: false,
     isSwiping: false,
@@ -261,41 +296,67 @@ export default function SongDetails({
     startY: 0,
     currentDx: 0,
     startTime: 0,
-    pointerId: null
+    pointerId: null,
+    viewportWidth: 360,
+    rafId: null,
+    isNavigating: false,
+    navTimeoutId: null
   });
 
   const [isHeartPopping, setIsHeartPopping] = useState(false);
 
-  // Reset swipe track position when route/song changes
+  // Reset swipe track position and unlock gesture when route/song changes
   useEffect(() => {
+    const state = pointerStateRef.current;
+    state.isNavigating = false;
+    state.isTracking = false;
+    state.isSwiping = false;
+    if (state.navTimeoutId) clearTimeout(state.navTimeoutId);
+    if (state.rafId) cancelAnimationFrame(state.rafId);
+
     if (swipeTrackRef.current) {
       swipeTrackRef.current.style.transition = 'none';
       swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
       swipeTrackRef.current.style.opacity = '1';
+      swipeTrackRef.current.classList.remove('is-dragging');
+    }
+    if (swipeHintRef.current) {
+      swipeHintRef.current.style.opacity = '0';
+      swipeHintRef.current.style.transform = 'translateX(-50%) translateY(-8px) scale(0.95)';
     }
   }, [id]);
 
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      const state = pointerStateRef.current;
+      if (state.navTimeoutId) clearTimeout(state.navTimeoutId);
+      if (state.rafId) cancelAnimationFrame(state.rafId);
+    };
+  }, []);
+
   const handlePointerDown = (e) => {
+    const state = pointerStateRef.current;
+    if (state.isNavigating) return; // Locked during active route transition
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     const target = e.target;
     if (target && (target.closest('button') || target.closest('a') || target.closest('input') || target.closest('textarea') || target.closest('select') || target.closest('.modal-backdrop'))) {
       return;
     }
-    pointerStateRef.current = {
-      isTracking: true,
-      isSwiping: false,
-      isVerticalScroll: false,
-      startX: e.clientX,
-      startY: e.clientY,
-      currentDx: 0,
-      startTime: Date.now(),
-      pointerId: e.pointerId
-    };
+    state.isTracking = true;
+    state.isSwiping = false;
+    state.isVerticalScroll = false;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.currentDx = 0;
+    state.startTime = Date.now();
+    state.pointerId = e.pointerId;
+    state.viewportWidth = window.innerWidth || 360;
   };
 
   const handlePointerMove = (e) => {
     const state = pointerStateRef.current;
-    if (!state.isTracking || state.isVerticalScroll) return;
+    if (!state.isTracking || state.isVerticalScroll || state.isNavigating) return;
 
     const dx = e.clientX - state.startX;
     const dy = e.clientY - state.startY;
@@ -326,14 +387,35 @@ export default function SongDetails({
         offset = dx * 0.22;
       }
       state.currentDx = offset;
-      swipeTrackRef.current.style.transition = 'none';
-      swipeTrackRef.current.style.transform = `translate3d(${offset}px, 0, 0)`;
-      swipeTrackRef.current.classList.add('is-dragging');
+
+      if (state.rafId) cancelAnimationFrame(state.rafId);
+      state.rafId = requestAnimationFrame(() => {
+        if (!state.isTracking || !swipeTrackRef.current) return;
+        swipeTrackRef.current.style.transition = 'none';
+        swipeTrackRef.current.style.transform = `translate3d(${offset}px, 0, 0)`;
+        swipeTrackRef.current.classList.add('is-dragging');
+
+        if (swipeHintRef.current && swipeHintTextRef.current) {
+          if (Math.abs(offset) > 18) {
+            swipeHintRef.current.style.opacity = '1';
+            swipeHintRef.current.style.transform = 'translateX(-50%) translateY(0) scale(1)';
+            if (offset < 0) {
+              swipeHintTextRef.current.textContent = nextSong ? `Next: ${nextSong.title}` : 'Last Song';
+            } else {
+              swipeHintTextRef.current.textContent = prevSong ? `Previous: ${prevSong.title}` : 'First Song';
+            }
+          } else {
+            swipeHintRef.current.style.opacity = '0';
+            swipeHintRef.current.style.transform = 'translateX(-50%) translateY(-8px) scale(0.95)';
+          }
+        }
+      });
     }
   };
 
   const handlePointerUpOrCancel = (e) => {
     const state = pointerStateRef.current;
+    if (state.rafId) cancelAnimationFrame(state.rafId);
     if (!state.isTracking) return;
     state.isTracking = false;
 
@@ -343,27 +425,53 @@ export default function SongDetails({
       }
     } catch {}
 
+    if (swipeHintRef.current) {
+      swipeHintRef.current.style.opacity = '0';
+      swipeHintRef.current.style.transform = 'translateX(-50%) translateY(-8px) scale(0.95)';
+    }
+
     if (state.isSwiping && swipeTrackRef.current) {
       swipeTrackRef.current.classList.remove('is-dragging');
       const deltaTime = Math.max(1, Date.now() - state.startTime);
       const velocity = Math.abs(state.currentDx) / deltaTime;
-      const viewportWidth = window.innerWidth || 360;
-      const distanceThreshold = viewportWidth * 0.22;
+      const distanceThreshold = state.viewportWidth * 0.22;
       const isFastFlick = velocity > 0.45 && Math.abs(state.currentDx) > 35;
       const isDistanceMet = Math.abs(state.currentDx) > distanceThreshold;
 
-      if (isDistanceMet || isFastFlick) {
+      if ((isDistanceMet || isFastFlick) && !state.isNavigating) {
         if (state.currentDx < 0 && nextSong) {
+          state.isNavigating = true;
           swipeTrackRef.current.style.transition = 'transform 180ms ease-out, opacity 180ms ease-out';
           swipeTrackRef.current.style.transform = 'translate3d(-100vw, 0, 0)';
           swipeTrackRef.current.style.opacity = '0.3';
           handleNextSong();
+
+          // Safety unlock in case route doesn't unmount
+          state.navTimeoutId = setTimeout(() => {
+            state.isNavigating = false;
+            if (swipeTrackRef.current) {
+              swipeTrackRef.current.style.transition = 'transform 200ms ease, opacity 200ms ease';
+              swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+              swipeTrackRef.current.style.opacity = '1';
+            }
+          }, 400);
           return;
         } else if (state.currentDx > 0 && prevSong) {
+          state.isNavigating = true;
           swipeTrackRef.current.style.transition = 'transform 180ms ease-out, opacity 180ms ease-out';
           swipeTrackRef.current.style.transform = 'translate3d(100vw, 0, 0)';
           swipeTrackRef.current.style.opacity = '0.3';
           handlePrevSong();
+
+          // Safety unlock in case route doesn't unmount
+          state.navTimeoutId = setTimeout(() => {
+            state.isNavigating = false;
+            if (swipeTrackRef.current) {
+              swipeTrackRef.current.style.transition = 'transform 200ms ease, opacity 200ms ease';
+              swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+              swipeTrackRef.current.style.opacity = '1';
+            }
+          }, 400);
           return;
         }
       }
@@ -376,13 +484,13 @@ export default function SongDetails({
   };
 
   const handleFavoriteClick = async () => {
-    if (!song) return;
-    const newStatus = !song.favorite;
+    if (!id) return;
+    const newStatus = !isFavorite;
     setIsHeartPopping(true);
     setTimeout(() => setIsHeartPopping(false), 240);
-    setSong((prev) => ({ ...prev, favorite: newStatus }));
+    setSong((prev) => (prev ? { ...prev, favorite: newStatus } : prev));
     if (onToggleFavorite) {
-      await onToggleFavorite(song.id, !newStatus);
+      await onToggleFavorite(id, !newStatus);
     }
   };
 
@@ -525,13 +633,13 @@ export default function SongDetails({
 
           <button
             type="button"
-            className={`btn btn-secondary btn-icon-favorite ${favorite ? 'favorited' : ''}`}
+            className={`btn btn-secondary btn-icon-favorite ${isFavorite ? 'favorited' : ''}`}
             onClick={handleFavoriteClick}
-            title={favorite ? 'Remove from favorites' : 'Add to favorites'}
+            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
             aria-label="Toggle favorite"
             style={{ minWidth: '40px', minHeight: '40px', padding: '8px' }}
           >
-            <Heart size={20} fill={favorite ? 'currentColor' : 'none'} className={isHeartPopping ? 'heart-pop-active' : ''} />
+            <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} className={isHeartPopping ? 'heart-pop-active' : ''} />
           </button>
 
           <button
@@ -777,6 +885,11 @@ export default function SongDetails({
           onPointerUp={handlePointerUpOrCancel}
           onPointerCancel={handlePointerUpOrCancel}
         >
+          {/* Real-time Dynamic Swipe Navigation HUD Badge */}
+          <div className="song-swipe-hint-badge" ref={swipeHintRef} aria-hidden="true">
+            <span ref={swipeHintTextRef} />
+          </div>
+
           <div className="song-swipe-track" ref={swipeTrackRef}>
             <SongViewer
               transposedSong={transposedSong}

@@ -72,6 +72,7 @@
 
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
+  --text-secondary: #94a3b8;
   --text-dim: #64748b;
   --text-inverse: #0f172a;
 
@@ -121,6 +122,7 @@
 
   --text-main: #0f172a;
   --text-muted: #64748b;
+  --text-secondary: #475569;
   --text-dim: #94a3b8;
   --text-inverse: #f8fafc;
 
@@ -636,14 +638,28 @@ button:disabled {
 }
 
 .btn-icon-favorite {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-dim);
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), transform var(--transition-fast);
   min-width: var(--min-touch-target);
   min-height: var(--min-touch-target);
 }
 
-.btn-icon-favorite.favorited {
-  color: #f43f5e;
+.btn-icon-favorite.favorited,
+.btn-icon-favorite.favorited svg {
+  color: #ef4444 !important;
+  fill: #ef4444 !important;
+}
+
+.btn.btn-secondary.btn-icon-favorite.favorited {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+  background-color: rgba(239, 68, 68, 0.08);
 }
 
 .btn-icon-favorite:hover {
@@ -2532,7 +2548,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  z-index: 1100;
+  z-index: 1200;
   max-width: 400px;
   width: calc(100% - 40px);
   pointer-events: none;
@@ -2541,20 +2557,36 @@ button:disabled {
 .toast-item {
   pointer-events: auto;
   background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
   padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   animation: toastSlideUp var(--transition-normal);
 }
+
+:root[data-theme='light'] .toast-item {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.12), 0 4px 6px -4px rgba(0, 0, 0, 0.06);
+}
+
+.toast-item.toast-info .toast-icon { color: var(--color-info); }
+.toast-item.toast-success .toast-icon { color: var(--color-success); }
+.toast-item.toast-warning .toast-icon { color: var(--color-warning); }
+.toast-item.toast-error .toast-icon { color: var(--color-danger); }
 
 .toast-message {
   flex: 1;
   font-size: 0.88rem;
-  font-weight: 500;
+  font-weight: 600;
+  color: inherit;
 }
 
 .toast-close {
@@ -9206,6 +9238,40 @@ body.desktop-mode-forced {
   transition: none !important;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.song-swipe-hint-badge {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px) scale(0.95);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-medium);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease, transform 140ms ease;
+  white-space: nowrap;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:root[data-theme='light'] .song-swipe-hint-badge {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
 }
 
 /* --- 3. CHORDEX / VISUAL AI "MUSICAL SCAN" LOADING --- */
