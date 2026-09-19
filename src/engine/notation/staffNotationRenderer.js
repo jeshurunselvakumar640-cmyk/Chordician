@@ -1,20 +1,24 @@
 /**
- * Scalable Western Staff Notation SVG Renderer for Chordician Lead Notes
+ * Scalable Western Vocal Lead Sheet & Rhythm SVG Renderer for Chordician
  *
- * Renders pure vector Western sheet music matching the Chordician PDF export
- * template and visual branding language:
+ * Renders complete 3-layer Western Vocal Lead Sheets:
+ * Layer 1: Chord Symbols (above staff, e.g., C, G/B, Am7, F#m7b5)
+ * Layer 2: Vocal Melody & Rhythm (whole, half, quarter, eighth, sixteenth notes,
+ *          beams, dotted notes, ties, rests, accidentals, ledger lines on 5-line staff)
+ * Layer 3: Lyrics (beneath staff with dynamic vertical clearance avoiding ledger lines)
+ * + Optional Note Name labels (under noteheads)
+ *
+ * Fully matches the Chordician PDF Export visual identity and branding:
  * - Letterhead branding with Chordician 🎹 logo gradient, tagline & author
  * - Watermark "CHORDICIAN" centered at -32deg
- * - Song metadata card with Key, Style, Beat & Tempo badges
+ * - Song metadata card with Key, Style, Beat & Vocal Lead Sheet badges
  * - Section banners with dashed dividers
- * - 5-line staff, Treble G-clef, angled noteheads, stems, accidentals & ledger lines
- * - Note names beneath notes (toggleable)
- * - Footer with (c) Jeshurun Selvakumar & chordician.vercel.app
+ * - Standalone, self-contained SVG & high-DPI Canvas PNG export
  *
  * Zero external npm dependencies. Pure JavaScript + SVG.
  */
 
-import { extractLeadSectionsFromSong } from './leadPitchParser.js';
+import { extractLeadSheetSectionsFromSong } from './leadPitchParser.js';
 
 // SVG Path definition for standard Treble G-Clef
 const TREBLE_CLEF_PATH =
@@ -75,8 +79,7 @@ function renderLedgerLines(x, diatonicOffset, staffTopY, lineSpacing = 10, color
   const ledgerLines = [];
   const halfWidth = 11;
 
-  // Below staff: Line 1 is at offset 2 (E4).
-  // Middle C (C4) is offset 0 (staffTopY + 50).
+  // Below staff: Line 1 is at offset 2 (E4). Middle C is offset 0.
   if (diatonicOffset <= 0) {
     const bottomNeeded = diatonicOffset % 2 === 0 ? diatonicOffset : diatonicOffset + 1;
     for (let offset = 0; offset >= bottomNeeded; offset -= 2) {
@@ -90,7 +93,7 @@ function renderLedgerLines(x, diatonicOffset, staffTopY, lineSpacing = 10, color
   // Above staff: Line 5 is at offset 10 (F5).
   if (diatonicOffset >= 12) {
     const topNeeded = diatonicOffset % 2 === 0 ? diatonicOffset : diatonicOffset - 1;
-    for (let offset = 12; offset <= topNeeded; offset -= 2) {
+    for (let offset = 12; offset <= topNeeded; offset += 2) {
       const lineY = getNoteY(offset, staffTopY, lineSpacing);
       ledgerLines.push(
         `<line x1="${x - halfWidth}" y1="${lineY}" x2="${x + halfWidth}" y2="${lineY}" stroke="${color}" stroke-width="1.4" stroke-linecap="round" />`
@@ -102,8 +105,116 @@ function renderLedgerLines(x, diatonicOffset, staffTopY, lineSpacing = 10, color
 }
 
 /**
- * Renders Western musical staff notation for a song into a complete, standalone,
- * branded SVG string that mirrors the Chordician PDF export visual language.
+ * Generates SVG markup for authentic Western rests.
+ */
+function renderRestGlyph(x, duration, staffTopY, color = '#1e1b4b') {
+  const lineSpacing = 10;
+  switch (duration) {
+    case 'whole':
+      // Whole rest: hangs down from line 4 (staffTopY + 10)
+      return `<g class="notation-rest whole-rest"><rect x="${x - 6}" y="${staffTopY + lineSpacing}" width="12" height="6" fill="${color}" /></g>`;
+    case 'half':
+      // Half rest: sits on line 3 (staffTopY + 20)
+      return `<g class="notation-rest half-rest"><rect x="${x - 6}" y="${staffTopY + (2 * lineSpacing) - 6}" width="12" height="6" fill="${color}" /></g>`;
+    case 'eighth':
+      // Eighth rest: diagonal hook on middle lines
+      return `<g class="notation-rest eighth-rest" stroke="${color}" fill="${color}" transform="translate(${x - 4}, ${staffTopY + 10})"><circle cx="2" cy="4" r="2.5" /><path d="M 2 4 Q 8 6 4 18" fill="none" stroke-width="1.8" stroke-linecap="round" /></g>`;
+    case 'sixteenth':
+      // Sixteenth rest: double hook
+      return `<g class="notation-rest sixteenth-rest" stroke="${color}" fill="${color}" transform="translate(${x - 4}, ${staffTopY + 8})"><circle cx="2" cy="4" r="2" /><circle cx="2" cy="10" r="2" /><path d="M 2 4 Q 8 6 3 20" fill="none" stroke-width="1.8" stroke-linecap="round" /><path d="M 2 10 Q 8 12 3 20" fill="none" stroke-width="1.6" stroke-linecap="round" /></g>`;
+    case 'quarter':
+    default:
+      // Quarter rest: classic squiggly lightning path
+      return `<g class="notation-rest quarter-rest"><path d="M ${x - 3} ${staffTopY + 8} L ${x + 4} ${staffTopY + 15} L ${x - 4} ${staffTopY + 22} Q ${x + 5} ${staffTopY + 26} ${x - 2} ${staffTopY + 34} Q ${x - 6} ${staffTopY + 31} ${x - 1} ${staffTopY + 27} Z" fill="${color}" /></g>`;
+  }
+}
+
+/**
+ * Estimates the rendered pixel width of a text string at a given font size.
+ * Handles Tamil/Indic script characters, uppercase/lowercase Latin, numbers, and punctuation.
+ */
+export function estimateTextWidth(text, fontSize = 13) {
+  if (!text) return 0;
+  let width = 0;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if ((code >= 0x0900 && code <= 0x0D7F) || code > 0x2000) {
+      width += fontSize * 0.88;
+    } else if (/[A-Z]/.test(text[i])) {
+      width += fontSize * 0.68;
+    } else if (/[ilj|!:,.'`]/.test(text[i])) {
+      width += fontSize * 0.35;
+    } else {
+      width += fontSize * 0.58;
+    }
+  }
+  return Math.max(10, width);
+}
+
+/**
+ * Tokenizes a lyrics string into clean syllable/word tokens.
+ * Handles hyphenated syllables (e.g. "Je - sus en - na - me" -> ["Je-", "sus", "en-", "na-", "me"]).
+ */
+export function parseLyricTokens(lyricsStr) {
+  if (!lyricsStr || typeof lyricsStr !== 'string') return [];
+  const rawTokens = lyricsStr.trim().split(/\s+/).filter(Boolean);
+  const result = [];
+
+  for (let i = 0; i < rawTokens.length; i++) {
+    const tok = rawTokens[i];
+    if (tok === '-' || tok === '—' || tok === '–') {
+      if (result.length > 0 && !result[result.length - 1].endsWith('-')) {
+        result[result.length - 1] += '-';
+      }
+    } else {
+      result.push(tok);
+    }
+  }
+  return result;
+}
+
+/**
+ * Calculates the lowest Y coordinate for any note/ledger line/stem in a system.
+ * Guarantees lyrics are positioned strictly below all notation with safe vertical clearance.
+ */
+function calculateLowestNotationY(systemItems, staffTopY, lineSpacing = 10, showNoteNames = true) {
+  let lowestY = staffTopY + 40; // Default bottom line of staff (E4)
+
+  systemItems.forEach((item) => {
+    if (item.type === 'note') {
+      const noteY = getNoteY(item.diatonicOffset, staffTopY, lineSpacing);
+      const stemPointsUp = item.diatonicOffset < 6;
+      const stemLength = 28;
+
+      // Notehead bottom
+      lowestY = Math.max(lowestY, noteY + 5);
+
+      // Down stem bottom
+      if (!stemPointsUp && item.duration !== 'whole') {
+        lowestY = Math.max(lowestY, noteY + stemLength);
+      }
+
+      // Ledger lines bottom
+      if (item.diatonicOffset <= 0) {
+        const bottomLedgerOffset = item.diatonicOffset % 2 === 0 ? item.diatonicOffset : item.diatonicOffset + 1;
+        const lowestLedgerY = getNoteY(bottomLedgerOffset, staffTopY, lineSpacing);
+        lowestY = Math.max(lowestY, lowestLedgerY + 6);
+      }
+    } else if (item.type === 'rest') {
+      lowestY = Math.max(lowestY, staffTopY + 36);
+    }
+  });
+
+  if (showNoteNames) {
+    lowestY += 16;
+  }
+
+  return lowestY;
+}
+
+/**
+ * Renders a full Vocal Lead Sheet (Chords + Rhythmic Staff Melody + Lyrics) for a song
+ * into a standalone, branded SVG string matching the Chordician PDF export template.
  *
  * @param {Object} song - Chordician song object
  * @param {Object} [options={}] - Rendering options
@@ -117,8 +228,8 @@ export function renderSongNotationToSVG(song, options = {}) {
     width = 800
   } = options;
 
-  const sections = extractLeadSectionsFromSong(song);
-  const songTitle = (song && song.title) ? String(song.title).trim() : 'Musical Notation';
+  const sections = extractLeadSheetSectionsFromSong(song);
+  const songTitle = (song && song.title) ? String(song.title).trim() : 'Vocal Lead Sheet';
   const songKey = (song && (song.activeKey || song.key || song.originalKey)) ? String(song.activeKey || song.key || song.originalKey).trim() : 'C';
   const songArtist = (song && song.artist) ? String(song.artist).trim() : '';
   const songSubtitle = (song && song.secondaryTitle) ? String(song.secondaryTitle).trim() : '';
@@ -138,7 +249,7 @@ export function renderSongNotationToSVG(song, options = {}) {
   const paddingX = 38;
   const lineSpacing = 10;
   const staffHeight = 4 * lineSpacing; // 40px
-  const noteSpacing = 38;
+  const baseNoteSpacing = 42;
   const availableWidth = width - (paddingX * 2);
   const clefWidth = 44;
   const usableWidth = availableWidth - clefWidth;
@@ -147,7 +258,8 @@ export function renderSongNotationToSVG(song, options = {}) {
   const bgColor = '#ffffff';
   const titleColor = '#0f172a';
   const textMuted = '#64748b';
-  const brandPrimary = '#4f46e5';
+  const chordColor = '#4f46e5';
+  const lyricsColor = '#1e293b';
   const staffLineColor = '#475569';
   const noteColor = '#4f46e5';
   const accidentalColor = '#db2777';
@@ -200,7 +312,6 @@ export function renderSongNotationToSVG(song, options = {}) {
   // 3. Song Title & Metadata Banner Card
   const cardY = currentY;
   const cardPadding = 16;
-  const cardInnerWidth = availableWidth - (cardPadding * 2);
 
   let metaCardContentY = cardY + 24;
 
@@ -223,13 +334,12 @@ export function renderSongNotationToSVG(song, options = {}) {
 
   metaCardContentY += 18;
 
-  // Metadata Badges Row (Scale / Key, Beat, Style, Notation)
+  // Metadata Badges Row (Scale / Key, Beat, Style, Vocal Lead Sheet)
   let badgeCursorX = paddingX + cardPadding;
   const badgeY = metaCardContentY;
   const badgeHeight = 22;
 
   // Scale Badge
-  const scaleText = `Scale: ${songKey}`;
   const scaleBadgeWidth = 80;
   cardSvg.push(`
     <rect x="${badgeCursorX}" y="${badgeY}" width="${scaleBadgeWidth}" height="${badgeHeight}" rx="6" fill="#e0e7ff" />
@@ -265,11 +375,11 @@ export function renderSongNotationToSVG(song, options = {}) {
     badgeCursorX += tempoBadgeWidth + 8;
   }
 
-  // Lead Notes Badge
-  const notationBadgeWidth = 110;
+  // Vocal Lead Sheet Badge
+  const notationBadgeWidth = 140;
   cardSvg.push(`
     <rect x="${badgeCursorX}" y="${badgeY}" width="${notationBadgeWidth}" height="${badgeHeight}" rx="6" fill="#ecfdf5" />
-    <text x="${badgeCursorX + notationBadgeWidth / 2}" y="${badgeY + 15}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" fill="#047857">${totalNotes} Lead Notes</text>
+    <text x="${badgeCursorX + notationBadgeWidth / 2}" y="${badgeY + 15}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="700" fill="#047857">Vocal Lead Sheet (${totalNotes} Notes)</text>
   `);
 
   const cardHeight = (badgeY + badgeHeight + 14) - cardY;
@@ -283,7 +393,7 @@ export function renderSongNotationToSVG(song, options = {}) {
 
   currentY += cardHeight + 20;
 
-  // 4. Sectional Western Staff Notation
+  // 4. Sectional 3-Layer Vocal Lead Sheet (Chords + Rhythmic Staff Melody + Lyrics)
   if (sections.length === 0) {
     svgElements.push(`
       <g class="notation-empty" transform="translate(0, ${currentY + 40})">
@@ -305,133 +415,410 @@ export function renderSongNotationToSVG(song, options = {}) {
         </g>
       `);
 
-      currentY += 32;
+      currentY += 34;
 
-      // Wrap notes into systems (measures)
-      const maxNotesPerSystem = Math.max(6, Math.floor(usableWidth / noteSpacing));
-      const systems = [];
-      let currentSystem = [];
+      const phrases = section.phrases || [];
 
-      section.items.forEach((item) => {
-        currentSystem.push(item);
-        if (item.type === 'note' && currentSystem.filter(i => i.type === 'note').length >= maxNotesPerSystem) {
-          systems.push(currentSystem);
-          currentSystem = [];
-        }
-      });
-      if (currentSystem.length > 0) {
-        systems.push(currentSystem);
-      }
+      phrases.forEach((phrase, pIdx) => {
+        const phraseItems = phrase.items || [];
+        if (phraseItems.length === 0) return;
 
-      // Render each system on 5-line staff
-      systems.forEach((systemItems, sysIdx) => {
-        const staffTopY = currentY + 28;
-        const startX = paddingX;
-        const endX = width - paddingX;
+        // Wrap phrase items into readable systems (measures)
+        // Standard 6 to 8 notes per system, or at barlines when system has at least 4 notes
+        const maxNotesPerSystem = 7;
+        const systems = [];
+        let currentSystem = [];
+        let currentNoteCountInSystem = 0;
 
-        svgElements.push(`<g class="staff-system" id="sec_${sIdx}_sys_${sysIdx}">`);
-
-        // 5 Staff Lines
-        for (let lineIdx = 0; lineIdx < 5; lineIdx++) {
-          const lineY = staffTopY + (lineIdx * lineSpacing);
-          svgElements.push(
-            `<line x1="${startX}" y1="${lineY}" x2="${endX}" y2="${lineY}" stroke="${staffLineColor}" stroke-width="1.3" />`
-          );
-        }
-
-        // Start & End System Barlines
-        svgElements.push(
-          `<line x1="${startX}" y1="${staffTopY}" x2="${startX}" y2="${staffTopY + staffHeight}" stroke="${staffLineColor}" stroke-width="2" />`,
-          `<line x1="${endX}" y1="${staffTopY}" x2="${endX}" y2="${staffTopY + staffHeight}" stroke="${staffLineColor}" stroke-width="2" />`
-        );
-
-        // Treble Clef Symbol
-        svgElements.push(`
-          <g class="treble-clef" fill="#1e1b4b" transform="translate(${startX + 8}, ${staffTopY - 14}) scale(1.1)">
-            <path d="${TREBLE_CLEF_PATH}" />
-          </g>
-        `);
-
-        // Render Notes & Barlines across the system
-        let noteCursorX = startX + clefWidth + 14;
-        const itemsToRender = systemItems.filter(it => it.type === 'note' || it.type === 'barline');
-        const dynamicSpacing = itemsToRender.length > 1
-          ? Math.min(noteSpacing, (usableWidth - 30) / Math.max(1, itemsToRender.length))
-          : noteSpacing;
-
-        systemItems.forEach((item) => {
-          if (item.type === 'barline') {
-            svgElements.push(
-              `<line x1="${noteCursorX}" y1="${staffTopY}" x2="${noteCursorX}" y2="${staffTopY + staffHeight}" stroke="#1e1b4b}" stroke-width="1.8" />`
-            );
-            noteCursorX += 18;
-            return;
-          }
-
-          if (item.type === 'rest') {
-            svgElements.push(
-              `<rect x="${noteCursorX - 4}" y="${staffTopY + 16}" width="8" height="6" fill="#1e1b4b" rx="1" />`
-            );
-            noteCursorX += dynamicSpacing;
-            return;
-          }
-
+        phraseItems.forEach((item) => {
+          currentSystem.push(item);
           if (item.type === 'note') {
-            const noteY = getNoteY(item.diatonicOffset, staffTopY, lineSpacing);
-            const stemPointsUp = item.diatonicOffset < 6; // Below middle line B4 -> stem points up
-            const stemLength = 28;
-
-            // 1. Ledger lines
-            const ledgerLinesSvg = renderLedgerLines(noteCursorX, item.diatonicOffset, staffTopY, lineSpacing, staffLineColor);
-            if (ledgerLinesSvg) {
-              svgElements.push(`<g class="ledger-lines">${ledgerLinesSvg}</g>`);
-            }
-
-            // 2. Accidental Glyph (# or b)
-            if (item.accidental === '#') {
-              svgElements.push(renderSharpGlyph(noteCursorX, noteY, accidentalColor));
-            } else if (item.accidental === 'b') {
-              svgElements.push(renderFlatGlyph(noteCursorX, noteY, accidentalColor));
-            }
-
-            // 3. Notehead
-            svgElements.push(
-              `<ellipse cx="${noteCursorX}" cy="${noteY}" rx="5.8" ry="4.2" transform="rotate(-25 ${noteCursorX} ${noteY})" fill="${noteColor}" />`
-            );
-
-            // 4. Stem
-            if (stemPointsUp) {
-              const stemX = noteCursorX + 5.2;
-              svgElements.push(
-                `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${noteY - stemLength}" stroke="${noteColor}" stroke-width="1.5" stroke-linecap="round" />`
-              );
-            } else {
-              const stemX = noteCursorX - 5.2;
-              svgElements.push(
-                `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${noteY + stemLength}" stroke="${noteColor}" stroke-width="1.5" stroke-linecap="round" />`
-              );
-            }
-
-            // 5. Note Name Label beneath notehead
-            if (showNoteNames) {
-              const labelY = staffTopY + staffHeight + 34;
-              svgElements.push(`
-                <text x="${noteCursorX}" y="${labelY}" text-anchor="middle" font-family="ui-monospace, Consolas, Menlo, monospace" font-size="11" font-weight="600" fill="${textMuted}">
-                  ${escapeXml(item.scientificPitch || item.displayNote)}
-                </text>
-              `);
-            }
-
-            noteCursorX += dynamicSpacing;
+            currentNoteCountInSystem += 1;
+          }
+          if (
+            (item.type === 'barline' && currentNoteCountInSystem >= 4) ||
+            currentNoteCountInSystem >= maxNotesPerSystem
+          ) {
+            systems.push(currentSystem);
+            currentSystem = [];
+            currentNoteCountInSystem = 0;
           }
         });
+        if (currentSystem.length > 0) {
+          systems.push(currentSystem);
+        }
 
-        svgElements.push('</g>'); // Close staff-system
+        const phraseLyricTokens = parseLyricTokens(phrase.lyrics);
+        let phraseLyricCursor = 0;
+        const phraseChords = phrase.chords || [];
 
-        currentY += staffHeight + (showNoteNames ? 64 : 48);
+        systems.forEach((systemItems, sysIdx) => {
+          const hasChordsInPhrase = phraseChords.length > 0 || Boolean(phrase.rawChords);
+          const topChordOffset = hasChordsInPhrase ? 26 : 14;
+          const staffTopY = currentY + topChordOffset;
+          const startX = paddingX;
+          const endX = width - paddingX;
+
+          svgElements.push(`<g class="vocal-lead-system" id="sec_${sIdx}_p_${pIdx}_sys_${sysIdx}">`);
+
+          // 5 Staff Lines
+          for (let lineIdx = 0; lineIdx < 5; lineIdx++) {
+            const lineY = staffTopY + (lineIdx * lineSpacing);
+            svgElements.push(
+              `<line x1="${startX}" y1="${lineY}" x2="${endX}" y2="${lineY}" stroke="${staffLineColor}" stroke-width="1.3" />`
+            );
+          }
+
+          // Start & End System Barlines
+          svgElements.push(
+            `<line x1="${startX}" y1="${staffTopY}" x2="${startX}" y2="${staffTopY + staffHeight}" stroke="${staffLineColor}" stroke-width="2" />`,
+            `<line x1="${endX}" y1="${staffTopY}" x2="${endX}" y2="${staffTopY + staffHeight}" stroke="${staffLineColor}" stroke-width="2" />`
+          );
+
+          // Treble Clef Symbol
+          svgElements.push(`
+            <g class="treble-clef" fill="#1e1b4b" transform="translate(${startX + 8}, ${staffTopY - 14}) scale(1.1)">
+              <path d="${TREBLE_CLEF_PATH}" />
+            </g>
+          `);
+
+          // Calculate horizontal note positions proportionally according to rhythmic duration
+          const noteItems = systemItems.filter(it => it.type === 'note');
+          const totalRenderItems = systemItems.filter(it => it.type === 'note' || it.type === 'barline' || it.type === 'rest');
+          const availableSysWidth = usableWidth - 30;
+
+          // Distribute note spacing with rhythmic awareness and breathing room
+          const dynamicSpacing = totalRenderItems.length > 1
+            ? Math.max(48, Math.min(88, availableSysWidth / Math.max(1, totalRenderItems.length)))
+            : 70;
+
+          let noteCursorX = startX + clefWidth + 14;
+          const noteRenderData = [];
+
+          systemItems.forEach((item) => {
+            if (item.type === 'barline') {
+              noteRenderData.push({ item, x: noteCursorX });
+              noteCursorX += 18;
+            } else if (item.type === 'rest') {
+              noteRenderData.push({ item, x: noteCursorX });
+              noteCursorX += dynamicSpacing;
+            } else if (item.type === 'note') {
+              const noteY = getNoteY(item.diatonicOffset, staffTopY, lineSpacing);
+              const stemPointsUp = item.diatonicOffset < 6;
+              const stemLength = 28;
+              const stemX = stemPointsUp ? noteCursorX + 5.2 : noteCursorX - 5.2;
+              const stemTipY = stemPointsUp ? noteY - stemLength : noteY + stemLength;
+
+              noteRenderData.push({
+                item,
+                x: noteCursorX,
+                y: noteY,
+                stemPointsUp,
+                stemX,
+                stemTipY
+              });
+
+              // Rhythmic duration expansion (whole notes get extra space, 16th gets compact)
+              const durationMultiplier = item.duration === 'whole' ? 1.4 : (item.duration === 'half' ? 1.2 : (item.duration === 'sixteenth' ? 0.9 : 1.0));
+              noteCursorX += dynamicSpacing * durationMultiplier;
+            }
+          });
+
+          // --- LAYER 1: CHORD SYMBOLS (Above Staff) ---
+          if (hasChordsInPhrase && noteRenderData.some(d => d.item.type === 'note')) {
+            const chordY = staffTopY - 10;
+            const chordsToRender = [];
+            const renderedNotesOnly = noteRenderData.filter(d => d.item.type === 'note');
+
+            if (phraseChords.length > 0) {
+              phraseChords.forEach((cObj, cIdx) => {
+                const chordText = cObj.chord || '';
+                if (!chordText) return;
+                let targetNoteIdx = 0;
+                if (phraseChords.length === 1) {
+                  targetNoteIdx = 0;
+                } else if (cObj.position !== undefined && phrase.rawLead && phrase.rawLead.length > 0) {
+                  const ratio = Math.max(0, Math.min(1, cObj.position / Math.max(1, phrase.rawLead.length)));
+                  targetNoteIdx = Math.min(renderedNotesOnly.length - 1, Math.floor(ratio * renderedNotesOnly.length));
+                } else {
+                  targetNoteIdx = Math.min(renderedNotesOnly.length - 1, Math.floor((cIdx / phraseChords.length) * renderedNotesOnly.length));
+                }
+                const chordX = renderedNotesOnly[targetNoteIdx] ? renderedNotesOnly[targetNoteIdx].x : startX + clefWidth + 14;
+                chordsToRender.push({ text: chordText, x: chordX });
+              });
+            } else if (phrase.rawChords) {
+              const chordsList = phrase.rawChords.split(/\s+/).filter(Boolean);
+              chordsList.forEach((chordText, cIdx) => {
+                const targetNoteIdx = Math.min(renderedNotesOnly.length - 1, Math.floor((cIdx / Math.max(1, chordsList.length)) * renderedNotesOnly.length));
+                const chordX = renderedNotesOnly[targetNoteIdx] ? renderedNotesOnly[targetNoteIdx].x : startX + clefWidth + 14;
+                chordsToRender.push({ text: chordText, x: chordX });
+              });
+            }
+
+            chordsToRender.forEach(({ text, x }) => {
+              svgElements.push(`
+                <text x="${x}" y="${chordY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="800" fill="${chordColor}">
+                  ${escapeXml(text)}
+                </text>
+              `);
+            });
+          }
+
+          // --- BEAMING ENGINE FOR 8TH & 16TH NOTES ---
+          // Identify groups of consecutive eighth / sixteenth notes to beam together
+          const beamGroups = [];
+          let currentBeamGroup = [];
+
+          noteRenderData.forEach((data) => {
+            if (data.item.type === 'note' && (data.item.duration === 'eighth' || data.item.duration === 'sixteenth')) {
+              // Add to current beam group if stem directions match (or first note in group)
+              if (currentBeamGroup.length === 0 || currentBeamGroup[0].stemPointsUp === data.stemPointsUp) {
+                currentBeamGroup.push(data);
+                // Group up to 2 or 4 notes (standard beat grouping)
+                if (currentBeamGroup.length >= 4) {
+                  beamGroups.push([...currentBeamGroup]);
+                  currentBeamGroup = [];
+                }
+              } else {
+                if (currentBeamGroup.length >= 2) beamGroups.push([...currentBeamGroup]);
+                currentBeamGroup = [data];
+              }
+            } else {
+              // Barline or rest stops beaming
+              if (currentBeamGroup.length >= 2) {
+                beamGroups.push([...currentBeamGroup]);
+              }
+              currentBeamGroup = [];
+            }
+          });
+          if (currentBeamGroup.length >= 2) {
+            beamGroups.push([...currentBeamGroup]);
+          }
+
+          // Render Beam Bars for groups
+          const beamedNoteSet = new Set();
+          beamGroups.forEach((group) => {
+            if (group.length < 2) return;
+            group.forEach(d => beamedNoteSet.add(d));
+
+            const first = group[0];
+            const last = group[group.length - 1];
+            const beamThickness = 3.6;
+
+            // Primary Beam
+            svgElements.push(`
+              <line x1="${first.stemX}" y1="${first.stemTipY}" x2="${last.stemX}" y2="${last.stemTipY}" stroke="${noteColor}" stroke-width="${beamThickness}" stroke-linecap="round" />
+            `);
+
+            // Secondary Beam for Sixteenth notes
+            const isSixteenthGroup = group.some(d => d.item.duration === 'sixteenth');
+            if (isSixteenthGroup) {
+              const secOffset = first.stemPointsUp ? 4.5 : -4.5;
+              svgElements.push(`
+                <line x1="${first.stemX}" y1="${first.stemTipY + secOffset}" x2="${last.stemX}" y2="${last.stemTipY + secOffset}" stroke="${noteColor}" stroke-width="2.6" stroke-linecap="round" />
+              `);
+            }
+          });
+
+          // --- LAYER 2: VOCAL MELODY & RHYTHM NOTATION ---
+          let noteIdxInSystem = 0;
+          const renderedNotesOnly = noteRenderData.filter(d => d.item.type === 'note');
+
+          noteRenderData.forEach((data, dIdx) => {
+            const { item, x } = data;
+
+            if (item.type === 'barline') {
+              svgElements.push(
+                `<line x1="${x}" y1="${staffTopY}" x2="${x}" y2="${staffTopY + staffHeight}" stroke="#1e1b4b" stroke-width="1.8" />`
+              );
+              return;
+            }
+
+            if (item.type === 'rest') {
+              svgElements.push(renderRestGlyph(x, item.duration || 'quarter', staffTopY, '#1e1b4b'));
+              if (item.dotted) {
+                svgElements.push(`<circle cx="${x + 8}" cy="${staffTopY + 20}" r="2.2" fill="#1e1b4b" />`);
+              }
+              return;
+            }
+
+            if (item.type === 'note') {
+              const { y: noteY, stemPointsUp, stemX, stemTipY } = data;
+              const isBeamed = beamedNoteSet.has(data);
+
+              // 1. Ledger lines
+              const ledgerLinesSvg = renderLedgerLines(x, item.diatonicOffset, staffTopY, lineSpacing, staffLineColor);
+              if (ledgerLinesSvg) {
+                svgElements.push(`<g class="ledger-lines">${ledgerLinesSvg}</g>`);
+              }
+
+              // 2. Accidental Glyph (# or b)
+              if (item.accidental === '#') {
+                svgElements.push(renderSharpGlyph(x, noteY, accidentalColor));
+              } else if (item.accidental === 'b') {
+                svgElements.push(renderFlatGlyph(x, noteY, accidentalColor));
+              }
+
+              // 3. Notehead (Whole & Half notes have open hollow noteheads; Quarter/8th/16th are filled)
+              const isOpenNotehead = item.duration === 'whole' || item.duration === 'half';
+              if (isOpenNotehead) {
+                svgElements.push(
+                  `<ellipse cx="${x}" cy="${noteY}" rx="6.0" ry="4.3" transform="rotate(-25 ${x} ${noteY})" fill="none" stroke="${noteColor}" stroke-width="2.2" />`
+                );
+              } else {
+                svgElements.push(
+                  `<ellipse cx="${x}" cy="${noteY}" rx="5.8" ry="4.2" transform="rotate(-25 ${x} ${noteY})" fill="${noteColor}" />`
+                );
+              }
+
+              // 4. Stem (Rendered for half, quarter, eighth, sixteenth; omitted for whole note)
+              if (item.duration !== 'whole') {
+                svgElements.push(
+                  `<line x1="${stemX}" y1="${noteY}" x2="${stemX}" y2="${stemTipY}" stroke="${noteColor}" stroke-width="1.5" stroke-linecap="round" />`
+                );
+
+                // Unbeamed Eighth / Sixteenth single flag
+                if (!isBeamed) {
+                  if (item.duration === 'eighth') {
+                    if (stemPointsUp) {
+                      svgElements.push(`<path d="M ${stemX} ${stemTipY} Q ${stemX + 8} ${stemTipY + 8} ${stemX + 4} ${stemTipY + 16}" fill="none" stroke="${noteColor}" stroke-width="1.8" stroke-linecap="round" />`);
+                    } else {
+                      svgElements.push(`<path d="M ${stemX} ${stemTipY} Q ${stemX + 8} ${stemTipY - 8} ${stemX + 4} ${stemTipY - 16}" fill="none" stroke="${noteColor}" stroke-width="1.8" stroke-linecap="round" />`);
+                    }
+                  } else if (item.duration === 'sixteenth') {
+                    if (stemPointsUp) {
+                      svgElements.push(
+                        `<path d="M ${stemX} ${stemTipY} Q ${stemX + 8} ${stemTipY + 6} ${stemX + 4} ${stemTipY + 12}" fill="none" stroke="${noteColor}" stroke-width="1.8" stroke-linecap="round" />`,
+                        `<path d="M ${stemX} ${stemTipY + 6} Q ${stemX + 8} ${stemTipY + 12} ${stemX + 4} ${stemTipY + 18}" fill="none" stroke="${noteColor}" stroke-width="1.8" stroke-linecap="round" />`
+                      );
+                    } else {
+                      svgElements.push(
+                        `<path d="M ${stemX} ${stemTipY} Q ${stemX + 8} ${stemTipY - 6} ${stemX + 4} ${stemTipY - 12}" fill="none" stroke="${noteColor}" stroke-width="1.8" stroke-linecap="round" />`,
+                        `<path d="M ${stemX} ${stemTipY - 6} Q ${stemX + 8} ${stemTipY - 12} ${stemX + 4} ${stemTipY - 18}" fill="none" stroke="${noteColor}" stroke-width="1.8" stroke-linecap="round" />`
+                      );
+                    }
+                  }
+                }
+              }
+
+              // 5. Augmentation Dot (Dotted notes)
+              if (item.dotted) {
+                // If note is on a line (even offset), shift dot up into space
+                const dotYOffset = item.diatonicOffset % 2 === 0 ? -2.5 : 0;
+                svgElements.push(
+                  `<circle cx="${x + 9}" cy="${noteY + dotYOffset}" r="2.2" fill="${noteColor}" />`
+                );
+              }
+
+              // 6. Ties (Curved connecting arc between identical pitches)
+              if (item.tieStart && dIdx < noteRenderData.length - 1) {
+                // Find next note in render data
+                const nextNote = noteRenderData.slice(dIdx + 1).find(d => d.item.type === 'note');
+                if (nextNote && nextNote.item.scientificPitch === item.scientificPitch) {
+                  const tieArcOffset = stemPointsUp ? 10 : -10;
+                  const tieY = noteY + (stemPointsUp ? 6 : -6);
+                  const midX = (x + nextNote.x) / 2;
+                  svgElements.push(`
+                    <path d="M ${x + 4} ${tieY} Q ${midX} ${tieY + tieArcOffset} ${nextNote.x - 4} ${tieY}" fill="none" stroke="${noteColor}" stroke-width="1.6" stroke-linecap="round" />
+                  `);
+                }
+              }
+
+              // 7. Optional Note Name Label (e.g. C4, F#3)
+              if (showNoteNames) {
+                const labelY = staffTopY + staffHeight + 20;
+                svgElements.push(`
+                  <text x="${x}" y="${labelY}" text-anchor="middle" font-family="ui-monospace, Consolas, Menlo, monospace" font-size="10.5" font-weight="600" fill="${textMuted}">
+                    ${escapeXml(item.scientificPitch || item.displayNote)}
+                  </text>
+                `);
+              }
+
+              noteIdxInSystem += 1;
+            }
+          });
+
+          // --- LAYER 3: LYRICS WITH DYNAMIC VERTICAL CLEARANCE & COLLISION RESOLVER ---
+          const lowestNotationY = calculateLowestNotationY(systemItems, staffTopY, lineSpacing, showNoteNames);
+          const safeLyricsY = lowestNotationY + 20; // 20px clear margin ensuring 0 collision with ledger lines
+
+          // Get the slice of lyric tokens corresponding to this system's notes
+          const systemLyricTokens = phraseLyricTokens.slice(
+            phraseLyricCursor,
+            phraseLyricCursor + renderedNotesOnly.length
+          );
+          phraseLyricCursor += systemLyricTokens.length;
+
+          // Build lyric positions targeted at note centers
+          const lyricPositions = [];
+          systemLyricTokens.forEach((word, nIdx) => {
+            if (!word || nIdx >= renderedNotesOnly.length) return;
+            const targetX = renderedNotesOnly[nIdx].x;
+            const wordWidth = estimateTextWidth(word, 13);
+            lyricPositions.push({
+              word,
+              x: targetX,
+              width: wordWidth,
+              noteX: targetX
+            });
+          });
+
+          // Forward pass: ensure minimum whitespace gap between consecutive lyric words (no overlap)
+          const minWordGap = 8;
+          for (let i = 1; i < lyricPositions.length; i++) {
+            const prev = lyricPositions[i - 1];
+            const curr = lyricPositions[i];
+            const minAllowedX = prev.x + (prev.width / 2) + (curr.width / 2) + minWordGap;
+            if (curr.x < minAllowedX) {
+              curr.x = minAllowedX;
+            }
+          }
+
+          // Backward pass: ensure lyrics don't overflow right system boundary
+          const maxRightX = width - paddingX - 12;
+          if (lyricPositions.length > 0) {
+            const last = lyricPositions[lyricPositions.length - 1];
+            if (last.x + (last.width / 2) > maxRightX) {
+              const shift = (last.x + (last.width / 2)) - maxRightX;
+              for (let i = lyricPositions.length - 1; i >= 0; i--) {
+                lyricPositions[i].x -= shift;
+                if (i > 0) {
+                  const prev = lyricPositions[i - 1];
+                  const maxPrevX = lyricPositions[i].x - (lyricPositions[i].width / 2) - (prev.width / 2) - minWordGap;
+                  if (prev.x > maxPrevX) {
+                    prev.x = maxPrevX;
+                  }
+                }
+              }
+            }
+          }
+
+          // Render collision-free lyric tokens
+          lyricPositions.forEach((pos) => {
+            svgElements.push(
+              `<text x="${pos.x.toFixed(1)}" y="${safeLyricsY}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Tamil', sans-serif" font-size="13" font-weight="600" fill="${lyricsColor}">${escapeXml(pos.word)}</text>`
+            );
+          });
+
+          // Fallback: If lyrics is a single phrase without separate tokens, render whole phrase smoothly
+          if (phrase.lyrics && lyricPositions.length === 0 && sysIdx === 0 && renderedNotesOnly.length > 0) {
+            const startLyricsX = renderedNotesOnly[0].x;
+            svgElements.push(
+              `<text x="${startLyricsX}" y="${safeLyricsY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Tamil', sans-serif" font-size="13" font-weight="600" fill="${lyricsColor}">${escapeXml(phrase.lyrics)}</text>`
+            );
+          }
+
+          svgElements.push('</g>'); // Close vocal-lead-system
+
+          // Dynamic system height advancement based on the calculated lowest notation + lyrics
+          const hasLyricsInSystem = lyricPositions.length > 0 || Boolean(phrase.lyrics);
+          currentY = safeLyricsY + (hasLyricsInSystem ? 24 : 12);
+        });
+
+        currentY += 12; // Gap between phrases
       });
 
-      currentY += 16;
+      currentY += 14; // Gap between sections
     });
   }
 
@@ -441,7 +828,7 @@ export function renderSongNotationToSVG(song, options = {}) {
     <g class="footer-branding">
       <line x1="${paddingX}" y1="${currentY}" x2="${width - paddingX}" y2="${currentY}" stroke="#e2e8f0" stroke-width="1" />
       <text x="${paddingX}" y="${currentY + 20}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" fill="#64748b">© Jeshurun Selvakumar</text>
-      <text x="${width - paddingX}" y="${currentY + 20}" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" fill="#64748b">Western Staff Notation • chordician.vercel.app</text>
+      <text x="${width - paddingX}" y="${currentY + 20}" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" fill="#64748b">Western Vocal Lead Sheet • chordician.vercel.app</text>
     </g>
   `);
 

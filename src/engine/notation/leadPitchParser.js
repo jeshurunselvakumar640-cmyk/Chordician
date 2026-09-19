@@ -1,13 +1,27 @@
 /**
- * Lead Note to Scientific Pitch Parser for Western Musical Notation
+ * Vocal Lead Sheet & Pitch/Rhythm Parser for Western Musical Notation
  *
- * Chordician Lead Octave Convention:
- * - Unmarked notes: c..b -> C3..B3 (octave 3 default)
- * - Single apostrophe: c'..b' -> C4..B4 (octave 4)
- * - Double apostrophe: c''..b'' -> C5..B5 (octave 5)
- * - Triple apostrophe: c'''..b''' -> C6..B6 (octave 6)
- * - Explicit digits: c2 -> C2, a2 -> A2, b2 -> B2, g2 -> G2, c4 -> C4, etc.
- * - Accidentals: f# -> F#3, f#' -> F#4, bb -> Bb3, c#2 -> C#2, eb' -> Eb4
+ * Chordician Lead Conventions:
+ * - Octaves:
+ *   - Unmarked notes: c..b -> C3..B3 (octave 3 default)
+ *   - Single apostrophe: c'..b' -> C4..B4 (octave 4)
+ *   - Double apostrophe: c''..b'' -> C5..B5 (octave 5)
+ *   - Explicit digits: c2 -> C2, a2 -> A2, b2 -> B2, g2 -> G2, c4 -> C4, etc.
+ *   - Accidentals: f# -> F#3, f#' -> F#4, bb -> Bb3, c#2 -> C#2, eb' -> Eb4
+ *
+ * - Rhythmic Duration Conventions (Optional Suffix or Object metadata):
+ *   - Whole (1): :1 or :w -> duration: 'whole'
+ *   - Half (2): :2 or :h -> duration: 'half'
+ *   - Quarter (4): :4 or :q -> duration: 'quarter' (default)
+ *   - Eighth (8): :8 or :e -> duration: 'eighth'
+ *   - Sixteenth (16): :16 or :s -> duration: 'sixteenth'
+ *   - Dotted: appending '.' (e.g. :4. or :8.) -> dotted: true
+ *   - Ties: ~ or _tie -> tieStart: true
+ *
+ * Synchronized Vocal Lead Sheet Layers:
+ * 1. Chords (above staff)
+ * 2. Melody / Rhythm (on 5-line staff with Treble G-clef, notes, stems, beams, ties, dots, rests)
+ * 3. Lyrics (below staff with dynamic clearance avoiding ledger line collisions)
  *
  * Diatonic Offset Reference: Middle C (C4) = 0
  */
@@ -34,6 +48,15 @@ const STEP_SEMITONES = {
   G: 7,
   A: 9,
   B: 11
+};
+
+// Beat lengths relative to quarter note = 1.0
+export const DURATION_BEAT_VALUES = {
+  whole: 4.0,
+  half: 2.0,
+  quarter: 1.0,
+  eighth: 0.5,
+  sixteenth: 0.25
 };
 
 /**
@@ -63,10 +86,10 @@ export function calculateDiatonicOffset(step, octave) {
 }
 
 /**
- * Parses a single lead note token string into pitch and notation metadata.
+ * Parses a single lead note token string into pitch, rhythm, and notation metadata.
  * Returns null if the token is not a note, barline, or rest.
  *
- * @param {string} rawToken - e.g. "c", "f#", "bb", "c'", "c''", "c2", "F#4", "|"
+ * @param {string} rawToken - e.g. "c", "f#", "bb", "c'", "c''", "c2", "F#4:8", "G4:4.", "c~", "|"
  * @returns {Object|null}
  */
 export function parseLeadTokenToPitch(rawToken) {
@@ -82,16 +105,55 @@ export function parseLeadTokenToPitch(rawToken) {
     };
   }
 
-  // Handle Rest / Dash / Pause
-  if (token === '-' || token === '_' || token === '—' || token === '–') {
+  // Handle Rests (e.g. "-", "-:4", "-:8", "-:2", "-:1", "-:16", "-.")
+  if (token.startsWith('-') || token.startsWith('_') || token === '—' || token === '–') {
+    let restDuration = 'quarter';
+    let isDotted = false;
+    if (token.includes(':16') || token.includes(':s')) restDuration = 'sixteenth';
+    else if (token.includes(':8') || token.includes(':e')) restDuration = 'eighth';
+    else if (token.includes(':2') || token.includes(':h')) restDuration = 'half';
+    else if (token.includes(':1') || token.includes(':w')) restDuration = 'whole';
+    else if (token.includes(':4') || token.includes(':q')) restDuration = 'quarter';
+
+    if (token.includes('.')) isDotted = true;
+
     return {
       type: 'rest',
-      raw: token
+      raw: token,
+      duration: restDuration,
+      dotted: isDotted,
+      beatValue: (DURATION_BEAT_VALUES[restDuration] || 1.0) * (isDotted ? 1.5 : 1.0)
     };
   }
 
+  // Check for Tie Indicator (~ or _tie)
+  let isTieStart = false;
+  let isTieEnd = false;
+  let workToken = token;
+  if (workToken.endsWith('~') || workToken.includes('_tie') || workToken.includes('-tie')) {
+    isTieStart = true;
+    workToken = workToken.replace(/~|_tie|-tie/g, '');
+  }
+
+  // Check for explicit Duration suffix (:4, :8, :16, :2, :1, :w, :h, :q, :e, :s, etc.)
+  let duration = 'quarter';
+  let dotted = false;
+
+  const durationMatch = workToken.match(/:([1248]|16|[whqes])(\.?)$/i);
+  if (durationMatch) {
+    const durCode = durationMatch[1].toLowerCase();
+    if (durCode === '1' || durCode === 'w') duration = 'whole';
+    else if (durCode === '2' || durCode === 'h') duration = 'half';
+    else if (durCode === '4' || durCode === 'q') duration = 'quarter';
+    else if (durCode === '8' || durCode === 'e') duration = 'eighth';
+    else if (durCode === '16' || durCode === 's') duration = 'sixteenth';
+
+    if (durationMatch[2] === '.') dotted = true;
+    workToken = workToken.substring(0, durationMatch.index);
+  }
+
   // Clean triple/double sharps while preserving note letter
-  const clean = token.replace(/##+|♯♯+/g, '#').replace(/([A-Ga-g])(bb+|♭♭+)/g, '$1b');
+  const clean = workToken.replace(/##+|♯♯+/g, '#').replace(/([A-Ga-g])(bb+|♭♭+)/g, '$1b');
 
   // Regex to extract [Step][Accidental][Apostrophes OR Digits]
   // Matches: 'f', 'F#', 'bb', 'c\'', 'd\'\'', 'c2', 'F#4', 'G#5', 'eb\'', 'A#3'
@@ -136,6 +198,7 @@ export function parseLeadTokenToPitch(rawToken) {
   // Calculate MIDI Note number (C4 = 60)
   const semitoneInOctave = STEP_SEMITONES[step] + (accidental === '#' ? 1 : (accidental === 'b' ? -1 : 0));
   const midiNote = (octave + 1) * 12 + semitoneInOctave;
+  const beatValue = (DURATION_BEAT_VALUES[duration] || 1.0) * (dotted ? 1.5 : 1.0);
 
   return {
     type: 'note',
@@ -147,12 +210,17 @@ export function parseLeadTokenToPitch(rawToken) {
     scientificPitch,
     displayNote,
     diatonicOffset,
-    midiNote
+    midiNote,
+    duration,
+    dotted,
+    tieStart: isTieStart,
+    tieEnd: isTieEnd,
+    beatValue
   };
 }
 
 /**
- * Tokenizes a lead line string into individual note tokens and barlines.
+ * Tokenizes a lead line string into individual note tokens, barlines, and rests.
  *
  * @param {string} line - e.g. "c f g a b c' | f# g#' a''"
  * @returns {Array<Object>} parsed items
@@ -160,13 +228,18 @@ export function parseLeadTokenToPitch(rawToken) {
 export function parseLeadLine(line) {
   if (!line || typeof line !== 'string') return [];
 
-  // Split on spaces, preserving '|' and notes
   const tokens = line.trim().split(/\s+/).filter(Boolean);
   const items = [];
 
-  for (const token of tokens) {
-    const parsed = parseLeadTokenToPitch(token);
+  for (let i = 0; i < tokens.length; i++) {
+    const parsed = parseLeadTokenToPitch(tokens[i]);
     if (parsed) {
+      // If previous item was a tie start, mark this item as tie end if identical pitch
+      if (items.length > 0 && items[items.length - 1].tieStart && parsed.type === 'note') {
+        if (items[items.length - 1].scientificPitch === parsed.scientificPitch) {
+          parsed.tieEnd = true;
+        }
+      }
       items.push(parsed);
     }
   }
@@ -175,57 +248,132 @@ export function parseLeadLine(line) {
 }
 
 /**
- * Scans a song object and extracts all structured lead lines grouped by section.
- * Handles sections, rows, lines, flat rows, or root lead property.
+ * Extracts positioned chord symbols from a chords string or array.
+ *
+ * @param {string|Array<Object>} chordsData
+ * @returns {Array<{ chord: string, position: number }>}
+ */
+export function extractPositionedChords(chordsData) {
+  if (!chordsData) return [];
+
+  if (Array.isArray(chordsData)) {
+    return chordsData
+      .map((c) => {
+        if (typeof c === 'string') return { chord: c.trim(), position: 0 };
+        if (c && typeof c.chord === 'string') return { chord: c.chord.trim(), position: c.position || 0 };
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof chordsData !== 'string') return [];
+
+  const raw = chordsData.trimEnd();
+  if (!raw) return [];
+
+  const list = [];
+  const regex = /\S+/g;
+  let match;
+  while ((match = regex.exec(raw)) !== null) {
+    list.push({
+      chord: match[0],
+      position: match.index
+    });
+  }
+  return list;
+}
+
+/**
+ * Scans a song object and extracts full Vocal Lead Sheet phrases grouped by section.
+ * Each phrase synchronizes:
+ * - Chords (Layer 1)
+ * - Melody / Staff notes with Rhythm (Layer 2)
+ * - Lyrics (Layer 3)
  *
  * @param {Object} song
- * @returns {Array<{ name: string, items: Array<Object>, rawText: string }>}
+ * @returns {Array<{ name: string, phrases: Array<{ items: Array<Object>, chords: Array<Object>, rawChords: string, lyrics: string, rawLead: string }>, items: Array<Object> }>}
  */
-export function extractLeadSectionsFromSong(song) {
+export function extractLeadSheetSectionsFromSong(song) {
   if (!song || !hasMeaningfulLead(song)) {
     return [];
   }
 
-  const sectionsWithLead = [];
+  const sectionsList = [];
 
-  const extractLeadFromRows = (rows, sectionName = 'Lead Section') => {
-    if (!Array.isArray(rows)) return null;
-    const items = [];
-    const textLines = [];
+  const processRowsToPhrases = (rows) => {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    const phrases = [];
 
-    for (const row of rows) {
+    let currentChordsStr = '';
+    let currentChordsList = [];
+    let currentLeadStr = '';
+    let currentLeadItems = [];
+    let currentLyricsStr = '';
+
+    const flushCurrentPhrase = () => {
+      if (currentLeadItems.length > 0) {
+        phrases.push({
+          items: currentLeadItems,
+          chords: currentChordsList.length > 0 ? currentChordsList : extractPositionedChords(currentChordsStr),
+          rawChords: currentChordsStr.trim(),
+          lyrics: currentLyricsStr.trim(),
+          rawLead: currentLeadStr.trim()
+        });
+      }
+      currentChordsStr = '';
+      currentChordsList = [];
+      currentLeadStr = '';
+      currentLeadItems = [];
+      currentLyricsStr = '';
+    };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
       if (!row) continue;
-      if (row.type === 'lead') {
-        const rowContent =
-          row.displayContent !== undefined
-            ? row.displayContent
-            : row.content !== undefined
-            ? row.content
-            : row.text || row.chords || '';
-        if (typeof rowContent === 'string' && rowContent.trim().length > 0) {
-          const parsed = parseLeadLine(rowContent);
+
+      if (row.lead || (row.chords && row.lyrics && row.type === undefined)) {
+        if (row.lead && typeof row.lead === 'string') {
+          const parsed = parseLeadLine(row.lead);
           if (parsed.length > 0) {
-            items.push(...parsed);
-            textLines.push(rowContent.trim());
+            flushCurrentPhrase();
+            phrases.push({
+              items: parsed,
+              chords: extractPositionedChords(row.chords),
+              rawChords: Array.isArray(row.chords) ? row.chords.map(c => c.chord || c).join(' ') : String(row.chords || ''),
+              lyrics: String(row.lyrics || ''),
+              rawLead: row.lead.trim()
+            });
+            continue;
           }
         }
-      } else if (row.lead && typeof row.lead === 'string' && row.lead.trim().length > 0) {
-        const parsed = parseLeadLine(row.lead);
-        if (parsed.length > 0) {
-          items.push(...parsed);
-          textLines.push(row.lead.trim());
+      }
+
+      const { type = 'chords', displayContent, content, chords, lyrics, text: rowText } = typeof row === 'string' ? { type: 'lyrics', content: row } : row;
+      const rawContent = displayContent !== undefined ? displayContent : (content !== undefined ? content : (chords || lyrics || rowText || ''));
+      const text = Array.isArray(rawContent) ? rawContent.join('   ') : String(rawContent || '');
+
+      if (type === 'chords') {
+        if (currentLeadItems.length > 0) {
+          flushCurrentPhrase();
+        }
+        currentChordsStr = text;
+        currentChordsList = extractPositionedChords(row.chords || text);
+      } else if (type === 'lead') {
+        if (currentLeadItems.length > 0) {
+          flushCurrentPhrase();
+        }
+        currentLeadStr = text;
+        currentLeadItems = parseLeadLine(text);
+      } else if (type === 'lyrics') {
+        currentLyricsStr = text;
+        if (currentLeadItems.length > 0) {
+          flushCurrentPhrase();
         }
       }
     }
 
-    if (items.length > 0) {
-      return {
-        name: sectionName,
-        items,
-        rawText: textLines.join('  |  ')
-      };
-    }
-    return null;
+    flushCurrentPhrase();
+    return phrases;
   };
 
   // 1. Check sections array
@@ -233,66 +381,88 @@ export function extractLeadSectionsFromSong(song) {
     song.sections.forEach((section, idx) => {
       if (!section) return;
       const sectionName = section.name || `Section ${idx + 1}`;
+      let phrases = [];
 
-      // Check section.rows
       if (Array.isArray(section.rows)) {
-        const secLead = extractLeadFromRows(section.rows, sectionName);
-        if (secLead) sectionsWithLead.push(secLead);
+        phrases = processRowsToPhrases(section.rows);
       }
 
-      // Check section.lines
-      if (Array.isArray(section.lines)) {
-        const lineItems = [];
-        const lineTexts = [];
-
+      if (phrases.length === 0 && Array.isArray(section.lines)) {
+        const lineRows = [];
         section.lines.forEach((line) => {
           if (!line) return;
-          if (line.lead && typeof line.lead === 'string' && line.lead.trim().length > 0) {
-            const parsed = parseLeadLine(line.lead);
-            if (parsed.length > 0) {
-              lineItems.push(...parsed);
-              lineTexts.push(line.lead.trim());
-            }
-          }
-          if (Array.isArray(line.rows)) {
-            const rowLead = extractLeadFromRows(line.rows, sectionName);
-            if (rowLead) {
-              lineItems.push(...rowLead.items);
-              lineTexts.push(rowLead.rawText);
-            }
+          if (line.lead) {
+            lineRows.push({ type: 'chords', content: line.chords || line.rawChordLine || '' });
+            lineRows.push({ type: 'lead', content: line.lead });
+            lineRows.push({ type: 'lyrics', content: line.lyrics || '' });
+          } else if (Array.isArray(line.rows)) {
+            lineRows.push(...line.rows);
           }
         });
+        phrases = processRowsToPhrases(lineRows);
+      }
 
-        if (lineItems.length > 0) {
-          sectionsWithLead.push({
-            name: sectionName,
-            items: lineItems,
-            rawText: lineTexts.join('  |  ')
-          });
-        }
+      if (phrases.length > 0) {
+        const allItems = [];
+        phrases.forEach(p => allItems.push(...p.items));
+
+        sectionsList.push({
+          name: sectionName,
+          phrases,
+          items: allItems
+        });
       }
     });
   }
 
-  // 2. Check flat song.rows if no sections produced lead
-  if (sectionsWithLead.length === 0 && Array.isArray(song.rows)) {
-    const flatLead = extractLeadFromRows(song.rows, 'Lead Melody');
-    if (flatLead) sectionsWithLead.push(flatLead);
-  }
-
-  // 3. Direct song.lead property fallback
-  if (sectionsWithLead.length === 0 && song.lead && typeof song.lead === 'string') {
-    const parsed = parseLeadLine(song.lead);
-    if (parsed.length > 0) {
-      sectionsWithLead.push({
-        name: 'Lead Melody',
-        items: parsed,
-        rawText: song.lead.trim()
+  // 2. Check flat song.rows fallback
+  if (sectionsList.length === 0 && Array.isArray(song.rows)) {
+    const phrases = processRowsToPhrases(song.rows);
+    if (phrases.length > 0) {
+      const allItems = [];
+      phrases.forEach(p => allItems.push(...p.items));
+      sectionsList.push({
+        name: 'Vocal Lead Melody',
+        phrases,
+        items: allItems
       });
     }
   }
 
-  return sectionsWithLead;
+  // 3. Direct song.lead property fallback
+  if (sectionsList.length === 0 && song.lead && typeof song.lead === 'string') {
+    const parsed = parseLeadLine(song.lead);
+    if (parsed.length > 0) {
+      sectionsList.push({
+        name: 'Vocal Lead Melody',
+        phrases: [{
+          items: parsed,
+          chords: [],
+          rawChords: '',
+          lyrics: '',
+          rawLead: song.lead.trim()
+        }],
+        items: parsed
+      });
+    }
+  }
+
+  return sectionsList;
+}
+
+/**
+ * Legacy support: returns lead sections with flat items list.
+ *
+ * @param {Object} song
+ * @returns {Array<{ name: string, items: Array<Object>, rawText: string }>}
+ */
+export function extractLeadSectionsFromSong(song) {
+  const sheetSections = extractLeadSheetSectionsFromSong(song);
+  return sheetSections.map(sec => ({
+    name: sec.name,
+    items: sec.items,
+    rawText: sec.phrases.map(p => p.rawLead).filter(Boolean).join('  |  ')
+  }));
 }
 
 /**
@@ -302,7 +472,7 @@ export function extractLeadSectionsFromSong(song) {
  * @returns {number}
  */
 export function getLeadNoteCount(song) {
-  const sections = extractLeadSectionsFromSong(song);
+  const sections = extractLeadSheetSectionsFromSong(song);
   let count = 0;
   for (const sec of sections) {
     for (const item of sec.items) {

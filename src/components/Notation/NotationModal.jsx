@@ -4,13 +4,10 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Download,
   Printer,
   FileText,
   Image as ImageIcon,
-  Tag,
-  Music,
-  ExternalLink
+  Tag
 } from 'lucide-react';
 import { renderSongNotationToSVG, generatePNGDataUrlFromSVG } from '../../engine/notation/staffNotationRenderer.js';
 import { getLeadNoteCount } from '../../engine/notation/leadPitchParser.js';
@@ -53,11 +50,10 @@ export default function NotationModal({
 
   // Generate scalable SVG
   const notationData = useMemo(() => {
-    if (!song) return { svg: '', width: 840, height: 400 };
+    if (!song) return { svg: '', width: 800, height: 400 };
     return renderSongNotationToSVG(song, {
-      width: 900,
-      showNoteNames,
-      theme: 'dark'
+      width: 800,
+      showNoteNames
     });
   }, [song, showNoteNames]);
 
@@ -66,10 +62,10 @@ export default function NotationModal({
     try {
       const blob = new Blob([notationData.svg], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      const safeTitle = (song?.title || 'Musical_Notation').replace(/[^a-zA-Z0-9_\u0B80-\u0BFF\u0900-\u097F-]/g, '_');
+      const safeTitle = (song?.title || 'Vocal_Lead_Sheet').replace(/[^a-zA-Z0-9_\u0B80-\u0BFF\u0900-\u097F-]/g, '_');
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${safeTitle}_Western_Notation.svg`;
+      a.download = `${safeTitle}_Vocal_Lead_Sheet.svg`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -86,14 +82,13 @@ export default function NotationModal({
     try {
       const highRes = renderSongNotationToSVG(song, {
         width: 1200,
-        showNoteNames,
-        theme: 'dark'
+        showNoteNames
       });
       const pngUrl = await generatePNGDataUrlFromSVG(highRes.svg, 2);
-      const safeTitle = (song.title || 'Musical_Notation').replace(/[^a-zA-Z0-9_\u0B80-\u0BFF\u0900-\u097F-]/g, '_');
+      const safeTitle = (song.title || 'Vocal_Lead_Sheet').replace(/[^a-zA-Z0-9_\u0B80-\u0BFF\u0900-\u097F-]/g, '_');
       const a = document.createElement('a');
       a.href = pngUrl;
-      a.download = `${safeTitle}_Western_Notation.png`;
+      a.download = `${safeTitle}_Vocal_Lead_Sheet.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -140,8 +135,8 @@ export default function NotationModal({
           height: '92vh',
           margin: 'auto',
           backgroundColor: '#111827',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-color, rgba(255, 255, 255, 0.15))',
+          borderRadius: 'var(--radius-lg, 12px)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
           display: 'flex',
           flexDirection: 'column',
@@ -152,7 +147,7 @@ export default function NotationModal({
         {/* Modal Header */}
         <div style={{
           padding: '16px 24px',
-          borderBottom: '1px solid var(--border-color)',
+          borderBottom: '1px solid var(--border-color, rgba(255, 255, 255, 0.12))',
           backgroundColor: 'rgba(255, 255, 255, 0.03)',
           display: 'flex',
           alignItems: 'center',
@@ -172,7 +167,7 @@ export default function NotationModal({
               )}
             </div>
             <div style={{ fontSize: '0.82rem', color: '#9ca3af', marginTop: '2px' }}>
-              Western Staff Notation • {noteCount} Lead Notes
+              Western Vocal Lead Sheet • Chords, Melody & Lyrics ({noteCount} Lead Notes)
             </div>
           </div>
 
@@ -183,14 +178,14 @@ export default function NotationModal({
               type="button"
               className={`btn btn-sm ${showNoteNames ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setShowNoteNames(!showNoteNames)}
-              title="Toggle note name labels under noteheads"
+              title="Toggle educational note name labels under noteheads"
             >
               <Tag size={14} />
               <span>Note Names: {showNoteNames ? 'ON' : 'OFF'}</span>
             </button>
 
             {/* Zoom Controls */}
-            <div className="btn-group" style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 'var(--radius-md)', padding: '2px' }}>
+            <div className="btn-group" style={{ display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 'var(--radius-md, 8px)', padding: '2px' }}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
@@ -230,7 +225,7 @@ export default function NotationModal({
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={handleDownloadSVG}
-              title="Download SVG vector file"
+              title="Download standalone SVG vector file"
             >
               <FileText size={14} />
               <span>SVG</span>
@@ -251,7 +246,7 @@ export default function NotationModal({
               type="button"
               className="btn btn-ghost btn-sm"
               onClick={handlePrint}
-              title="Print notation sheet"
+              title="Print vocal lead sheet"
             >
               <Printer size={15} />
             </button>
@@ -288,8 +283,8 @@ export default function NotationModal({
               transform: `scale(${zoomLevel})`,
               transformOrigin: 'top center',
               transition: 'transform 0.15s ease-out',
-              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-              borderRadius: 'var(--radius-md)',
+              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.6)',
+              borderRadius: 'var(--radius-md, 8px)',
               overflow: 'hidden'
             }}
             dangerouslySetInnerHTML={{ __html: notationData.svg }}
@@ -299,7 +294,7 @@ export default function NotationModal({
         {/* Modal Footer */}
         <div style={{
           padding: '10px 24px',
-          borderTop: '1px solid var(--border-color)',
+          borderTop: '1px solid var(--border-color, rgba(255, 255, 255, 0.12))',
           backgroundColor: 'rgba(255, 255, 255, 0.02)',
           display: 'flex',
           alignItems: 'center',
@@ -311,7 +306,7 @@ export default function NotationModal({
             Press <kbd style={{ padding: '2px 5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}>+</kbd> / <kbd style={{ padding: '2px 5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}>-</kbd> to zoom, <kbd style={{ padding: '2px 5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}>Esc</kbd> to close.
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Western Staff Notation • Generated from Lead Notes</span>
+            <span>Western Vocal Lead Sheet • 3 Layers: Chords, Vocal Melody & Lyrics</span>
           </div>
         </div>
       </div>

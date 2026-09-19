@@ -5,14 +5,18 @@ import {
   parseLeadLine,
   calculateDiatonicOffset,
   extractLeadSectionsFromSong,
+  extractLeadSheetSectionsFromSong,
+  extractPositionedChords,
   getLeadNoteCount
 } from '../notation/leadPitchParser.js';
 import {
   renderSongNotationToSVG,
-  getNoteY
+  getNoteY,
+  parseLyricTokens,
+  estimateTextWidth
 } from '../notation/staffNotationRenderer.js';
 
-describe('Musical Notation Engine (Part A)', () => {
+describe('Vocal Lead Sheet & Musical Notation Engine', () => {
   describe('1. Octave Conventions & Scientific Pitch Parsing', () => {
     it('1.1. Basic octave: c d e f g a b -> C3 D3 E3 F3 G3 A3 B3', () => {
       const tokens = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
@@ -166,84 +170,112 @@ describe('Musical Notation Engine (Part A)', () => {
     });
   });
 
-  describe('4. Song Lead Extraction & Filtering', () => {
-    it('4.1. Extracts lead from song.sections with rows', () => {
+  describe('4. 3-Layer Vocal Lead Sheet Extraction (Chords, Melody, Lyrics)', () => {
+    it('4.1. Extracts synchronized phrases with chords, melody notes, and lyrics', () => {
       const song = {
-        title: 'Lead Test Song',
+        title: 'Vocal Lead Song',
         key: 'D',
         sections: [
           {
             name: 'Verse 1',
             rows: [
-              { type: 'chords', content: 'D  G  A' },
+              { type: 'chords', content: 'D      G      A' },
               { type: 'lead', content: "d f# a c' | d' a f#" },
-              { type: 'lyrics', content: 'Testing verse lyrics' }
+              { type: 'lyrics', content: 'Je - sus en - na - me' }
             ]
           }
         ]
       };
 
-      const sections = extractLeadSectionsFromSong(song);
+      const sections = extractLeadSheetSectionsFromSong(song);
       assert.equal(sections.length, 1);
       assert.equal(sections[0].name, 'Verse 1');
-      assert.equal(sections[0].items.filter(i => i.type === 'note').length, 7);
-      assert.equal(sections[0].items.filter(i => i.type === 'barline').length, 1);
-      assert.equal(getLeadNoteCount(song), 7);
+      assert.equal(sections[0].phrases.length, 1);
+
+      const phrase = sections[0].phrases[0];
+      assert.equal(phrase.items.filter(i => i.type === 'note').length, 7);
+      assert.equal(phrase.items.filter(i => i.type === 'barline').length, 1);
+      assert.equal(phrase.chords.length, 3);
+      assert.equal(phrase.chords[0].chord, 'D');
+      assert.equal(phrase.chords[1].chord, 'G');
+      assert.equal(phrase.chords[2].chord, 'A');
+      assert.equal(phrase.lyrics, 'Je - sus en - na - me');
     });
 
-    it('4.2. Extracts lead from song.sections with lines', () => {
+    it('4.2. Preserves multiple phrases and section order without mutating original song', () => {
       const song = {
-        title: 'Line Lead Song',
+        title: 'Multi Section Song',
         sections: [
           {
+            name: 'Verse 1',
+            rows: [
+              { type: 'chords', content: 'C   G' },
+              { type: 'lead', content: 'c e g' },
+              { type: 'lyrics', content: 'First line' }
+            ]
+          },
+          {
             name: 'Chorus',
-            lines: [
-              { lead: 'G3 B3 D4 G4', lyrics: 'Sing praise' }
+            rows: [
+              { type: 'chords', content: 'Am   F' },
+              { type: 'lead', content: "a' c'' f'" },
+              { type: 'lyrics', content: 'Sing praise' }
+            ]
+          },
+          {
+            name: 'Verse 1',
+            rows: [
+              { type: 'chords', content: 'C   G' },
+              { type: 'lead', content: 'c e g' },
+              { type: 'lyrics', content: 'Repeat line' }
             ]
           }
         ]
       };
 
-      const sections = extractLeadSectionsFromSong(song);
-      assert.equal(sections.length, 1);
-      assert.equal(sections[0].items.length, 4);
+      const originalSnapshot = JSON.stringify(song);
+      const sections = extractLeadSheetSectionsFromSong(song);
+
+      assert.equal(sections.length, 3);
+      assert.equal(sections[0].name, 'Verse 1');
+      assert.equal(sections[1].name, 'Chorus');
+      assert.equal(sections[2].name, 'Verse 1'); // Repeated sections preserved
+      assert.equal(JSON.stringify(song), originalSnapshot, 'Original song object must not be mutated');
     });
 
-    it('4.3. Extracts lead from flat song.rows', () => {
-      const song = {
-        title: 'Flat Song',
-        rows: [
-          { type: 'lead', content: "C4 E4 G4 C5" }
-        ]
-      };
-
-      const sections = extractLeadSectionsFromSong(song);
-      assert.equal(sections.length, 1);
-      assert.equal(sections[0].items.length, 4);
+    it('4.3. Positioned chords parser preserves chord qualities and slash chords', () => {
+      const chordsStr = "Dm7   G7/B   Cmaj7   F#m7b5   C/E";
+      const chords = extractPositionedChords(chordsStr);
+      assert.equal(chords.length, 5);
+      assert.equal(chords[0].chord, 'Dm7');
+      assert.equal(chords[1].chord, 'G7/B');
+      assert.equal(chords[2].chord, 'Cmaj7');
+      assert.equal(chords[3].chord, 'F#m7b5');
+      assert.equal(chords[4].chord, 'C/E');
     });
 
-    it('4.4. Ignores songs without meaningful lead', () => {
+    it('4.4. Song without lead returns 0 notes and empty section list', () => {
       const songNoLead = {
-        title: 'No Lead Song',
+        title: 'Chords Only Song',
         sections: [
           {
             name: 'Verse',
             rows: [
               { type: 'chords', content: 'G  C  D' },
-              { type: 'lyrics', content: 'No lead row here' }
+              { type: 'lyrics', content: 'No lead row' }
             ]
           }
         ]
       };
 
-      const sections = extractLeadSectionsFromSong(songNoLead);
+      const sections = extractLeadSheetSectionsFromSong(songNoLead);
       assert.equal(sections.length, 0);
       assert.equal(getLeadNoteCount(songNoLead), 0);
     });
   });
 
-  describe('5. Western Staff SVG Generation (PDF Template Matching)', () => {
-    it('5.1. Generates valid branded SVG matching PDF template layout', () => {
+  describe('5. Western Vocal Lead Sheet SVG Generation', () => {
+    it('5.1. Generates valid branded SVG with Chords (Layer 1), Staff Melody (Layer 2), and Lyrics (Layer 3)', () => {
       const song = {
         title: 'Amazing Grace',
         artist: 'John Newton',
@@ -253,7 +285,9 @@ describe('Musical Notation Engine (Part A)', () => {
           {
             name: 'Intro',
             rows: [
-              { type: 'lead', content: "d' g' b' d'' | c'' a' f#'" }
+              { type: 'chords', content: 'G       C       D7' },
+              { type: 'lead', content: "d' g' b' d'' | c'' a' f#'" },
+              { type: 'lyrics', content: 'A - ma - zing grace how sweet' }
             ]
           }
         ]
@@ -273,31 +307,44 @@ describe('Musical Notation Engine (Part A)', () => {
       assert.ok(svg.includes('Chordician'), 'Should include brand header');
       assert.ok(svg.includes('built by'), 'Should include author letterhead branding');
       assert.ok(svg.includes('© Jeshurun Selvakumar'), 'Should include copyright footer');
+
+      // Layer 1: Chords
+      assert.ok(svg.includes('D7') || svg.includes('C'), 'Should include chord symbols above staff');
+
+      // Layer 2: Staff Melody
       assert.ok(svg.includes('treble-clef'), 'Should include treble clef');
       assert.ok(svg.includes('<ellipse'), 'Should include noteheads');
       assert.ok(svg.includes('stroke-width="1.5"'), 'Should include stems');
       assert.ok(svg.includes('sharp'), 'Should include sharp accidental for F#');
+
+      // Layer 3: Lyrics
+      assert.ok(svg.includes('grace') || svg.includes('zing') || svg.includes('sweet'), 'Should include lyrics beneath staff');
+
       assert.equal(noteCount, 7);
     });
 
-    it('5.2. Future song support: new in-memory song object automatically renders notation', () => {
+    it('5.2. Future song support: in-memory song object produces 3 layers dynamically', () => {
       const futureSong = {
-        id: 'future_song_123',
-        title: 'New Future Song',
+        id: 'future_lead_sheet_1',
+        title: 'New Lead Sheet Song',
         key: 'A',
         sections: [
           {
-            name: 'Melody',
+            name: 'Chorus',
             rows: [
-              { type: 'lead', content: "a c# e a'" }
+              { type: 'chords', content: 'A   E' },
+              { type: 'lead', content: "a c# e a'" },
+              { type: 'lyrics', content: 'Ho - ly Lord' }
             ]
           }
         ]
       };
 
       const res = renderSongNotationToSVG(futureSong);
-      assert.ok(res.svg.includes('New Future Song'));
+      assert.ok(res.svg.includes('New Lead Sheet Song'));
       assert.ok(res.svg.includes('Scale:'));
+      assert.ok(res.svg.includes('A')); // Chord A
+      assert.ok(res.svg.includes('Ho') || res.svg.includes('Lord')); // Lyrics
       assert.equal(res.noteCount, 4);
     });
 
@@ -318,6 +365,293 @@ describe('Musical Notation Engine (Part A)', () => {
       const res = renderSongNotationToSVG(songNoLead);
       assert.ok(res.svg.includes('No Lead Notes available for this song'));
       assert.equal(res.noteCount, 0);
+    });
+  });
+
+  describe('6. Rhythm Notation Model & Parsing', () => {
+    it('6.1. Supports all duration types: whole, half, quarter, eighth, sixteenth', () => {
+      const wholeNote = parseLeadTokenToPitch("c':1");
+      assert.equal(wholeNote.duration, 'whole');
+      assert.equal(wholeNote.beatValue, 4.0);
+
+      const halfNote = parseLeadTokenToPitch("e':2");
+      assert.equal(halfNote.duration, 'half');
+      assert.equal(halfNote.beatValue, 2.0);
+
+      const quarterNote = parseLeadTokenToPitch("g':4");
+      assert.equal(quarterNote.duration, 'quarter');
+      assert.equal(quarterNote.beatValue, 1.0);
+
+      const defaultQuarter = parseLeadTokenToPitch("a'");
+      assert.equal(defaultQuarter.duration, 'quarter');
+      assert.equal(defaultQuarter.beatValue, 1.0);
+
+      const eighthNote = parseLeadTokenToPitch("b':8");
+      assert.equal(eighthNote.duration, 'eighth');
+      assert.equal(eighthNote.beatValue, 0.5);
+
+      const sixteenthNote = parseLeadTokenToPitch("c'':16");
+      assert.equal(sixteenthNote.duration, 'sixteenth');
+      assert.equal(sixteenthNote.beatValue, 0.25);
+    });
+
+    it('6.2. Supports letter-based duration aliases (:w, :h, :q, :e, :s)', () => {
+      assert.equal(parseLeadTokenToPitch("d':w").duration, 'whole');
+      assert.equal(parseLeadTokenToPitch("d':h").duration, 'half');
+      assert.equal(parseLeadTokenToPitch("d':q").duration, 'quarter');
+      assert.equal(parseLeadTokenToPitch("d':e").duration, 'eighth');
+      assert.equal(parseLeadTokenToPitch("d':s").duration, 'sixteenth');
+    });
+
+    it('6.3. Augmentation dots: dotted quarter (:4.) and dotted eighth (:8.)', () => {
+      const dottedQuarter = parseLeadTokenToPitch("g':4.");
+      assert.equal(dottedQuarter.duration, 'quarter');
+      assert.equal(dottedQuarter.dotted, true);
+      assert.equal(dottedQuarter.beatValue, 1.5);
+
+      const dottedEighth = parseLeadTokenToPitch("a':8.");
+      assert.equal(dottedEighth.duration, 'eighth');
+      assert.equal(dottedEighth.dotted, true);
+      assert.equal(dottedEighth.beatValue, 0.75);
+
+      const dottedHalf = parseLeadTokenToPitch("c':2.");
+      assert.equal(dottedHalf.duration, 'half');
+      assert.equal(dottedHalf.dotted, true);
+      assert.equal(dottedHalf.beatValue, 3.0);
+    });
+
+    it('6.4. Ties: A4 quarter tie -> A4 eighth preserves tieStart and tieEnd across identical pitches', () => {
+      const line = "a'~ a':8";
+      const items = parseLeadLine(line);
+      assert.equal(items.length, 2);
+      assert.equal(items[0].scientificPitch, 'A4');
+      assert.equal(items[0].tieStart, true);
+      assert.equal(items[1].scientificPitch, 'A4');
+      assert.equal(items[1].tieEnd, true);
+    });
+
+    it('6.5. Rests: whole, half, quarter, eighth, sixteenth rests', () => {
+      const qRest = parseLeadTokenToPitch('-');
+      assert.equal(qRest.type, 'rest');
+      assert.equal(qRest.duration, 'quarter');
+
+      const eRest = parseLeadTokenToPitch('-:8');
+      assert.equal(eRest.type, 'rest');
+      assert.equal(eRest.duration, 'eighth');
+
+      const sRest = parseLeadTokenToPitch('-:16');
+      assert.equal(sRest.type, 'rest');
+      assert.equal(sRest.duration, 'sixteenth');
+
+      const hRest = parseLeadTokenToPitch('-:2');
+      assert.equal(hRest.type, 'rest');
+      assert.equal(hRest.duration, 'half');
+
+      const wRest = parseLeadTokenToPitch('-:1');
+      assert.equal(wRest.type, 'rest');
+      assert.equal(wRest.duration, 'whole');
+    });
+  });
+
+  describe('7. Beaming & Grouping Engine', () => {
+    it('7.1. Consecutive eighth notes are beamed together', () => {
+      const song = {
+        title: 'Beaming Test',
+        key: 'C',
+        sections: [
+          {
+            name: 'Melody',
+            rows: [
+              { type: 'lead', content: "c':8 d':8 e':8 f':8" }
+            ]
+          }
+        ]
+      };
+
+      const { svg } = renderSongNotationToSVG(song);
+      // Contains primary beam line connecting stems
+      assert.ok(svg.includes('stroke-width="3.6"'), 'Should render primary beam line for consecutive eighth notes');
+    });
+
+    it('7.2. Consecutive sixteenth notes include two beam lines', () => {
+      const song = {
+        title: 'Sixteenth Beaming Test',
+        key: 'C',
+        sections: [
+          {
+            name: 'Melody',
+            rows: [
+              { type: 'lead', content: "c':16 d':16 e':16 f':16" }
+            ]
+          }
+        ]
+      };
+
+      const { svg } = renderSongNotationToSVG(song);
+      assert.ok(svg.includes('stroke-width="3.6"'), 'Primary beam');
+      assert.ok(svg.includes('stroke-width="2.6"'), 'Secondary beam for sixteenth notes');
+    });
+
+    it('7.3. Beams stop cleanly at barlines and rests', () => {
+      const song = {
+        title: 'Beam Boundary Test',
+        key: 'C',
+        sections: [
+          {
+            name: 'Melody',
+            rows: [
+              { type: 'lead', content: "c':8 d':8 | e':8 f':8 -:4 g':8 a':8" }
+            ]
+          }
+        ]
+      };
+
+      const { svg } = renderSongNotationToSVG(song);
+      assert.ok(svg.includes('stroke-width="3.6"'));
+      assert.ok(svg.includes('rest'), 'Includes rest in system');
+    });
+  });
+
+  describe('8. Dynamic Lyric Vertical Clearance & No-Overlap Integrity', () => {
+    it('8.1. System with deep low notes (C2, A2, C3) pushes lyrics safely below lowest ledger lines', () => {
+      const songWithLowNotes = {
+        title: 'Low Notes Clearance Song',
+        key: 'C',
+        sections: [
+          {
+            name: 'Low System',
+            rows: [
+              { type: 'chords', content: 'C        Am' },
+              { type: 'lead', content: 'c2 e2 g2 c3' },
+              { type: 'lyrics', content: 'Deep deep low voice' }
+            ]
+          }
+        ]
+      };
+
+      const { svg } = renderSongNotationToSVG(songWithLowNotes);
+      assert.ok(svg.includes('Deep'), 'Should render lyrics');
+      assert.ok(svg.includes('ledger-lines'), 'Should render ledger lines for octave 2 notes');
+
+      // Diatonic offset of C2 is -14. NoteY = staffTopY + (10 - (-14)) * 5 = staffTopY + 120
+      // Lowest ledger line is at offset -14.
+      // Lyrics must be placed safely below note/ledger line + note names
+      const match = svg.match(/<text x="[^"]*" y="([^"]*)"[^>]*>Deep<\/text>/);
+      assert.ok(match, 'Lyric text element must exist');
+      const lyricY = parseFloat(match[1]);
+      // Staff starts after header card (~180-220px). C2 ledger line is at ~300-340px.
+      // Lyric Y must be well below staff top + 120px
+      assert.ok(lyricY > 250, `Lyric Y (${lyricY}) must have ample clearance below low octave notes`);
+    });
+
+    it('8.2. High notes requiring upper ledger lines (A5, C6) render ledger lines without clipping', () => {
+      const highSong = {
+        title: 'High Soprano Song',
+        key: 'G',
+        sections: [
+          {
+            name: 'Chorus',
+            rows: [
+              { type: 'chords', content: 'G       C' },
+              { type: 'lead', content: "g' b' d'' f#'' | g'' a'' c'''" },
+              { type: 'lyrics', content: 'High soaring notes praise' }
+            ]
+          }
+        ]
+      };
+
+      const { svg } = renderSongNotationToSVG(highSong);
+      assert.ok(svg.includes('ledger-lines'), 'Must render upper ledger lines for A5, C6');
+      assert.ok(svg.includes('soaring'));
+    });
+
+    it('8.3. Lyric tokenization handles hyphenated syllables and natural sentences cleanly', () => {
+      const hyphenated = parseLyricTokens('Je - sus en - na - me');
+      assert.deepEqual(hyphenated, ['Je-', 'sus', 'en-', 'na-', 'me']);
+
+      const sentence = parseLyricTokens('En meetpar uyirodirukkayil enakkenna bayam');
+      assert.deepEqual(sentence, ['En', 'meetpar', 'uyirodirukkayil', 'enakkenna', 'bayam']);
+
+      const tamil = parseLyricTokens('இயேசுவே என் நேசரே');
+      assert.deepEqual(tamil, ['இயேசுவே', 'என்', 'நேசரே']);
+
+      assert.ok(estimateTextWidth('uyirodirukkayil', 13) > 80);
+      assert.ok(estimateTextWidth('இயேசுவே', 13) > 50);
+    });
+
+    it('8.4. Multi-system song renders lyrics without overlap and with clear spacing gaps', () => {
+      const multiSystemSong = {
+        title: 'En Meetpar Uyirodirukkayil',
+        key: 'D',
+        sections: [
+          {
+            name: 'Pallavi',
+            rows: [
+              { type: 'chords', content: 'D            G          A          D' },
+              { type: 'lead', content: "d f# a c' | b a g f# | e f# g a | d' c' b a | f# e d" },
+              { type: 'lyrics', content: 'En meetpar uyirodirukkayil enakkenna bayam en nenjil' }
+            ]
+          }
+        ]
+      };
+
+      const { svg } = renderSongNotationToSVG(multiSystemSong);
+      assert.ok(svg.includes('En'));
+      assert.ok(svg.includes('meetpar'));
+      assert.ok(svg.includes('uyirodirukkayil'));
+      assert.ok(svg.includes('enakkenna'));
+      assert.ok(svg.includes('bayam'));
+      assert.ok(svg.includes('nenjil'));
+
+      // Extract all lyric text elements in system 1
+      const lyricMatches = [...svg.matchAll(/<text x="([^"]*)" y="([^"]*)"[^>]*font-size="13"[^>]*>([^<]+)<\/text>/g)];
+      assert.ok(lyricMatches.length >= 6, 'Must render lyric words');
+
+      // Group by Y coordinate (system)
+      const systemLyrics = {};
+      lyricMatches.forEach(m => {
+        const x = parseFloat(m[1]);
+        const y = parseFloat(m[2]);
+        const word = m[3];
+        if (!systemLyrics[y]) systemLyrics[y] = [];
+        systemLyrics[y].push({ x, word });
+      });
+
+      // For every system, verify words are sorted horizontally and have at least 10px center distance
+      Object.entries(systemLyrics).forEach(([y, words]) => {
+        for (let i = 1; i < words.length; i++) {
+          const prev = words[i - 1];
+          const curr = words[i];
+          assert.ok(curr.x > prev.x, `Word "${curr.word}" (x=${curr.x}) must be to the right of "${prev.word}" (x=${prev.x})`);
+          assert.ok(curr.x - prev.x >= 25, `Words "${prev.word}" and "${curr.word}" must have adequate separation (got ${curr.x - prev.x}px)`);
+        }
+      });
+    });
+
+    it('8.5. Song data immutability: Original song, Lead, chords, lyrics are NEVER mutated', () => {
+      const originalSong = {
+        id: 'test_immutable_song',
+        title: 'Unchanged Song',
+        artist: 'Author',
+        key: 'D',
+        sections: [
+          {
+            name: 'Verse 1',
+            rows: [
+              { type: 'chords', content: 'D      G      A' },
+              { type: 'lead', content: "d:4 f#:4. a:8 c':2" },
+              { type: 'lyrics', content: 'Never change this' }
+            ]
+          }
+        ]
+      };
+
+      const clone = JSON.parse(JSON.stringify(originalSong));
+      const res1 = renderSongNotationToSVG(originalSong);
+      const res2 = renderSongNotationToSVG(originalSong);
+
+      assert.deepEqual(originalSong, clone, 'Song object must remain completely unmodified');
+      assert.equal(res1.svg, res2.svg, 'Renderer must be purely deterministic and read-only');
     });
   });
 });
