@@ -27,7 +27,7 @@ export async function generateChordReferencePDF(onProgress = null) {
               Chordician
             </div>
             <div style="font-size: 10px; font-weight: 600; color: #6366f1; letter-spacing: 0.04em; text-transform: uppercase;">
-              Your chords. Your key.
+              Every Chord, For Him.
             </div>
           </div>
         </div>

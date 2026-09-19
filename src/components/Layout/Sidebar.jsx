@@ -101,7 +101,7 @@ export default function Sidebar({
               </Link>
               <span className="app-version-badge" title={`Chordician v${APP_VERSION}`}>v{APP_VERSION}</span>
             </div>
-            <span className="brand-tagline">Your chords. Your key.</span>
+            <span className="brand-tagline">Every Chord, For Him.</span>
           </div>
 
           {/* Close button inside mobile drawer */}

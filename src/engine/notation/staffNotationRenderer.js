@@ -294,7 +294,7 @@ export function renderSongNotationToSVG(song, options = {}) {
       
       <!-- Brand Title & Tagline -->
       <text x="${paddingX + 34}" y="${currentY + 13}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="17" font-weight="800" fill="#1e1b4b" letter-spacing="-0.02em">Chordician</text>
-      <text x="${paddingX + 34}" y="${currentY + 24}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#6366f1" letter-spacing="0.03em">YOUR CHORDS. YOUR KEY.</text>
+      <text x="${paddingX + 34}" y="${currentY + 24}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#6366f1" letter-spacing="0.03em">EVERY CHORD, FOR HIM.</text>
       
       <!-- Right Side Author & URL -->
       <text x="${width - paddingX}" y="${currentY + 13}" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="600" fill="#64748b">

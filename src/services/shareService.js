@@ -305,7 +305,7 @@ function createPDFRenderElement(songList = [], options = {}) {
     const brandText = document.createElement('div');
     brandText.innerHTML = `
       <div style="font-size: 17px; font-weight: 800; color: #1e1b4b; letter-spacing: -0.02em; line-height: 1.1;">Chordician</div>
-      <div style="font-size: 9.5px; font-weight: 600; color: #6366f1; letter-spacing: 0.03em; text-transform: uppercase;">Your chords. Your key.</div>
+      <div style="font-size: 9.5px; font-weight: 600; color: #6366f1; letter-spacing: 0.03em; text-transform: uppercase;">Every Chord, For Him.</div>
     `;
 
     brandLeft.appendChild(logoIcon);
