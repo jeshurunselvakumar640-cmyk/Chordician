@@ -445,7 +445,7 @@ export default function PerformanceModal({
         {styleName && (
           <div
             className="perf-style-highlight-box"
-            title={`Style: ${resolvedStyle?.category ? resolvedStyle.category + ' → ' : ''}${styleName} (${formatStyleCode(resolvedStyle || style)})`}
+            title={`Style: ${resolvedStyle?.category ? resolvedStyle.category + ' → ' : ''}${styleName} (${formatStyleCode(resolvedStyle || style)}) • Style number is according to Yamaha PSR I425 & Yamaha PSR F51`}
           >
             <div className="perf-style-badge-icon">
               <Sliders size={15} />
@@ -650,6 +650,19 @@ export default function PerformanceModal({
             ))}
           </div>
         )}
+
+        {/* Keyboard Style Reference Note */}
+        <div
+          style={{
+            marginTop: '28px',
+            textAlign: 'center',
+            fontSize: '0.78rem',
+            color: 'var(--text-muted)',
+            opacity: 0.8
+          }}
+        >
+          🎹 Note: Style number is according to <strong>Yamaha PSR I425</strong> & <strong>Yamaha PSR F51</strong>.
+        </div>
       </div>
 
       {/* Floating Bottom Setlist Navigator Bar */}

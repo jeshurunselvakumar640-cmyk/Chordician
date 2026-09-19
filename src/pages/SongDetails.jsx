@@ -22,7 +22,8 @@ import {
   Eye,
   Crown,
   Wine,
-  Mail
+  Mail,
+  FileMusic
 } from 'lucide-react';
 import { getSongById } from '../firebase/songs.js';
 import { transposeSong } from '../services/transposer.js';
@@ -38,6 +39,8 @@ import PerformanceModal from '../components/Modal/PerformanceModal';
 import ConfirmModal from '../components/Modal/ConfirmModal';
 import ShareModal from '../components/Modal/ShareModal';
 import ContactModal from '../components/Modal/ContactModal';
+import NotationModal from '../components/Notation/NotationModal';
+import { getLeadNoteCount } from '../engine/notation/leadPitchParser.js';
 import ErrorBoundary from '../components/UI/ErrorBoundary';
 import { SongDetailsSkeleton } from '../components/UI/SkeletonLoader';
 
@@ -64,6 +67,7 @@ export default function SongDetails({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isNotationModalOpen, setIsNotationModalOpen] = useState(false);
 
   // Zoom Level state for songbook view mode (persisted to localStorage)
   const [zoomLevel, setZoomLevel] = useState(() => {
@@ -660,6 +664,25 @@ export default function SongDetails({
             type="button"
             className="btn btn-secondary"
             onClick={() => {
+              const currentLeadCount = getLeadNoteCount(transposedSong || song);
+              if (currentLeadCount === 0) {
+                showToast('No Lead Notes available for this song.', 'info', 3000);
+              } else {
+                setIsNotationModalOpen(true);
+              }
+            }}
+            title="View Western musical staff notation for this song"
+            aria-label="Musical Notation"
+            style={{ minWidth: '40px', minHeight: '40px', padding: '8px 12px' }}
+          >
+            <FileMusic size={16} />
+            <span className="hide-mobile">Musical Notation</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
               setShareModalTab('details');
               setIsShareModalOpen(true);
             }}
@@ -830,7 +853,7 @@ export default function SongDetails({
             {styleName && (
               <div
                 className="song-viewer-style-highlight"
-                title={`Style: ${resolvedStyle?.category ? resolvedStyle.category + ' → ' : ''}${styleName} (${formatStyleCode(resolvedStyle || style)})`}
+                title={`Style: ${resolvedStyle?.category ? resolvedStyle.category + ' → ' : ''}${styleName} (${formatStyleCode(resolvedStyle || style)}) • Style number is according to Yamaha PSR I425 & Yamaha PSR F51`}
               >
                 <div className="style-highlight-icon-box">
                   <Sliders size={14} />
@@ -935,6 +958,14 @@ export default function SongDetails({
           song={song}
           initialKey={activeKey || song?.originalKey || 'C'}
           initialTab={shareModalTab}
+        />
+      )}
+
+      {/* Musical Staff Notation Modal */}
+      {isNotationModalOpen && (
+        <NotationModal
+          song={transposedSong || song}
+          onClose={() => setIsNotationModalOpen(false)}
         />
       )}
 

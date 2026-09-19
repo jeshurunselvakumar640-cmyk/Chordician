@@ -19,18 +19,18 @@ export const ALL_KEYS = [
 ];
 
 export const NOTE_TO_SEMITONE = {
-  'B#': 0, 'C': 0,
-  'C#': 1, 'Db': 1,
-  'D': 2,
-  'D#': 3, 'Eb': 3,
-  'E': 4, 'Fb': 4,
-  'E#': 5, 'F': 5,
-  'F#': 6, 'Gb': 6,
-  'G': 7,
+  'B#': 0, 'C': 0, 'Dbb': 0,
+  'C#': 1, 'Db': 1, 'B##': 1,
+  'D': 2, 'C##': 2, 'Ebb': 2,
+  'D#': 3, 'Eb': 3, 'Fbb': 3,
+  'E': 4, 'Fb': 4, 'D##': 4,
+  'E#': 5, 'F': 5, 'Gbb': 5,
+  'F#': 6, 'Gb': 6, 'E##': 6,
+  'G': 7, 'F##': 7, 'Abb': 7,
   'G#': 8, 'Ab': 8,
-  'A': 9,
-  'A#': 10, 'Bb': 10,
-  'B': 11, 'Cb': 11
+  'A': 9, 'G##': 9, 'Bbb': 9,
+  'A#': 10, 'Bb': 10, 'Cbb': 10,
+  'B': 11, 'Cb': 11, 'A##': 11
 };
 
 // Map whether a key traditionally uses flats or sharps for spelling

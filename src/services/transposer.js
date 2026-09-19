@@ -5,6 +5,41 @@ import {
   KEY_SPELLING_PREFERENCE,
   ALL_KEYS
 } from '../utils/musicConstants.js';
+import { MAJOR_KEY_FAMILIES, MINOR_KEY_FAMILIES } from '../data/keyChordFamilies.js';
+
+// Pre-computed map from targetKey -> array of 12 note spellings for each semitone (0..11)
+const KEY_SEMITONE_SPELLING_MAP = {};
+
+function buildKeySpellingMap(keyFamily) {
+  const spelling = new Array(12).fill(null);
+  const isFlatPref = KEY_SPELLING_PREFERENCE[keyFamily.key] === 'flat';
+  const defaultScale = isFlatPref ? FLAT_SCALE : SHARP_SCALE;
+
+  // 1. Fill defaults
+  for (let i = 0; i < 12; i++) {
+    spelling[i] = defaultScale[i];
+  }
+
+  // 2. Populate exact diatonic notes from the key scale
+  if (Array.isArray(keyFamily.scale)) {
+    for (const note of keyFamily.scale) {
+      const clean = normalizeNoteName(note);
+      const st = NOTE_TO_SEMITONE[clean];
+      if (st !== undefined) {
+        spelling[st] = clean;
+      }
+    }
+  }
+
+  return spelling;
+}
+
+// Populate for all major and minor keys
+[...MAJOR_KEY_FAMILIES, ...MINOR_KEY_FAMILIES].forEach((kf) => {
+  if (kf && kf.key) {
+    KEY_SEMITONE_SPELLING_MAP[kf.key] = buildKeySpellingMap(kf);
+  }
+});
 
 /**
  * Normalizes a note or key name (e.g. 'db' -> 'Db', 'c#' -> 'C#', 'e♯' -> 'E#', 'b♭' -> 'Bb')
@@ -46,32 +81,45 @@ export function calculateSemitoneDistance(originalKey, targetKey) {
 }
 
 /**
- * Converts a semitone index (0..11) to note name based on preference
+ * Converts a semitone index (0..11) to note name based on destination key or preference
  */
-export function semitoneToNoteName(semitone, preference = 'sharp') {
+export function semitoneToNoteName(semitone, preferenceOrTargetKey = 'sharp') {
   const normalizedIndex = ((semitone % 12) + 12) % 12;
-  if (preference === 'flat') {
+
+  // 1. Check if target key has a dedicated key-aware scale mapping
+  if (KEY_SEMITONE_SPELLING_MAP[preferenceOrTargetKey]) {
+    return KEY_SEMITONE_SPELLING_MAP[preferenceOrTargetKey][normalizedIndex];
+  }
+
+  // 2. Check if preference is explicitly 'flat' or 'sharp'
+  if (preferenceOrTargetKey === 'flat') {
     return FLAT_SCALE[normalizedIndex];
   }
-  return SHARP_SCALE[normalizedIndex];
+  if (preferenceOrTargetKey === 'sharp') {
+    return SHARP_SCALE[normalizedIndex];
+  }
+
+  // 3. Fallback to key preference if key was specified without a scale
+  const pref = KEY_SPELLING_PREFERENCE[preferenceOrTargetKey] || 'sharp';
+  return pref === 'flat' ? FLAT_SCALE[normalizedIndex] : SHARP_SCALE[normalizedIndex];
 }
 
 /**
- * Transposes a single note without octave (e.g. "C#" + 2 -> "D#")
+ * Transposes a single note without octave (e.g. "C#" + 2 -> "D#", "F#" - 2 in Key D -> "E")
  */
-export function transposeNote(note, semitoneDelta, preference = 'sharp') {
+export function transposeNote(note, semitoneDelta, preferenceOrTargetKey = 'sharp') {
   const normalized = normalizeNoteName(note);
   if (!(normalized in NOTE_TO_SEMITONE)) return note;
 
   const currentSemitone = NOTE_TO_SEMITONE[normalized];
   const newSemitone = (currentSemitone + semitoneDelta) % 12;
-  return semitoneToNoteName(newSemitone, preference);
+  return semitoneToNoteName(newSemitone, preferenceOrTargetKey);
 }
 
 /**
  * Transposes a single chord string (e.g. "Cmaj7", "F#m7/E", "Bb/D", "Eb", "Csus4")
  */
-export function transposeChord(chordStr, semitoneDelta, preference = 'sharp') {
+export function transposeChord(chordStr, semitoneDelta, preferenceOrTargetKey = 'sharp') {
   if (!chordStr || typeof chordStr !== 'string') return chordStr;
   const trimmed = chordStr.trim();
   if (!trimmed) return '';
@@ -87,8 +135,8 @@ export function transposeChord(chordStr, semitoneDelta, preference = 'sharp') {
   }
 
   const [, root, quality, bass] = match;
-  const transposedRoot = transposeNote(root, semitoneDelta, preference);
-  const transposedBass = bass ? transposeNote(bass, semitoneDelta, preference) : null;
+  const transposedRoot = transposeNote(root, semitoneDelta, preferenceOrTargetKey);
+  const transposedBass = bass ? transposeNote(bass, semitoneDelta, preferenceOrTargetKey) : null;
 
   if (transposedBass) {
     return `${transposedRoot}${quality}/${transposedBass}`;
@@ -99,30 +147,30 @@ export function transposeChord(chordStr, semitoneDelta, preference = 'sharp') {
 /**
  * Transposes a line of chords while preserving spacing/layout
  */
-export function transposeChordLine(chordLine, semitoneDelta, preference = 'sharp') {
+export function transposeChordLine(chordLine, semitoneDelta, preferenceOrTargetKey = 'sharp') {
   if (!chordLine || typeof chordLine !== 'string') return chordLine;
   if (semitoneDelta % 12 === 0) return chordLine;
 
   return chordLine.replace(/\b([A-Ga-g][#b♭♯]?(?:[^\s/]*)(?:\/[A-Ga-g][#b♭♯]?)?)\b/g, (match) => {
-    return transposeChord(match, semitoneDelta, preference);
+    return transposeChord(match, semitoneDelta, preferenceOrTargetKey);
   });
 }
 
 /**
- * Transposes a single lead/bass note with octave (e.g. "C4", "F#4", "Bb3")
+ * Transposes a single lead/bass note with octave (e.g. "C4", "F#4", "Bb3", "f#'", "c2")
  */
-export function transposeNoteWithOctave(noteStr, semitoneDelta, preference = 'sharp') {
+export function transposeNoteWithOctave(noteStr, semitoneDelta, preferenceOrTargetKey = 'sharp') {
   if (!noteStr || typeof noteStr !== 'string') return noteStr;
   const trimmed = noteStr.trim();
   if (semitoneDelta % 12 === 0) return trimmed;
 
-  // Match Note with Octave number (e.g. "C#4", "Eb3", "A5")
+  // Match Note with numeric octave (e.g. "C#4", "Eb3", "A5")
   const noteOctaveRegex = /^([A-Ga-g][#b♭♯]?)([0-8])$/;
   const match = trimmed.match(noteOctaveRegex);
 
   if (!match) {
-    // If no octave provided, fallback to plain note transposition
-    return transposeNote(trimmed, semitoneDelta, preference);
+    // Check if apostrophe octave or plain note
+    return transposeNoteUnit(trimmed, semitoneDelta, preferenceOrTargetKey);
   }
 
   const [, noteName, octaveStr] = match;
@@ -134,38 +182,52 @@ export function transposeNoteWithOctave(noteStr, semitoneDelta, preference = 'sh
 
   const newOctave = Math.floor(totalSemitones / 12);
   const newNoteSemitone = ((totalSemitones % 12) + 12) % 12;
-  const newNoteName = semitoneToNoteName(newNoteSemitone, preference);
+  const newNoteName = semitoneToNoteName(newNoteSemitone, preferenceOrTargetKey);
 
   // Clamp octave to reasonable piano range (0 to 8)
   const clampedOctave = Math.max(0, Math.min(8, newOctave));
-  return `${newNoteName}${clampedOctave}`;
+  const isLower = noteName[0] >= 'a' && noteName[0] <= 'g';
+  const resultName = isLower ? newNoteName.toLowerCase() : newNoteName;
+  return `${resultName}${clampedOctave}`;
 }
 
 /**
- * Transposes a single note unit (with optional octave)
+ * Transposes a single note unit (with optional numeric or apostrophe octave)
  */
-function transposeNoteUnit(unit, semitoneDelta, preference = 'sharp') {
-  const match = unit.match(/^([A-Ga-g][#b♭♯]?)([0-8]?)$/);
+function transposeNoteUnit(unit, semitoneDelta, preferenceOrTargetKey = 'sharp') {
+  const match = unit.match(/^([A-Ga-g][#b♭♯]?)(['`’]*|\d*)$/);
   if (!match) return unit;
-  const [, noteName, oct] = match;
-  if (oct) {
-    return transposeNoteWithOctave(unit, semitoneDelta, preference);
+  const [, noteName, octModifier] = match;
+  const isLower = noteName[0] >= 'a' && noteName[0] <= 'g';
+
+  if (!octModifier) {
+    const transposed = transposeNote(noteName, semitoneDelta, preferenceOrTargetKey);
+    return isLower ? transposed.toLowerCase() : transposed;
   }
-  return transposeNote(noteName, semitoneDelta, preference);
+
+  // Numeric octave
+  if (/^\d+$/.test(octModifier)) {
+    return transposeNoteWithOctave(unit, semitoneDelta, preferenceOrTargetKey);
+  }
+
+  // Apostrophe octave (e.g. "f#'", "c''")
+  const transposed = transposeNote(noteName, semitoneDelta, preferenceOrTargetKey);
+  const resultName = isLower ? transposed.toLowerCase() : transposed;
+  return `${resultName}${octModifier}`;
 }
 
 /**
- * Transposes a note token or cluster (e.g. "E4", "F#", "EE", "AAA", "AC#", "F#F#")
+ * Transposes a note token or cluster (e.g. "E4", "F#", "EE", "AAA", "AC#", "F#F#", "f#'")
  */
-export function transposeNoteCluster(token, semitoneDelta, preference = 'sharp') {
+export function transposeNoteCluster(token, semitoneDelta, preferenceOrTargetKey = 'sharp') {
   if (!token || typeof token !== 'string') return token;
   if (semitoneDelta % 12 === 0) return token;
 
-  const isPureNoteCluster = /^([A-Ga-g][#b♭♯]?[0-8]?)+$/.test(token);
+  const isPureNoteCluster = /^([A-Ga-g][#b♭♯]?(['`’]*|\d*))+$/.test(token);
   if (!isPureNoteCluster) return token;
 
-  return token.replace(/([A-Ga-g][#b♭♯]?[0-8]?)/g, (match) => {
-    return transposeNoteUnit(match, semitoneDelta, preference);
+  return token.replace(/([A-Ga-g][#b♭♯]?(['`’]*|\d*))/g, (match) => {
+    return transposeNoteUnit(match, semitoneDelta, preferenceOrTargetKey);
   });
 }
 
@@ -175,18 +237,18 @@ export function transposeNoteCluster(token, semitoneDelta, preference = 'sharp')
 const NON_NOTE_KEYWORDS = /^(?:Lead|lead|LEAD|Solo|solo|SOLO|Intro|intro|INTRO|Outro|outro|OUTRO|Melody|melody|MELODY|Riff|riff|RIFF|Interlude|interlude|Verse|verse|Chorus|chorus|Bridge|bridge|fade|repeat|end|x\d+|\(\w+\))$/i;
 
 /**
- * Transposes a sequence of lead/bass notes (e.g. "E4 G4 C5 G4", "E F# G# A", "EE AAA AC#", "C3 - G3 - C4")
+ * Transposes a sequence of lead/bass notes (e.g. "E4 G4 C5 G4", "E F# G# A", "EE AAA AC#", "C3 - G3 - C4", "f#' g#' a''")
  */
-export function transposeNoteLine(noteLine, semitoneDelta, preference = 'sharp') {
+export function transposeNoteLine(noteLine, semitoneDelta, preferenceOrTargetKey = 'sharp') {
   if (!noteLine || typeof noteLine !== 'string') return noteLine;
   if (semitoneDelta % 12 === 0) return noteLine;
 
-  return noteLine.replace(/(\b[A-Za-z0-8#b♭♯-]+\b|[A-Ga-g][#b♭♯]?[0-8]?)/g, (token) => {
-    if (NON_NOTE_KEYWORDS.test(token)) {
+  return noteLine.replace(/\S+/g, (token) => {
+    if (NON_NOTE_KEYWORDS.test(token) || token === '|' || token === '||' || token === '-' || token === '—' || token === '–') {
       return token;
     }
-    if (/^([A-Ga-g][#b♭♯]?[0-8]?)+$/.test(token)) {
-      return transposeNoteCluster(token, semitoneDelta, preference);
+    if (/^([A-Ga-g][#b♭♯]?(['`’]*|\d*))+$/.test(token)) {
+      return transposeNoteCluster(token, semitoneDelta, preferenceOrTargetKey);
     }
     return token;
   });
@@ -196,21 +258,21 @@ export function transposeNoteLine(noteLine, semitoneDelta, preference = 'sharp')
  * Transposes inline lead sections in lyrics or annotations
  * Matches: [Lead: ...], (Lead: ...), {Lead: ...}, Lead: ...
  */
-export function transposeInlineLeadInLyrics(lyricsLine, semitoneDelta, preference = 'sharp') {
+export function transposeInlineLeadInLyrics(lyricsLine, semitoneDelta, preferenceOrTargetKey = 'sharp') {
   if (!lyricsLine || typeof lyricsLine !== 'string') return lyricsLine;
   if (semitoneDelta % 12 === 0) return lyricsLine;
 
   // 1. Bracketed lead / solo / melody: [Lead: E F# G], (Lead: E4 G4), [Solo: ...], [Melody: ...]
   const bracketedLeadRegex = /([\[\(\{])\s*((?:Lead|lead|LEAD|Solo|solo|SOLO|Melody|melody|MELODY|Riff|riff|RIFF)\s*[:\-–—]?\s*)([^\]\)\}\n]+)([\]\)\}])/g;
   let result = lyricsLine.replace(bracketedLeadRegex, (fullMatch, openBracket, leadPrefix, notesContent, closeBracket) => {
-    const transposedNotes = transposeNoteLine(notesContent, semitoneDelta, preference);
+    const transposedNotes = transposeNoteLine(notesContent, semitoneDelta, preferenceOrTargetKey);
     return `${openBracket}${leadPrefix}${transposedNotes}${closeBracket}`;
   });
 
   // 2. Line-starting Lead: Lead: E F# G# or Solo: E4 G4 C5
   const lineStartLeadRegex = /^(\s*(?:Lead|lead|LEAD|Solo|solo|SOLO|Melody|melody|MELODY|Riff|riff|RIFF)\s*[:\-–—]\s*)(.+)$/i;
   result = result.replace(lineStartLeadRegex, (fullMatch, leadPrefix, notesContent) => {
-    const transposedNotes = transposeNoteLine(notesContent, semitoneDelta, preference);
+    const transposedNotes = transposeNoteLine(notesContent, semitoneDelta, preferenceOrTargetKey);
     return `${leadPrefix}${transposedNotes}`;
   });
 
@@ -222,25 +284,25 @@ export function transposeInlineLeadInLyrics(lyricsLine, semitoneDelta, preferenc
  */
 export function transposeRowContent(content, rowType, semitoneDelta, targetKey) {
   if (semitoneDelta % 12 === 0) return content;
-  const preference = KEY_SPELLING_PREFERENCE[targetKey] || 'sharp';
+  const preferenceOrTargetKey = targetKey || 'sharp';
 
   if (rowType === 'chords') {
     if (Array.isArray(content)) {
-      return content.map(c => transposeChord(c, semitoneDelta, preference));
+      return content.map(c => transposeChord(c, semitoneDelta, preferenceOrTargetKey));
     }
-    return transposeChordLine(String(content), semitoneDelta, preference);
+    return transposeChordLine(String(content), semitoneDelta, preferenceOrTargetKey);
   }
 
   if (rowType === 'lead' || rowType === 'bass') {
     if (Array.isArray(content)) {
-      return content.map(n => transposeNoteLine(n, semitoneDelta, preference));
+      return content.map(n => transposeNoteLine(n, semitoneDelta, preferenceOrTargetKey));
     }
-    return transposeNoteLine(String(content), semitoneDelta, preference);
+    return transposeNoteLine(String(content), semitoneDelta, preferenceOrTargetKey);
   }
 
   // If row is lyrics or other text, transpose any embedded lead notes
   if (typeof content === 'string') {
-    return transposeInlineLeadInLyrics(content, semitoneDelta, preference);
+    return transposeInlineLeadInLyrics(content, semitoneDelta, preferenceOrTargetKey);
   }
 
   return content;
