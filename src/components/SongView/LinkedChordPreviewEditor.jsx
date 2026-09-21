@@ -350,20 +350,17 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
     });
   };
 
-  // Helper to add a new empty line pair or trio at the end of a section
+  // Helper to add a new empty line trio at the end of a section
   const handleAddLinePair = (sectionIndex) => {
     const currentSec = song.sections[sectionIndex];
-    const hasLeadInSec = (currentSec.rows || []).some((r) => r.type === 'lead');
+    const ts = Date.now() + Math.random().toString(36).substring(2, 6);
 
     const newRows = [
       ...currentSec.rows,
-      { id: `row_${Date.now()}_c`, type: 'chords', content: '' },
-      { id: `row_${Date.now()}_l`, type: 'lyrics', content: '' }
+      { id: `row_${ts}_c`, type: 'chords', content: '' },
+      { id: `row_${ts}_l`, type: 'lyrics', content: '' },
+      { id: `row_${ts}_ld`, type: 'lead', content: '' }
     ];
-
-    if (hasLeadInSec) {
-      newRows.push({ id: `row_${Date.now()}_ld`, type: 'lead', content: '' });
-    }
 
     const updatedSections = song.sections.map((sec, sIdx) => {
       if (sIdx !== sectionIndex) return sec;
@@ -694,7 +691,7 @@ export default function LinkedChordPreviewEditor({ song, onSongChange }) {
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm"
-                              style={{ padding: '2px 6px', fontSize: '0.72rem', color: '#fbbf24', opacity: 0.8 }}
+                              style={{ padding: '2px 6px', fontSize: '0.72rem', color: 'var(--lead-text, #10b981)', fontWeight: '600' }}
                               onClick={() => handleAddLeadToPair(sIdx, lyricRowIndex)}
                               title="Attach Lead notes to this line"
                             >

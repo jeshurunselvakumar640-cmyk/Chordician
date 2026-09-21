@@ -372,12 +372,14 @@ export function insertSection(sections, insertIndex, sectionName = null) {
   if (!Array.isArray(sections)) return sections;
 
   const targetIndex = Math.max(0, Math.min(sections.length, insertIndex));
+  const ts = Date.now() + Math.random().toString(36).substring(2, 6);
   const newSection = {
-    id: 'sec_' + Date.now() + Math.random().toString(36).substring(2, 6),
+    id: 'sec_' + ts,
     name: sectionName || `Section ${targetIndex + 1}`,
     rows: [
-      { id: 'r_' + Date.now() + '_1', type: 'chords', content: '' },
-      { id: 'r_' + Date.now() + '_2', type: 'lyrics', content: '' }
+      { id: `r_${ts}_1`, type: 'chords', content: '' },
+      { id: `r_${ts}_2`, type: 'lyrics', content: '' },
+      { id: `r_${ts}_3`, type: 'lead', content: '' }
     ]
   };
 
@@ -386,4 +388,124 @@ export function insertSection(sections, insertIndex, sectionName = null) {
   return result;
 }
 
+/**
+ * Normalizes a list of section rows into the standard 3-layer structure:
+ * 1. Chords row (content or '')
+ * 2. Lyrics row (content or '')
+ * 3. Lead row   (content or '')
+ *
+ * Preserves all existing row content, character positioning, chord qualities, and lead notes.
+ *
+ * @param {Array<{ id?: string, type: string, content?: string }>} rows
+ * @returns {Array<{ id: string, type: string, content: string }>}
+ */
+export function normalizeSectionRows(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    const ts = Date.now() + Math.random().toString(36).substring(2, 6);
+    return [
+      { id: `r_${ts}_c`, type: 'chords', content: '' },
+      { id: `r_${ts}_l`, type: 'lyrics', content: '' },
+      { id: `r_${ts}_ld`, type: 'lead', content: '' }
+    ];
+  }
 
+  const normalized = [];
+  let i = 0;
+
+  while (i < rows.length) {
+    const currentRow = rows[i];
+    const rowType = currentRow.type || 'lyrics';
+
+    if (rowType === 'chords') {
+      const nextRow = i + 1 < rows.length ? rows[i + 1] : null;
+      const nextNextRow = i + 2 < rows.length ? rows[i + 2] : null;
+
+      if (nextRow && nextRow.type === 'lyrics') {
+        if (nextNextRow && nextNextRow.type === 'lead') {
+          // Triplet: chords + lyrics + lead
+          normalized.push({ ...currentRow, content: currentRow.content || '' });
+          normalized.push({ ...nextRow, content: nextRow.content || '' });
+          normalized.push({ ...nextNextRow, content: nextNextRow.content || '' });
+          i += 3;
+        } else {
+          // Pair: chords + lyrics -> add blank lead
+          const leadId = `${nextRow.id || currentRow.id || 'r'}_ld`;
+          normalized.push({ ...currentRow, content: currentRow.content || '' });
+          normalized.push({ ...nextRow, content: nextRow.content || '' });
+          normalized.push({ id: leadId, type: 'lead', content: '' });
+          i += 2;
+        }
+      } else {
+        // Standalone chords -> add blank lyrics and blank/existing lead
+        const lyricId = `${currentRow.id || 'r'}_l`;
+        normalized.push({ ...currentRow, content: currentRow.content || '' });
+        normalized.push({ id: lyricId, type: 'lyrics', content: '' });
+        if (nextRow && nextRow.type === 'lead') {
+          normalized.push({ ...nextRow, content: nextRow.content || '' });
+          i += 2;
+        } else {
+          const leadId = `${currentRow.id || 'r'}_ld`;
+          normalized.push({ id: leadId, type: 'lead', content: '' });
+          i += 1;
+        }
+      }
+    } else if (rowType === 'lyrics') {
+      const nextRow = i + 1 < rows.length ? rows[i + 1] : null;
+      const chordId = `${currentRow.id || 'r'}_c`;
+
+      if (nextRow && nextRow.type === 'lead') {
+        // Pair: lyrics + lead -> add blank chords above
+        normalized.push({ id: chordId, type: 'chords', content: '' });
+        normalized.push({ ...currentRow, content: currentRow.content || '' });
+        normalized.push({ ...nextRow, content: nextRow.content || '' });
+        i += 2;
+      } else {
+        // Single lyrics -> add blank chords above and blank lead below
+        const leadId = `${currentRow.id || 'r'}_ld`;
+        normalized.push({ id: chordId, type: 'chords', content: '' });
+        normalized.push({ ...currentRow, content: currentRow.content || '' });
+        normalized.push({ id: leadId, type: 'lead', content: '' });
+        i += 1;
+      }
+    } else if (rowType === 'lead') {
+      // Standalone lead -> add blank chords and blank lyrics above
+      const chordId = `${currentRow.id || 'r'}_c`;
+      const lyricId = `${currentRow.id || 'r'}_l`;
+      normalized.push({ id: chordId, type: 'chords', content: '' });
+      normalized.push({ id: lyricId, type: 'lyrics', content: '' });
+      normalized.push({ ...currentRow, content: currentRow.content || '' });
+      i += 1;
+    } else {
+      // Other row types (e.g. 'notes', 'bass', 'custom') -> keep as is
+      normalized.push({ ...currentRow });
+      i += 1;
+    }
+  }
+
+  return normalized;
+}
+
+/**
+ * Normalizes all sections of a song to enforce the standard 3-layer row structure.
+ *
+ * @param {Array<object>} sections
+ * @returns {Array<object>}
+ */
+export function normalizeSongSectionsForEditor(sections) {
+  if (!Array.isArray(sections) || sections.length === 0) {
+    return [
+      {
+        id: 'sec_1',
+        name: 'Verse 1',
+        rows: normalizeSectionRows([])
+      }
+    ];
+  }
+
+  return sections.map((sec, sIdx) => ({
+    ...sec,
+    id: sec.id || `sec_${sIdx + 1}`,
+    name: sec.name || `Section ${sIdx + 1}`,
+    rows: normalizeSectionRows(sec.rows || [])
+  }));
+}

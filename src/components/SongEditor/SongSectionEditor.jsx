@@ -129,28 +129,29 @@ export default function SongSectionEditor({
           } else if (r === rIndex) {
             newRows.push({ ...currentRow, content: splitResult.line1.lyrics });
             if (!leadRow) {
-              if (chordRow) {
-                newRows.push({
-                  id: newChordId,
-                  type: 'chords',
-                  content: splitResult.line2.chords
-                });
-              }
-              newRows.push({
-                id: newLyricId,
-                type: 'lyrics',
-                content: splitResult.line2.lyrics
-              });
-            }
-          } else if (leadRow && r === rIndex + 1) {
-            newRows.push({ ...leadRow, content: splitResult.line1.lead || '' });
-            if (chordRow) {
               newRows.push({
                 id: newChordId,
                 type: 'chords',
                 content: splitResult.line2.chords
               });
+              newRows.push({
+                id: newLyricId,
+                type: 'lyrics',
+                content: splitResult.line2.lyrics
+              });
+              newRows.push({
+                id: newLeadId,
+                type: 'lead',
+                content: splitResult.line2.lead || ''
+              });
             }
+          } else if (leadRow && r === rIndex + 1) {
+            newRows.push({ ...leadRow, content: splitResult.line1.lead || '' });
+            newRows.push({
+              id: newChordId,
+              type: 'chords',
+              content: splitResult.line2.chords
+            });
             newRows.push({
               id: newLyricId,
               type: 'lyrics',
@@ -188,11 +189,11 @@ export default function SongSectionEditor({
             nextInput.setSelectionRange(len, len);
           }
         } else {
-          // Insert a lyrics row below
+          // Insert a lyrics row and lead row below
           const newLyricId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_l';
-          const newLyricRow = { id: newLyricId, type: 'lyrics', content: '' };
+          const newLeadId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_ld';
           const newRows = [...rows];
-          newRows.splice(rIndex + 1, 0, newLyricRow);
+          newRows.splice(rIndex + 1, 0, { id: newLyricId, type: 'lyrics', content: '' }, { id: newLeadId, type: 'lead', content: '' });
           onChange({
             ...section,
             rows: newRows
@@ -212,15 +213,12 @@ export default function SongSectionEditor({
             nextInput.focus();
           }
         } else {
-          // If at the end of section, add a new chord-lyric-lead triplet or line pair
-          const hasChordsInSec = rows.some((r) => r.type === 'chords');
+          // If at the end of section, add a new standard chord-lyric-lead triplet
           const newChordId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_c';
           const newLyricId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_l';
           const newLeadId = 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6) + '_ld';
           const newRows = [...rows];
-          if (hasChordsInSec) {
-            newRows.push({ id: newChordId, type: 'chords', content: '' });
-          }
+          newRows.push({ id: newChordId, type: 'chords', content: '' });
           newRows.push({ id: newLyricId, type: 'lyrics', content: '' });
           newRows.push({ id: newLeadId, type: 'lead', content: '' });
           onChange({
@@ -228,7 +226,7 @@ export default function SongSectionEditor({
             rows: newRows
           });
           setTimeout(() => {
-            const nextInput = document.getElementById(`row-input-${newLyricId}`);
+            const nextInput = document.getElementById(`row-input-${newChordId}`);
             if (nextInput) {
               nextInput.focus();
             }

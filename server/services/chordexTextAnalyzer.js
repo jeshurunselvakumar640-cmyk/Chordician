@@ -171,7 +171,16 @@ CRITICAL RULES:
 5. INLINE BRACKETED CHORDS:
    - "[C]Amazing grace, how [F]sweet the [C]sound" => Extract bracketed chords with character offsets and strip brackets from lyrics.
    - Preserve non-chord parentheses like "(x2)", "(2)", "(ஆ.....ஆ)" in lyrics.
-6. SECTION STRUCTURE & HEADERS:
+6. SECTION STRUCTURE, LYRIC LINE GROUPING & REPETITION HANDLING:
+   - Distinguish individual LYRIC LINES from MUSICAL SONG SECTIONS. A song section (Verse, Chorus, Bridge, etc.) typically contains multiple lyric lines grouped together in its "lines" array.
+   - Do NOT create a new section merely because a new lyric line begins or because of a simple blank line.
+   - Infer song sections from groups of related lines using contextual evidence:
+     * Explicit section labels (e.g. "[Chorus]", "[Verse 1]", "[Verse 2]", "[Bridge]", "[Intro]", "[Outro]", "Pallavi", "Charanam") are authoritative section boundaries. Preserve them.
+     * Stanzas & multi-line grouping: Group consecutive related lyric lines (typically 2 to 6 lines per musical section) into a single section's "lines" array.
+     * Repetition markers such as "-2", "- 2", "(2)", and "x2" (e.g. "Pavitra Aatma Basata Hai-2", "Deh To Meree Hai, Svabhaav Usaka Hai -2", "Jindagaanee Usakee Hai-2") indicate phrase repeats and must NEVER trigger a new section boundary.
+     * Recurring refrains and tag lines (e.g. "(Mein Nahin, Main Nahin...)") represent recurring musical refrain material. Do not break them into isolated 1-line micro-sections; keep them grouped with their logical musical stanza or as recurring Chorus sections.
+     * Never invent fake chords if chords are not present in the input; output empty chords arrays ("chords": []) for lyrics-only inputs.
+     * Do NOT over-merge the entire song into one giant section: maintain genuine musical divisions (Chorus vs Verse 1 vs Verse 2, etc.) while keeping all lines belonging to each section grouped together.
    - Respect and preserve section headers like "[Chorus]", "[Verse 1]", "[Verse 2]", "[Bridge]", "[Intro]", "[Outro]", "[Pre-Chorus]", "[Ending]".
    - Keep sections in sequential order. If the same section is repeated (e.g. multiple "[Chorus]" blocks), output each section block in order.
 7. PRESERVE ORIGINAL LYRICS & EXACT SCRIPT:
@@ -463,24 +472,26 @@ export function convertChordexAiToChordician(chordexData, sourceUrl = '') {
     (sec.lines || []).forEach((line, lIdx) => {
       const lineLyrics = cleanLyricString(line.lyrics, line.chords || []);
       const lineChords = buildAlignedChordString(line.chords);
+      const lineLead = (line.lead || '').trim();
 
-      // If line has chords, add chords row
-      if (lineChords) {
-        rows.push({
-          id: `r_${sIdx + 1}_${lIdx * 2 + 1}`,
-          type: 'chords',
-          content: lineChords
-        });
-      }
+      // Standard 3-layer row sequence: Chords -> Lyrics -> Lead
+      rows.push({
+        id: `r_${sIdx + 1}_${lIdx * 3 + 1}`,
+        type: 'chords',
+        content: lineChords || ''
+      });
 
-      // If line has lyrics, add lyrics row
-      if (lineLyrics) {
-        rows.push({
-          id: `r_${sIdx + 1}_${lIdx * 2 + 2}`,
-          type: 'lyrics',
-          content: lineLyrics
-        });
-      }
+      rows.push({
+        id: `r_${sIdx + 1}_${lIdx * 3 + 2}`,
+        type: 'lyrics',
+        content: lineLyrics || ''
+      });
+
+      rows.push({
+        id: `r_${sIdx + 1}_${lIdx * 3 + 3}`,
+        type: 'lead',
+        content: lineLead || ''
+      });
     });
 
     // Fallback if section has no rows
@@ -488,11 +499,16 @@ export function convertChordexAiToChordician(chordexData, sourceUrl = '') {
       rows.push({
         id: `r_${sIdx + 1}_1`,
         type: 'chords',
-        content: 'C'
+        content: ''
       });
       rows.push({
         id: `r_${sIdx + 1}_2`,
         type: 'lyrics',
+        content: ''
+      });
+      rows.push({
+        id: `r_${sIdx + 1}_3`,
+        type: 'lead',
         content: ''
       });
     }

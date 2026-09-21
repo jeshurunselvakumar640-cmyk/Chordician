@@ -382,7 +382,7 @@ export default function NotesGuide() {
             </div>
 
             <div style={{ padding: '14px 18px', borderRadius: 'var(--radius-lg)', background: 'rgba(168, 85, 247, 0.08)', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
-              <div style={{ fontWeight: '700', color: '#a855f7', marginBottom: '6px', fontSize: '0.95rem' }}>
+              <div style={{ fontWeight: '700', color: 'var(--color-primary, #6366f1)', marginBottom: '6px', fontSize: '0.95rem' }}>
                 Minor Key Harmonic Formula
               </div>
               <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
@@ -425,7 +425,7 @@ export default function NotesGuide() {
             {/* 12 Minor Keys Table */}
             <div style={{ overflowX: 'auto' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: '700', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="badge badge-secondary" style={{ fontSize: '0.78rem', backgroundColor: 'rgba(168, 85, 247, 0.2)', color: '#c084fc' }}>
+                <span className="badge badge-secondary" style={{ fontSize: '0.78rem', backgroundColor: 'var(--color-primary-light, rgba(99, 102, 241, 0.12))', color: 'var(--color-primary, #6366f1)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
                   12 Minor Keys
                 </span>
               </h3>
@@ -441,7 +441,7 @@ export default function NotesGuide() {
                 <tbody>
                   {MINOR_KEY_FAMILIES.map((k) => (
                     <tr key={k.key} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                      <td style={{ padding: '8px 10px', fontWeight: '700', color: '#c084fc' }}>{k.key}</td>
+                      <td style={{ padding: '8px 10px', fontWeight: '700', color: 'var(--color-primary, #6366f1)' }}>{k.key}</td>
                       <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>{k.core.join('  ')}</td>
                       <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{k.relativeMajor.join('  ')}</td>
                       <td style={{ padding: '8px 10px', fontFamily: 'monospace', color: '#f59e0b' }}>{k.dim}</td>

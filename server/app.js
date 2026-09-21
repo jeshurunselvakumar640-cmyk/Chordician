@@ -99,6 +99,7 @@ IMPORTANT RULES:
 15. Estimate the chord's horizontal character position within that lyric line.
 16. If something is uncertain, lower its confidence rather than inventing information.
 17. Crucial: Preserve exact chord qualities (e.g., distinguish minor chords like G#m, Am, Bm, Cm, Dm, Em, F#m, C#m, Bbm from major chords like G#, A, B, C, D, E, F#, C#, Bb; preserve 7, m7, maj7, dim, aug, sus2, sus4). Never drop or omit the minor 'm' indicator or quality suffix from chords or originalKey.
+18. Section Structure & Lyric-Line Grouping: Distinguish individual lyric lines from musical song sections. A song section (Verse, Chorus, Bridge, etc.) typically contains multiple lyric lines grouped together in its "lines" array. Do NOT create a separate section for each lyric line. Infer sections from groups of related lines using contextual clues (explicit labels like Verse/Chorus, stanzas, recurring refrains, and surrounding structure). Repetition markers such as "-2", "- 2", "(2)", and "x2" indicate phrase repeats and must NEVER trigger a new section boundary. If no chords are present in the image for a line, return an empty chords array ("chords": []) without inventing fake chords.
 
 Musical chord examples include:
 C, Cm, C#, C#m, D, Dm, D7, Dmaj7, E, Em, F, Fm, F#, F#m, G, Gm, G#, G#m, G#7, G#m7, A, Am, A7, B, Bm, Bb, Bbm, C#maj7, F#dim, Asus4, and slash / composite chords such as C/E, G/B, D/F#, E/G#, and C7/Am.

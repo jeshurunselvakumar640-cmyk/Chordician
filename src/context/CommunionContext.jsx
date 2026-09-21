@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   getCommunionData,
   saveCommunionData,
@@ -83,7 +83,7 @@ export function CommunionProvider({ children }) {
     reloadData();
   }, [reloadData]);
 
-  const value = {
+  const value = useMemo(() => ({
     songIds: data.songIds,
     notes: data.notes,
     count: data.songIds.length,
@@ -96,7 +96,7 @@ export function CommunionProvider({ children }) {
     clearCommunion: handleClear,
     reload: reloadData,
     getAdjacentSongs: (currentSongId, allSongs) => getAdjacentCommunionSongs(currentSongId, allSongs)
-  };
+  }), [data, handleAddSong, handleRemoveSong, handleToggleSong, handleReorder, handleClear, reloadData]);
 
   return (
     <CommunionContext.Provider value={value}>

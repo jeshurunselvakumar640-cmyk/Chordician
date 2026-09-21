@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { ALL_KEYS, MAJOR_KEYS, MINOR_KEYS, SONG_CATEGORIES, PRIMARY_LANGUAGES } from '../../utils/musicConstants.js';
 import { formatStyleCode } from '../../data/songStyles.js';
-import { mergeSections, splitSection, insertSection } from '../../utils/linkedChordEditorHelper.js';
+import { mergeSections, splitSection, insertSection, normalizeSongSectionsForEditor } from '../../utils/linkedChordEditorHelper.js';
 import SongSectionEditor from './SongSectionEditor';
 import StyleSelectorModal from './StyleSelectorModal';
 import KeyGuide from './KeyGuide';
@@ -58,37 +58,45 @@ export default function SongEditor({
       return next;
     });
   };
-  const [sections, setSections] = useState(
-    initialSong?.sections?.length
-      ? initialSong.sections
-      : [
-          {
-            id: 'sec_1',
-            name: 'Verse 1',
-            rows: [
-              { id: 'r1', type: 'chords', content: 'C   F   C   G' },
-              { id: 'r2', type: 'lyrics', content: '' }
-            ]
-          }
+  const [sections, setSections] = useState(() => {
+    if (initialSong?.sections?.length) {
+      return normalizeSongSectionsForEditor(initialSong.sections);
+    }
+    return [
+      {
+        id: 'sec_1',
+        name: 'Verse 1',
+        rows: [
+          { id: 'r1', type: 'chords', content: 'C   F   C   G' },
+          { id: 'r2', type: 'lyrics', content: '' },
+          { id: 'r3', type: 'lead', content: '' }
         ]
-  );
+      }
+    ];
+  });
 
   const [validationError, setValidationError] = useState('');
 
   const handleAddSection = () => {
     const sectionNumber = sections.length + 1;
+    const ts = Date.now() + Math.random().toString(36).substring(2, 6);
     const newSection = {
-      id: 'sec_' + Date.now() + Math.random().toString(36).substring(2, 6),
+      id: 'sec_' + ts,
       name: `Section ${sectionNumber}`,
       rows: [
         {
-          id: 'r_' + Date.now() + '_1',
+          id: `r_${ts}_1`,
           type: 'chords',
           content: ''
         },
         {
-          id: 'r_' + Date.now() + '_2',
+          id: `r_${ts}_2`,
           type: 'lyrics',
+          content: ''
+        },
+        {
+          id: `r_${ts}_3`,
+          type: 'lead',
           content: ''
         }
       ]

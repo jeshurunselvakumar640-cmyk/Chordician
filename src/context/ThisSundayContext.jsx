@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   getThisSundayData,
   saveThisSundayData,
@@ -85,7 +85,7 @@ export function ThisSundayProvider({ children }) {
     reloadData();
   }, [reloadData]);
 
-  const value = {
+  const value = useMemo(() => ({
     serviceDate: data.serviceDate,
     songIds: data.songIds,
     notes: data.notes,
@@ -106,7 +106,7 @@ export function ThisSundayProvider({ children }) {
     getDaysUntil,
     getDaysUntilNumber,
     isDateExpired
-  };
+  }), [data, handleAddSong, handleRemoveSong, handleToggleSong, handleReorder, handleSetDate, handleClear, reloadData]);
 
   return (
     <ThisSundayContext.Provider value={value}>

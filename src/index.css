@@ -6776,6 +6776,16 @@ button:disabled {
   word-break: break-word;
 }
 
+:root[data-theme='light'] .share-text-preview-box {
+  background: var(--bg-surface);
+  border-color: var(--border-medium);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+:root[data-theme='light'] .share-text-preview-box pre {
+  color: var(--text-main);
+}
+
 .share-actions-row {
   display: flex;
   align-items: center;
@@ -6871,6 +6881,20 @@ button:disabled {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+:root[data-theme='light'] .pwa-toast {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.12), 0 4px 6px -4px rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme='light'] .pwa-toast-title {
+  color: #0f172a;
+}
+
+:root[data-theme='light'] .pwa-toast-desc {
+  color: #64748b;
 }
 
 @keyframes pwaSlideUp {
@@ -8838,6 +8862,11 @@ body.desktop-mode-forced {
   border-radius: var(--radius-xs);
   margin-bottom: 12px;
   flex: 1;
+}
+
+:root[data-theme='light'] .custom-note-card-content {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
 }
 
 .custom-note-card-footer {

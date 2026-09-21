@@ -137,31 +137,43 @@ export function convertChordexToChordician(chordexData) {
     (sec.lines || []).forEach((line, lIdx) => {
       const lineLyrics = (line.lyrics || '').trim();
       const lineChords = buildAlignedChordString(line.chords);
+      const lineLead = (line.lead || '').trim();
 
-      // If line has chords, add chords row
-      if (lineChords) {
-        rows.push({
-          id: `r_${sIdx}_${lIdx}_chords`,
-          type: 'chords',
-          content: lineChords
-        });
-      }
+      // Standard 3-layer row sequence: Chords -> Lyrics -> Lead
+      rows.push({
+        id: `r_${sIdx}_${lIdx}_chords`,
+        type: 'chords',
+        content: lineChords || ''
+      });
 
-      // If line has lyrics, add lyrics row
-      if (lineLyrics) {
-        rows.push({
-          id: `r_${sIdx}_${lIdx}_lyrics`,
-          type: 'lyrics',
-          content: lineLyrics
-        });
-      }
+      rows.push({
+        id: `r_${sIdx}_${lIdx}_lyrics`,
+        type: 'lyrics',
+        content: lineLyrics || ''
+      });
+
+      rows.push({
+        id: `r_${sIdx}_${lIdx}_lead`,
+        type: 'lead',
+        content: lineLead || ''
+      });
     });
 
-    // Fallback row if section is completely empty
+    // Fallback row triplet if section is completely empty
     if (rows.length === 0) {
       rows.push({
-        id: `r_${sIdx}_empty`,
+        id: `r_${sIdx}_chords`,
         type: 'chords',
+        content: ''
+      });
+      rows.push({
+        id: `r_${sIdx}_lyrics`,
+        type: 'lyrics',
+        content: ''
+      });
+      rows.push({
+        id: `r_${sIdx}_lead`,
+        type: 'lead',
         content: ''
       });
     }

@@ -5,7 +5,9 @@ import {
   mergeLinkedLines,
   buildChordLineFromList,
   extractLeadNotesFromLine,
-  buildLeadLineFromList
+  buildLeadLineFromList,
+  normalizeSectionRows,
+  normalizeSongSectionsForEditor
 } from '../../utils/linkedChordEditorHelper.js';
 
 describe('Interactive Song Editor: 3-Layer Synchronization (v4.2)', () => {
@@ -228,5 +230,166 @@ describe('Interactive Song Editor: 3-Layer Synchronization (v4.2)', () => {
     assert.strictEqual(merged.chords.trim(), originalChords.trim());
     assert.strictEqual(merged.lead.trim(), originalLead.trim());
     assert.strictEqual(merged.mergeOffset, 14);
+  });
+});
+
+describe('Standard Editor Row Order: Chords -> Lyrics -> Lead (v4.5)', () => {
+  // Test 1: Lyrics only
+  it('1. Normalizes lyrics-only lines to [blank chords, lyrics, blank lead]', () => {
+    const input = [
+      { id: 'l1', type: 'lyrics', content: 'Main Nahin, Main Nahin,' },
+      { id: 'l2', type: 'lyrics', content: 'Mujhamen Jeesas Jeeta Hai' }
+    ];
+
+    const normalized = normalizeSectionRows(input);
+    assert.strictEqual(normalized.length, 6, '2 lyric lines * 3 rows = 6 rows');
+
+    // Line 1 trio
+    assert.strictEqual(normalized[0].type, 'chords');
+    assert.strictEqual(normalized[0].content, '');
+    assert.strictEqual(normalized[1].type, 'lyrics');
+    assert.strictEqual(normalized[1].content, 'Main Nahin, Main Nahin,');
+    assert.strictEqual(normalized[2].type, 'lead');
+    assert.strictEqual(normalized[2].content, '');
+
+    // Line 2 trio
+    assert.strictEqual(normalized[3].type, 'chords');
+    assert.strictEqual(normalized[3].content, '');
+    assert.strictEqual(normalized[4].type, 'lyrics');
+    assert.strictEqual(normalized[4].content, 'Mujhamen Jeesas Jeeta Hai');
+    assert.strictEqual(normalized[5].type, 'lead');
+    assert.strictEqual(normalized[5].content, '');
+  });
+
+  // Test 2: Chords + lyrics
+  it('2. Normalizes chords + lyrics lines to [chords, lyrics, blank lead]', () => {
+    const input = [
+      { id: 'c1', type: 'chords', content: 'C        G' },
+      { id: 'l1', type: 'lyrics', content: 'Main Nahin, Main Nahin,' }
+    ];
+
+    const normalized = normalizeSectionRows(input);
+    assert.strictEqual(normalized.length, 3);
+    assert.strictEqual(normalized[0].type, 'chords');
+    assert.strictEqual(normalized[0].content, 'C        G');
+    assert.strictEqual(normalized[1].type, 'lyrics');
+    assert.strictEqual(normalized[1].content, 'Main Nahin, Main Nahin,');
+    assert.strictEqual(normalized[2].type, 'lead');
+    assert.strictEqual(normalized[2].content, '');
+  });
+
+  // Test 3: Lyrics + lead
+  it('3. Normalizes lyrics + lead lines to [blank chords, lyrics, lead]', () => {
+    const input = [
+      { id: 'l1', type: 'lyrics', content: 'Main Nahin, Main Nahin,' },
+      { id: 'ld1', type: 'lead', content: 'c   d    e   f' }
+    ];
+
+    const normalized = normalizeSectionRows(input);
+    assert.strictEqual(normalized.length, 3);
+    assert.strictEqual(normalized[0].type, 'chords');
+    assert.strictEqual(normalized[0].content, '');
+    assert.strictEqual(normalized[1].type, 'lyrics');
+    assert.strictEqual(normalized[1].content, 'Main Nahin, Main Nahin,');
+    assert.strictEqual(normalized[2].type, 'lead');
+    assert.strictEqual(normalized[2].content, 'c   d    e   f');
+  });
+
+  // Test 4: Chords + lyrics + lead
+  it('4. Preserves full chords + lyrics + lead lines as [chords, lyrics, lead]', () => {
+    const input = [
+      { id: 'c1', type: 'chords', content: 'C        G' },
+      { id: 'l1', type: 'lyrics', content: 'Main Nahin, Main Nahin,' },
+      { id: 'ld1', type: 'lead', content: 'c   d    e   f' }
+    ];
+
+    const normalized = normalizeSectionRows(input);
+    assert.strictEqual(normalized.length, 3);
+    assert.strictEqual(normalized[0].type, 'chords');
+    assert.strictEqual(normalized[0].content, 'C        G');
+    assert.strictEqual(normalized[1].type, 'lyrics');
+    assert.strictEqual(normalized[1].content, 'Main Nahin, Main Nahin,');
+    assert.strictEqual(normalized[2].type, 'lead');
+    assert.strictEqual(normalized[2].content, 'c   d    e   f');
+  });
+
+  // Test 5: Existing lead content preserved unchanged
+  it('5. Existing Lead notes content is preserved byte-for-byte unchanged', () => {
+    const leadString = "EE   AAA   AC#'   BA BG:4";
+    const input = [
+      { id: 'l1', type: 'lyrics', content: 'Maravaamal Ninaiththeeraiyaa' },
+      { id: 'ld1', type: 'lead', content: leadString }
+    ];
+
+    const normalized = normalizeSectionRows(input);
+    const leadRow = normalized.find(r => r.type === 'lead');
+    assert.strictEqual(leadRow.content, leadString);
+  });
+
+  // Test 6: Existing chord qualities preserved unchanged
+  it('6. Existing chord qualities (G#m, C#m, F#7, Bb, D/F#) preserved unchanged', () => {
+    const chordString = 'G#m      C#m      F#7      Bb      D/F#';
+    const input = [
+      { id: 'c1', type: 'chords', content: chordString },
+      { id: 'l1', type: 'lyrics', content: 'Holy Holy Lord God Almighty' }
+    ];
+
+    const normalized = normalizeSectionRows(input);
+    const chordRow = normalized.find(r => r.type === 'chords');
+    assert.strictEqual(chordRow.content, chordString);
+  });
+
+  // Test 7: Existing lyrics preserved unchanged
+  it('7. Existing lyrics text and repeat markers are preserved unchanged', () => {
+    const lyricString = 'Pavitra Aatma Basata Hai-2 (x2)';
+    const input = [
+      { id: 'l1', type: 'lyrics', content: lyricString }
+    ];
+
+    const normalized = normalizeSectionRows(input);
+    const lyricRow = normalized.find(r => r.type === 'lyrics');
+    assert.strictEqual(lyricRow.content, lyricString);
+  });
+
+  // Test 8: Multiple sections normalized independently
+  it('8. Multiple sections normalize independently to standard row order', () => {
+    const sections = [
+      {
+        id: 'sec1',
+        name: 'Chorus',
+        rows: [
+          { id: 'l1', type: 'lyrics', content: 'Chorus line 1' }
+        ]
+      },
+      {
+        id: 'sec2',
+        name: 'Verse 1',
+        rows: [
+          { id: 'c2', type: 'chords', content: 'D      A' },
+          { id: 'l2', type: 'lyrics', content: 'Verse line 1' }
+        ]
+      }
+    ];
+
+    const normalized = normalizeSongSectionsForEditor(sections);
+    assert.strictEqual(normalized.length, 2);
+
+    // Section 1 has 3 rows: chords (blank), lyrics, lead (blank)
+    assert.strictEqual(normalized[0].rows.length, 3);
+    assert.strictEqual(normalized[0].rows[0].type, 'chords');
+    assert.strictEqual(normalized[0].rows[0].content, '');
+    assert.strictEqual(normalized[0].rows[1].type, 'lyrics');
+    assert.strictEqual(normalized[0].rows[1].content, 'Chorus line 1');
+    assert.strictEqual(normalized[0].rows[2].type, 'lead');
+    assert.strictEqual(normalized[0].rows[2].content, '');
+
+    // Section 2 has 3 rows: chords, lyrics, lead (blank)
+    assert.strictEqual(normalized[1].rows.length, 3);
+    assert.strictEqual(normalized[1].rows[0].type, 'chords');
+    assert.strictEqual(normalized[1].rows[0].content, 'D      A');
+    assert.strictEqual(normalized[1].rows[1].type, 'lyrics');
+    assert.strictEqual(normalized[1].rows[1].content, 'Verse line 1');
+    assert.strictEqual(normalized[1].rows[2].type, 'lead');
+    assert.strictEqual(normalized[1].rows[2].content, '');
   });
 });
