@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAppMode } from '../context/AppModeContext';
 import { useToast } from '../context/ToastContext';
@@ -6,6 +6,7 @@ import { getLyricalTranslation } from './i18n/translations';
 import {
   getInitialLyricalSongs,
   saveLyricalSongs,
+  fetchCloudLyricalSongs,
   getInitialLyricalFavorites,
   saveLyricalFavorites
 } from './data/lyricalSongs';
@@ -35,6 +36,19 @@ export default function LyricalApp() {
 
   const [songs, setSongs] = useState(() => getInitialLyricalSongs());
   const [favorites, setFavorites] = useState(() => getInitialLyricalFavorites());
+
+  // Fetch and synchronize cloud library in background on load
+  useEffect(() => {
+    let isMounted = true;
+    fetchCloudLyricalSongs().then((synced) => {
+      if (isMounted && Array.isArray(synced) && synced.length > 0) {
+        setSongs(synced);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Navigation & Dialog states
   const [isAddOpen, setIsAddOpen] = useState(false);
