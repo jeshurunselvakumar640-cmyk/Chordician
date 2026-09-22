@@ -9797,3 +9797,1778 @@ body.desktop-mode-forced {
     transform: none !important;
   }
 }
+
+/* ==========================================================================
+   CHORDICIAN 5.0 — FIRST LAUNCH SETUP FLOW & LYRICAL APP SHELL
+   ========================================================================== */
+
+/* --- First Launch Setup Container --- */
+.setup-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background-color: var(--bg-app);
+}
+
+.setup-card {
+  width: 100%;
+  max-width: 480px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 32px 24px;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+}
+
+.setup-step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  gap: 8px;
+}
+
+.setup-step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  transition: all var(--transition-fast);
+}
+
+.setup-step-dot.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+
+.setup-step-dot.completed {
+  background-color: var(--color-success);
+  color: #ffffff;
+  border-color: var(--color-success);
+}
+
+.setup-step-line {
+  width: 40px;
+  height: 2px;
+  background-color: var(--border-subtle);
+}
+
+.setup-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.setup-icon-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.setup-icon-sparkle {
+  background: rgba(236, 72, 153, 0.12);
+  color: #ec4899;
+}
+
+.setup-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.setup-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.setup-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.setup-back-btn:hover {
+  color: var(--text-main);
+}
+
+/* Language Options Grid */
+.setup-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.setup-option-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background-color: var(--bg-surface);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  width: 100%;
+}
+
+.setup-option-card:hover {
+  border-color: var(--color-primary);
+  background-color: var(--bg-surface-elevated);
+  transform: translateY(-1px);
+}
+
+.setup-option-card.selected {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.setup-option-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setup-option-native {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.setup-option-english {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.setup-option-action {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.setup-option-card:hover .setup-arrow-icon {
+  transform: translateX(3px);
+  color: var(--color-primary);
+}
+
+/* App Mode Grid */
+.setup-modes-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setup-mode-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background-color: var(--bg-surface);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  width: 100%;
+}
+
+.setup-mode-card:hover {
+  border-color: var(--color-primary);
+  background-color: var(--bg-surface-elevated);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.setup-mode-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.setup-chordician-icon {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.15));
+  color: var(--color-primary);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.setup-lyrical-icon {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(217, 70, 239, 0.15));
+  color: #ec4899;
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
+.setup-mode-body {
+  flex: 1;
+}
+
+.setup-mode-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.setup-mode-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.setup-mode-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.setup-lyrical-badge {
+  background-color: rgba(236, 72, 153, 0.12);
+  color: #ec4899;
+}
+
+.setup-mode-desc {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   LYRICAL APP SHELL STYLES (Chordician 5.0 Unified Theme)
+   ========================================================================== */
+.lyrical-app-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  position: relative;
+}
+
+.lyrical-main-wrapper {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lyrical-top-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.lyrical-brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-radius: var(--radius-md);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.lyrical-lang-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.lyrical-main-content {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Lyrical Sidebar & Artists Section */
+.lyrical-sidebar-section {
+  padding: 16px 14px 8px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lyrical-sidebar-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 4px;
+}
+
+.lyrical-sidebar-section-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.lyrical-sidebar-artists-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.lyrical-artist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-main);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.lyrical-artist-item:hover {
+  background-color: var(--bg-surface);
+  color: var(--color-primary);
+}
+
+.lyrical-artist-item.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+  border-color: rgba(99, 102, 241, 0.28);
+}
+
+.lyrical-artist-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lyrical-artist-count {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.lyrical-artist-item.active .lyrical-artist-count {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.lyrical-artists-empty {
+  padding: 8px 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Lyrical Bottom Navigation (5 items on mobile) */
+.lyrical-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background-color: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border-subtle);
+  z-index: 50;
+  align-items: center;
+  justify-content: space-around;
+  padding-left: 4px;
+  padding-right: 4px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 900px) {
+  .lyrical-bottom-nav {
+    display: flex;
+  }
+}
+
+.lyrical-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 4px 4px;
+  min-width: 44px;
+  flex: 1;
+  max-width: 68px;
+  text-decoration: none;
+  min-height: var(--min-touch-target);
+  transition: all var(--transition-fast);
+}
+
+.lyrical-nav-item.active {
+  color: var(--color-primary);
+}
+
+.lyrical-nav-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transform: translateY(-14px);
+  padding: 0;
+}
+
+.lyrical-nav-add-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.45);
+  border: 3px solid var(--bg-card);
+  transition: transform var(--transition-fast);
+}
+
+.lyrical-nav-add-btn:active .lyrical-nav-add-icon {
+  transform: scale(0.92);
+}
+
+/* Lyrical Page Components */
+.lyrical-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.lyrical-page-header {
+  margin-bottom: 20px;
+}
+
+.lyrical-page-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  margin-bottom: 8px;
+}
+
+.lyrical-page-title {
+  font-size: clamp(1.4rem, 4vw, 1.85rem);
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.lyrical-page-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Search Input */
+.lyrical-search-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.lyrical-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.lyrical-search-input {
+  width: 100%;
+  padding: 12px 40px 12px 42px;
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-size: 0.95rem;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.lyrical-search-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+  background-color: var(--bg-input-focus);
+}
+
+.lyrical-search-clear-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+}
+
+.lyrical-search-clear-btn:hover {
+  color: var(--text-main);
+  background-color: var(--border-subtle);
+}
+
+/* Category Filter Chips */
+.lyrical-category-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 18px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lyrical-category-pill {
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.lyrical-category-pill:hover {
+  border-color: var(--border-medium);
+  color: var(--text-main);
+  background-color: var(--bg-surface);
+}
+
+.lyrical-category-pill.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
+}
+
+/* Active Filter Bar */
+.lyrical-active-filter-bar {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lyrical-active-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background-color: var(--color-primary-light);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  color: var(--color-primary);
+}
+
+.lyrical-clear-filter-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+  border-radius: var(--radius-full);
+}
+
+.lyrical-clear-filter-btn:hover {
+  background-color: rgba(99, 102, 241, 0.2);
+}
+
+/* Empty Card & General Lyrical Cards */
+.lyrical-card {
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+}
+
+.lyrical-empty-card {
+  text-align: center;
+  padding: 48px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.lyrical-empty-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.lyrical-empty-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 8px;
+}
+
+.lyrical-empty-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  max-width: 420px;
+  margin: 0 auto 20px;
+  line-height: 1.45;
+}
+
+.lyrical-header-block {
+  margin-bottom: 24px;
+}
+
+.lyrical-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 4px;
+}
+
+.lyrical-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.lyrical-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+
+.lyrical-switch-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 14px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.lyrical-mode-indicator-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lyrical-action-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background-color: var(--bg-surface);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.lyrical-action-card:hover {
+  border-color: var(--color-primary);
+  background-color: var(--bg-surface-elevated);
+}
+
+.lyrical-action-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lyrical-modal-icon-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   LYRICAL ALL SONGS LIST & SONG ITEM (Step 3)
+   ========================================================================== */
+.lyrical-songs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.lyrical-song-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+  width: 100%;
+}
+
+.lyrical-song-item:hover {
+  border-color: var(--border-medium);
+  background-color: var(--bg-card-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.lyrical-song-item:active {
+  transform: translateY(0);
+}
+
+/* Communion Song Distinct Visual Accent (Subtle & Elegant Red) */
+.lyrical-song-item.is-communion {
+  border-left: 3.5px solid #ef4444;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.04) 0%, var(--bg-card) 35%);
+  border-top-color: rgba(239, 68, 68, 0.18);
+  border-right-color: var(--border-subtle);
+  border-bottom-color: rgba(239, 68, 68, 0.18);
+}
+
+.lyrical-song-item.is-communion:hover {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.08) 0%, var(--bg-card-hover) 40%);
+  border-left-color: #dc2626;
+  border-top-color: rgba(239, 68, 68, 0.3);
+  border-bottom-color: rgba(239, 68, 68, 0.3);
+}
+
+:root[data-theme='light'] .lyrical-song-item.is-communion {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.05) 0%, #ffffff 40%);
+  border-top-color: rgba(239, 68, 68, 0.18);
+  border-bottom-color: rgba(239, 68, 68, 0.18);
+}
+
+:root[data-theme='light'] .lyrical-song-item.is-communion:hover {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.09) 0%, #f8fafc 40%);
+}
+
+.lyrical-communion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.lyrical-song-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.lyrical-song-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lyrical-song-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.lyrical-song-secondary-title {
+  font-size: 0.82em;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 6px;
+  opacity: 0.9;
+}
+
+.lyrical-song-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.lyrical-song-artist {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.lyrical-song-dot {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+.lyrical-song-lang {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Heart / Favorite Button */
+.lyrical-song-fav-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  min-width: 40px;
+  min-height: 40px;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.lyrical-song-fav-btn:hover {
+  background-color: var(--bg-surface);
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.lyrical-song-fav-btn.favorited {
+  color: #ef4444;
+}
+
+.lyrical-song-fav-btn.favorited .heart-filled,
+.lyrical-song-fav-btn .heart-filled {
+  fill: #ef4444;
+  color: #ef4444;
+}
+
+/* Song View Placeholder Top Bar */
+.lyrical-view-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.lyrical-song-header-card {
+  padding: 20px 24px;
+}
+
+.lyrical-song-header-card.is-communion {
+  border-left: 4px solid #ef4444;
+}
+
+@media (max-width: 640px) {
+  .lyrical-song-item {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .lyrical-song-title {
+    font-size: 0.98rem;
+  }
+
+  .lyrical-song-meta-row {
+    font-size: 0.8rem;
+  }
+}
+
+/* ==========================================================================
+   LYRICAL IMPORT & SIMPLE EDITOR MODALS (Step 4)
+   ========================================================================== */
+.lyrical-action-card.active-action {
+  cursor: pointer;
+  border-color: var(--border-subtle);
+  transition: all var(--transition-fast);
+}
+
+.lyrical-action-card.active-action:hover {
+  border-color: var(--color-primary);
+  background-color: var(--bg-surface-elevated);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.lyrical-import-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background-color: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.lyrical-url-preset-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-size: 0.84rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+
+.lyrical-url-preset-chip:hover:not(:disabled) {
+  background-color: var(--bg-surface-elevated);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.lyrical-url-preset-chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   LYRICAL LYRICS VIEWER (Step 5)
+   ========================================================================== */
+.lyrical-song-view-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: 96px;
+  position: relative;
+  width: 100%;
+}
+
+.lyrical-view-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.lyrical-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.lyrical-viewer-header-card {
+  padding: 20px 22px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.lyrical-viewer-header-card.is-communion {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, var(--bg-card) 45%);
+}
+
+.lyrical-viewer-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.lyrical-viewer-secondary-title {
+  font-size: 0.76em;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 8px;
+  opacity: 0.9;
+}
+
+.lyrical-viewer-artist {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  margin: 6px 0 0 0;
+  font-weight: 500;
+}
+
+/* 3 Language Transliteration Tabs: Tamil | English | Hindi */
+.lyrical-viewer-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  margin-top: 18px;
+}
+
+.lyrical-viewer-tab {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+  user-select: none;
+}
+
+.lyrical-viewer-tab:hover:not(.active) {
+  color: var(--text-main);
+  background-color: var(--bg-surface-elevated);
+}
+
+.lyrical-viewer-tab.active {
+  background-color: var(--bg-card);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+}
+
+:root[data-theme='light'] .lyrical-viewer-tab.active {
+  background-color: #ffffff;
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Actual Preserved Lyrics Body */
+.lyrical-viewer-lyrics-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  margin-top: 14px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.lyrical-viewer-lyrics-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-sans);
+  font-size: 1.12rem;
+  line-height: 1.85;
+  color: var(--text-main);
+  padding: 24px 22px;
+  user-select: text;
+  letter-spacing: 0.012em;
+}
+
+/* Graceful Empty/Missing Transliteration State */
+.lyrical-viewer-empty-tab-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 44px 20px;
+  background-color: var(--bg-card);
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-lg);
+  margin-top: 14px;
+  gap: 12px;
+}
+
+.lyrical-viewer-empty-tab-msg {
+  font-size: 0.94rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin: 0;
+  max-width: 320px;
+}
+
+/* Floating Circular Piano-Notes Button */
+.lyrical-floating-piano-btn {
+  position: fixed;
+  right: 22px;
+  bottom: 84px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+  z-index: 40;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.lyrical-floating-piano-btn:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  background: var(--color-primary-hover, var(--color-primary));
+}
+
+.lyrical-floating-piano-btn:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 640px) {
+  .lyrical-viewer-header-card {
+    padding: 16px 16px;
+  }
+
+  .lyrical-viewer-title {
+    font-size: 1.25rem;
+  }
+
+  .lyrical-viewer-artist {
+    font-size: 0.86rem;
+  }
+
+  .lyrical-viewer-tab {
+    padding: 8px 8px;
+    font-size: 0.86rem;
+  }
+
+  .lyrical-viewer-lyrics-content {
+    font-size: 1.04rem;
+    line-height: 1.75;
+    padding: 18px 16px;
+  }
+
+  .lyrical-floating-piano-btn {
+    right: 18px;
+    bottom: 78px;
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* Lyrical Sidebar Quick Actions & Section Styles */
+.lyrical-sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 14px 4px 14px;
+}
+
+.lyrical-sidebar-action-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.lyrical-sidebar-action-btn svg {
+  flex-shrink: 0;
+}
+
+.lyrical-sidebar-action-btn.btn-primary {
+  background: var(--color-primary);
+  color: #ffffff;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.28);
+}
+
+.lyrical-sidebar-action-btn.btn-primary:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.38);
+}
+
+.lyrical-sidebar-action-btn.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border: 1px solid var(--border-medium);
+}
+
+.lyrical-sidebar-action-btn.btn-secondary:hover {
+  background: var(--bg-surface-elevated);
+  border-color: var(--border-focus);
+  transform: translateY(-1px);
+}
+
+.lyrical-sidebar-section {
+  padding: 14px 14px 8px 14px;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.lyrical-sidebar-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.lyrical-sidebar-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.lyrical-sidebar-artists-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  max-height: 240px;
+  padding-right: 2px;
+}
+
+.lyrical-artist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.lyrical-artist-item:hover {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+}
+
+.lyrical-artist-item.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.lyrical-artist-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.lyrical-artist-count {
+  font-size: 0.75rem;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.lyrical-artist-item.active .lyrical-artist-count {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.lyrical-artists-empty {
+  padding: 12px 6px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* Lyrical Secondary Titles Editor Styles */
+.lyrical-secondary-titles-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.lyrical-secondary-titles-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lyrical-add-secondary-title-btn {
+  font-size: 0.82rem;
+  padding: 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lyrical-secondary-titles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.lyrical-secondary-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.lyrical-secondary-title-input {
+  flex: 1;
+  font-size: 0.9rem;
+  padding: 8px 12px;
+}
+
+.lyrical-remove-secondary-title-btn {
+  color: var(--text-dim);
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.lyrical-remove-secondary-title-btn:hover {
+  color: var(--color-danger);
+  background-color: rgba(239, 68, 68, 0.12);
+}
+
+/* Lyrical Song Card Action Buttons (Edit, Delete, Favorite) */
+.lyrical-song-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.lyrical-song-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.lyrical-song-action-btn:hover {
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border-color: var(--border-medium);
+}
+
+.lyrical-song-action-btn.lyrical-edit-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.lyrical-song-action-btn.lyrical-delete-btn:hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background-color: rgba(239, 68, 68, 0.12);
+}
+
+.lyrical-song-fav-btn {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  padding: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.lyrical-song-fav-btn:hover {
+  background-color: var(--bg-surface-elevated);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.lyrical-song-fav-btn.favorited {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+/* Lyrical Viewer Top Actions */
+.lyrical-view-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.lyrical-view-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lyrical-edit-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.lyrical-delete-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-danger) !important;
+  font-weight: 600;
+}
+
+.lyrical-delete-action-btn:hover {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Floating Circular Piano-Notes Button */
+.lyrical-floating-piano-btn {
+  position: fixed;
+  right: 22px;
+  bottom: 84px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #7c3aed 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.5);
+  z-index: 99;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.lyrical-floating-piano-btn:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 6px 24px rgba(99, 102, 241, 0.65);
+}
+
+.lyrical-floating-piano-btn:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 640px) {
+  .lyrical-floating-piano-btn {
+    right: 16px;
+    bottom: 76px;
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* Lyrical Mobile Bottom Navigation Bar */
+.lyrical-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background-color: var(--bg-card);
+  border-top: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 50;
+  padding: 0 8px;
+  align-items: center;
+  justify-content: space-around;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+  .lyrical-bottom-nav {
+    display: flex;
+  }
+
+  .lyrical-main-content {
+    padding-bottom: 84px !important;
+  }
+}
+
+.lyrical-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  flex: 1;
+  max-width: 72px;
+}
+
+.lyrical-nav-item:hover {
+  color: var(--text-main);
+}
+
+.lyrical-nav-item.active {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.lyrical-nav-item.active svg {
+  stroke: var(--color-primary);
+  stroke-width: 2.2;
+}
+
+.lyrical-nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Elevated Central Plus Button */
+.lyrical-nav-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  top: -14px;
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.lyrical-nav-add-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #a855f7 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.45);
+  border: 3px solid var(--bg-card);
+  transition: all var(--transition-fast);
+}
+
+.lyrical-nav-add-btn:hover .lyrical-nav-add-icon {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+}
+
+.lyrical-nav-add-btn:active .lyrical-nav-add-icon {
+  transform: scale(0.95);
+}
+
+/* Lyrical Filter Chips */
+.lyrical-filter-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 8px 2px;
+  margin-bottom: 14px;
+  scrollbar-width: none;
+}
+
+.lyrical-filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.lyrical-filter-chip {
+  padding: 7px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.86rem;
+  font-weight: 600;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.lyrical-filter-chip:hover:not(.active) {
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border-color: var(--border-medium);
+}
+
+.lyrical-filter-chip.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* Lyrical Delete Confirmation Modal */
+.lyrical-delete-modal {
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* Chordician Link Item */
+.lyrical-chord-link-item:hover {
+  background-color: var(--bg-surface-elevated) !important;
+  border-color: var(--border-focus) !important;
+}
+
+
+
+
+

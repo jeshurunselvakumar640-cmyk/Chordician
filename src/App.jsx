@@ -7,6 +7,9 @@ import { ThisSundayProvider } from './context/ThisSundayContext';
 import { CommunionProvider } from './context/CommunionContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DeviceModeProvider } from './context/DeviceModeContext';
+import { AppModeProvider, useAppMode } from './context/AppModeContext';
+import FirstLaunchFlow from './components/Setup/FirstLaunchFlow';
+import LyricalApp from './lyrical/LyricalApp';
 import Layout from './components/Layout/Layout';
 import ReloadPrompt from './components/UI/ReloadPrompt';
 import ConfirmModal from './components/Modal/ConfirmModal';
@@ -413,6 +416,36 @@ function AppContent() {
   );
 }
 
+function MainRouter() {
+  const { isSetupComplete, appMode } = useAppMode();
+
+  // First-launch flow: User chooses Language then App Mode (Chordician vs Lyrical)
+  if (!isSetupComplete) {
+    return <FirstLaunchFlow />;
+  }
+
+  // Lyrical Application Shell (Lyrics) - Independent, no login required
+  if (appMode === 'lyrical') {
+    return (
+      <BrowserRouter>
+        <LyricalApp />
+        <ReloadPrompt />
+      </BrowserRouter>
+    );
+  }
+
+  // Chordician Application (Piano Notes) - Existing full system
+  return (
+    <ThisSundayProvider>
+      <CommunionProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </CommunionProvider>
+    </ThisSundayProvider>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -420,13 +453,9 @@ export default function App() {
         <PWAProvider>
           <ToastProvider>
             <AuthProvider>
-              <ThisSundayProvider>
-                <CommunionProvider>
-                  <BrowserRouter>
-                    <AppContent />
-                  </BrowserRouter>
-                </CommunionProvider>
-              </ThisSundayProvider>
+              <AppModeProvider>
+                <MainRouter />
+              </AppModeProvider>
             </AuthProvider>
           </ToastProvider>
         </PWAProvider>

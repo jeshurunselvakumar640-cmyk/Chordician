@@ -5,6 +5,51 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+function devHtmlProxyPlugin() {
+  return {
+    name: 'dev-html-proxy',
+    configureServer(server) {
+      server.middlewares.use('/api/proxy-html', async (req, res) => {
+        try {
+          const urlObj = new URL(req.url, 'http://localhost');
+          const targetUrl = urlObj.searchParams.get('url');
+          if (!targetUrl) {
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: 'Missing url parameter' }));
+            return;
+          }
+
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 12000);
+
+          const response = await fetch(targetUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Chordician/1.0',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            },
+            signal: controller.signal
+          });
+          clearTimeout(timer);
+
+          if (!response.ok) {
+            res.statusCode = response.status;
+            res.end(`Failed with HTTP ${response.status}`);
+            return;
+          }
+
+          const html = await response.text();
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.end(html);
+        } catch (err) {
+          res.statusCode = 502;
+          res.end(err.message || 'Fetch failed');
+        }
+      });
+    }
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   define: {
@@ -16,6 +61,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    devHtmlProxyPlugin(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',

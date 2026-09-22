@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Heart,
@@ -32,6 +32,7 @@ import { useToast } from '../context/ToastContext.jsx';
 import { useThisSunday } from '../context/ThisSundayContext.jsx';
 import { useCommunion } from '../context/CommunionContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useAppMode } from '../context/AppModeContext.jsx';
 import KeyBadge from '../components/UI/KeyBadge';
 import TransposeBar from '../components/Transposer/TransposeBar';
 import SongViewer from '../components/SongView/SongViewer';
@@ -51,8 +52,31 @@ export default function SongDetails({
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { setAppMode } = useAppMode();
   const { showToast } = useToast();
   const { canEdit, canEditSong } = useAuth();
+
+  const fromLyricalParam = searchParams.get('fromLyrical') === 'true' || Boolean(location.state?.fromLyrical);
+  const lyricalSongId = searchParams.get('lyricalSongId') || location.state?.lyricalSongId || (typeof window !== 'undefined' ? sessionStorage.getItem('chordician_return_to_lyrical') : null);
+  const isFromLyrical = Boolean(fromLyricalParam || (lyricalSongId && (typeof window !== 'undefined' && sessionStorage.getItem('chordician_return_to_lyrical'))));
+
+  const handleBackNavigation = useCallback(() => {
+    if (isFromLyrical && lyricalSongId) {
+      try {
+        sessionStorage.removeItem('chordician_return_to_lyrical');
+      } catch {}
+      if (typeof window !== 'undefined') {
+        window.history.pushState({}, '', `/song/${lyricalSongId}`);
+      }
+      if (setAppMode) {
+        setAppMode('lyrical');
+      }
+    } else {
+      navigate('/songs');
+    }
+  }, [isFromLyrical, lyricalSongId, setAppMode, navigate]);
 
   const [song, setSong] = useState(() => {
     return (Array.isArray(cachedSongs) ? cachedSongs.find((s) => s && s.id === id) : null) || null;
@@ -543,10 +567,14 @@ export default function SongDetails({
           {error || 'The song you requested does not exist or has been removed.'}
         </p>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link to="/songs" className="btn btn-secondary">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleBackNavigation}
+          >
             <ArrowLeft size={16} />
-            Return to Songs Library
-          </Link>
+            <span>{isFromLyrical ? 'Back to Lyrics' : 'Return to Songs Library'}</span>
+          </button>
           <button
             type="button"
             className="btn btn-primary"
@@ -586,11 +614,12 @@ export default function SongDetails({
         <button
           type="button"
           className="btn btn-secondary btn-icon-sm"
-          onClick={() => navigate('/songs')}
-          aria-label="Back to song library"
+          onClick={handleBackNavigation}
+          aria-label={isFromLyrical ? 'Back to Lyrics' : 'Back to song library'}
+          title={isFromLyrical ? 'Back to Lyrics' : 'Back to song library'}
         >
           <ArrowLeft size={18} />
-          <span className="hide-mobile">All Songs</span>
+          <span className="hide-mobile">{isFromLyrical ? 'Back to Lyrics' : 'All Songs'}</span>
         </button>
 
         <div className="song-details-action-group">
@@ -807,13 +836,13 @@ export default function SongDetails({
         <div className="song-details-header-content">
           <div className="song-details-title-group">
             <h1 className="song-details-title">
-              {title}
+              <span>{title}</span>
+              {secondaryTitleText && (
+                <span className="song-details-secondary-title" style={{ fontSize: '0.78em', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '8px' }}>
+                  ({secondaryTitleText})
+                </span>
+              )}
             </h1>
-            {secondaryTitle && (
-              <div className="song-details-secondary-title" style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', marginTop: '2px', fontWeight: 500 }}>
-                {secondaryTitle}
-              </div>
-            )}
             <div className="song-details-artist-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span className="song-details-artist">
                 <User size={14} style={{ opacity: 0.7 }} />

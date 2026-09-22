@@ -1,0 +1,413 @@
+export const LYRICAL_TRANSLATIONS = {
+  english: {
+    appName: 'Lyrical',
+    appTagline: 'Worship Lyrics & Songbook',
+    navHome: 'Home',
+    navThisSunday: 'This Sunday',
+    navCommunion: 'Communion Songs',
+    navAdd: 'Add Song',
+    navLists: 'Lists',
+    navSettings: 'Settings',
+    navArtists: 'Artists',
+
+    // Home / Search / Filters
+    homeTitle: 'Worship Lyrics',
+    homeSubtitle: 'Browse and search Christian worship lyrics',
+    searchPlaceholder: 'Search lyrics by title, artist, or words...',
+    allSongs: 'All Songs',
+    catTamil: 'Tamil',
+    catEnglish: 'English',
+    catHindi: 'Hindi',
+    catWorship: 'Worship',
+    singerLabel: 'Singer / Artist',
+    artistLabel: 'Artist',
+    artistsTitle: 'Artists',
+    noArtistsFound: 'No artists yet',
+    noSongsYet: 'No songs yet',
+    noSongsFound: 'No matching songs found',
+    noSongsSubtitle: 'Add your first song using the + button.',
+    songsCountSuffix: 'songs',
+
+    // This Sunday
+    sundayTitle: "This Sunday's Setlist",
+    sundaySubtitle: 'Prepare lyrics for upcoming worship service.',
+    sundayPlaceholderTitle: 'Sunday Worship Setlist',
+    sundayPlaceholderDesc: 'This Sunday setlist for lyrics will be available here.',
+    sundayEmptyTitle: 'No Sunday Setlist Yet',
+    sundayEmptyDesc: 'Prepare or schedule lyrics for the upcoming Sunday worship service.',
+
+    // Communion
+    communionTitle: 'Communion Songs',
+    communionSubtitle: "Worship lyrics for the Lord's Supper and Holy Communion.",
+    communionPlaceholderTitle: 'Holy Communion Worship Songs',
+    communionPlaceholderDesc: 'Curated worship lyrics for Communion services will be available here.',
+    communionEmptyTitle: 'No Communion Songs Yet',
+    communionEmptyDesc: "Add songs marked for Holy Communion using the + button to build your Lord's Supper collection.",
+
+    // Lists
+    listsTitle: 'Song Lists',
+    listsSubtitle: 'Organize your lyrics into custom sets and categories.',
+    listsPlaceholderTitle: 'Custom Lyric Lists',
+    listsPlaceholderDesc: 'Create custom lists for prayer groups, youth meetings, and services.',
+    createListBtn: 'Create New List',
+
+    // Add Modal Shell
+    addModalTitle: 'Add Lyrics',
+    addModalSubtitle: 'Choose how you want to add lyrics to Lyrical.',
+    smartPasteTitle: 'Smart Paste',
+    smartPasteDesc: 'Paste raw lyrics text and automatically extract title, verses, and chorus.',
+    smartPasteComingSoon: 'Smart Paste will be available in the next step.',
+    importUrlTitle: 'Import from URL',
+    importUrlDesc: 'Fetch lyrics directly from worship websites or links.',
+    addSongManually: 'Add Song Manually',
+    importFromUrl: 'Import from URL',
+    closeBtn: 'Close',
+    cancelBtn: 'Cancel',
+    backBtn: 'Back',
+
+    // URL Import Modal
+    importModalTitle: 'Import from URL',
+    importModalSubtitle: 'Enter a public webpage URL containing worship song lyrics.',
+    urlInputPlaceholder: 'https://example.com/song-lyrics...',
+    importBtn: 'Import Lyrics',
+    importingBtn: 'Importing...',
+
+    // Simple Lyrical Editor
+    editorTitle: 'Review & Save Lyrics',
+    editorSubtitle: 'Review extracted song details and lyrics before adding to library.',
+    titleLabel: 'Song Title',
+    titlePlaceholder: 'Enter song title...',
+    secondaryTitlesLabel: 'Secondary / Alternate Titles',
+    secondaryTitlePlaceholder: 'Enter alternate title or English spelling...',
+    addSecondaryTitleBtn: '+ Add Secondary Title',
+    removeSecondaryTitle: 'Remove alternate title',
+    artistPlaceholder: 'Enter singer or artist name...',
+    languageLabel: 'Language',
+    lyricsLabel: 'Lyrics Text',
+    lyricsPlaceholder: 'Type or edit song lyrics here...',
+    communionCheckboxLabel: 'Mark as Communion Song',
+    saveSongBtn: 'Save to Library',
+    savingBtn: 'Saving...',
+    songSavedToast: 'Song saved to Lyrical library!',
+
+    // Song Management & Actions
+    editSong: 'Edit Song',
+    deleteSong: 'Delete Song',
+    deleteModalTitle: 'Delete Song?',
+    deleteModalDesc: 'Are you sure you want to delete "{title}"? This action cannot be undone.',
+    deleteConfirmBtn: 'Delete',
+    songDeletedToast: 'Song deleted from Lyrical library',
+
+    // Chordician Linking (Owner Only)
+    chordicianLinkSection: 'Chordician Piano Notes',
+    chordicianLinked: 'Linked with Chordician',
+    linkChordicianBtn: 'Link with Chordician',
+    changeChordicianLinkBtn: 'Change Link',
+    unlinkChordicianBtn: 'Unlink',
+    selectChordicianSongModalTitle: 'Select Chordician Song',
+    selectChordicianSongSearchPlaceholder: 'Search Chordician songs by title or artist...',
+    noChordicianSongsFound: 'No Chordician songs found',
+
+    // Lyrics Viewer
+    tabTamil: 'Tamil',
+    tabEnglish: 'English',
+    tabHindi: 'Hindi',
+    lyricsNotAvailable: 'This version is not available yet.',
+    openPianoNotes: 'Open Piano Notes in Chordician',
+    backToLibrary: 'Back to Library',
+    favorited: 'Favorited',
+    favorite: 'Favorite',
+
+    // Settings
+    settingsTitle: 'Settings',
+    settingsSubtitle: 'Manage your app preferences, language, and display options.',
+    switchAppSection: 'Application Mode',
+    switchAppDesc: 'Switch between Chordician (Piano Notes) and Lyrical (Lyrics).',
+    currentModeLabel: 'Current Mode:',
+    switchToChordicianBtn: 'Switch to Chordician (Piano Notes)',
+    languageSection: 'UI Language',
+    languageDesc: 'Choose your preferred language for the interface.',
+    appearanceSection: 'Appearance',
+    darkTheme: 'Dark Theme',
+    lightTheme: 'Light Theme',
+    aboutSection: 'About Lyrical',
+    versionLabel: 'Version',
+    lyricalDescription: 'Lyrical is the dedicated lyrics and worship songbook companion of Chordician.'
+  },
+
+  tamil: {
+    appName: 'Lyrical',
+    appTagline: 'ஆராதனைப் பாடல் வரிகள்',
+    navHome: 'அனைத்து பாடல்கள்',
+    navThisSunday: 'இந்த ஞாயிறு',
+    navCommunion: 'திருவிருந்து பாடல்கள்',
+    navAdd: 'பாடல் சேர்க்க',
+    navLists: 'பாடல்கள்',
+    navSettings: 'அமைப்புகள்',
+    navArtists: 'பாடகர்',
+
+    // Home / Search / Filters
+    homeTitle: 'பாடல் வரிகள்',
+    homeSubtitle: 'ஆராதனைப் பாடல் வரிகளைத் தேடவும் கண்டறியவும்',
+    searchPlaceholder: 'தலைப்பு, பாடகர் அல்லது வரிகளால் தேடுங்கள்...',
+    allSongs: 'அனைத்துப் பாடல்கள்',
+    catTamil: 'Tamil',
+    catEnglish: 'English',
+    catHindi: 'Hindi',
+    catWorship: 'ஆராதனை',
+    singerLabel: 'பாடகர்',
+    artistLabel: 'பாடகர்',
+    artistsTitle: 'பாடகர்',
+    noArtistsFound: 'பாடகர் விவரங்கள் இல்லை',
+    noSongsYet: 'பாடல்கள் இல்லை',
+    noSongsFound: 'பாடல் வரிகள் கிடைக்கவில்லை',
+    noSongsSubtitle: 'கீழே உள்ள + பொத்தானைப் பயன்படுத்தி உங்கள் முதல் பாடலைச் சேர்க்கவும்.',
+    songsCountSuffix: 'பாடல்கள்',
+
+    // This Sunday
+    sundayTitle: 'இந்த ஞாயிறு பாடல்கள்',
+    sundaySubtitle: 'வரவிருக்கும் ஆராதனைக்கான பாடல் வரிகளைத் தயார் செய்யுங்கள்.',
+    sundayPlaceholderTitle: 'ஞாயிறு ஆராதனை பாடல்கள்',
+    sundayPlaceholderDesc: 'ஞாயிறு ஆராதனைக்கான பாடல் வரிகள் இங்கே கிடைக்கும்.',
+    sundayEmptyTitle: 'ஞாயிறு பாடல்கள் இல்லை',
+    sundayEmptyDesc: 'வரவிருக்கும் ஞாயிறு ஆராதனைக்கான பாடல்களை இங்கே தயார் செய்யவும்.',
+
+    // Communion
+    communionTitle: 'திருவிருந்து பாடல்கள்',
+    communionSubtitle: 'திருவிருந்து ஆராதனைக்கான சிறப்புப் பாடல் வரிகள்.',
+    communionPlaceholderTitle: 'திருவிருந்து ஆராதனைப் பாடல்கள்',
+    communionPlaceholderDesc: 'கர்த்தருடைய பந்திக்கான பாடல் வரிகள் இங்கே கிடைக்கும்.',
+    communionEmptyTitle: 'திருவிருந்து பாடல்கள் இல்லை',
+    communionEmptyDesc: 'திருவிருந்து ஆராதனைக்கான பாடல்களை + பொத்தான் மூலம் சேர்க்கவும்.',
+
+    // Lists
+    listsTitle: 'பாடல்கள்',
+    listsSubtitle: 'உங்கள் பாடல் வரிகளைத் தனிப்பயன் தொகுப்புகளாக ஒழுங்கமைக்கவும்.',
+    listsPlaceholderTitle: 'தனிப்பயன் பாடல்கள்',
+    listsPlaceholderDesc: 'கூடுகைகள், ஜெபக் குழுக்கள் மற்றும் சிறப்பு ஆராதனைகளுக்கான தொகுப்புகளை உருவாக்கவும்.',
+    createListBtn: 'புதிய தொகுப்பு உருவாக்க',
+
+    // Add Modal Shell
+    addModalTitle: 'பாடல் வரிகளைச் சேர்க்கவும்',
+    addModalSubtitle: 'பாடல் வரிகளைச் சேர்ப்பதற்கான வழியைத் தேர்ந்தெடுக்கவும்.',
+    smartPasteTitle: 'Smart Paste',
+    smartPasteDesc: 'பாடல் வரிகளை ஒட்டி தானாகவே பல்லவி மற்றும் சரணங்களைப் பிரிக்கவும்.',
+    smartPasteComingSoon: 'Smart Paste அடுத்த கட்டத்தில் கிடைக்கும்.',
+    importUrlTitle: 'URL இலிருந்து இறக்குமதி',
+    importDesc: 'இணையதளங்களிலிருந்து நேரடியாகப் பாடல் வரிகளைப் பெறவும்.',
+    addSongManually: 'கைமுறையாக பாடல் சேர்க்க',
+    importFromUrl: 'URL மூலம் இறக்குமதி',
+    closeBtn: 'மூடு',
+    cancelBtn: 'ரத்து',
+    backBtn: 'பின்செல்க',
+
+    // URL Import Modal
+    importModalTitle: 'URL இலிருந்து இறக்குமதி',
+    importModalSubtitle: 'பாடல் வரிகளைக் கொண்ட இணையதள முகவரியை (URL) உள்ளிடவும்.',
+    urlInputPlaceholder: 'https://example.com/பாடல்-வரிகள்...',
+    importBtn: 'வரிகளை இறக்குமதி செய்க',
+    importingBtn: 'இறக்குமதி செய்யப்படுகிறது...',
+
+    // Simple Lyrical Editor
+    editorTitle: 'பாடல் வரிகளைச் சரிபார்த்து சேமிக்கவும்',
+    editorSubtitle: 'பாடல் விவரங்களைச் சரிபார்த்து உங்கள் தொகுப்பில் சேமிக்கவும்.',
+    titleLabel: 'பாடல் தலைப்பு',
+    titlePlaceholder: 'பாடல் தலைப்பை உள்ளிடவும்...',
+    secondaryTitlesLabel: 'மாற்று / கூடுதல் தலைப்புகள்',
+    secondaryTitlePlaceholder: 'மாற்றுத் தலைப்பு அல்லது ஆங்கில எழுத்துக்களை உள்ளிடவும்...',
+    addSecondaryTitleBtn: '+ மாற்றுத் தலைப்பைச் சேர்க்கவும்',
+    removeSecondaryTitle: 'தலைப்பை நீக்கு',
+    artistPlaceholder: 'பாடகர் பெயரை உள்ளிடவும்...',
+    languageLabel: 'மொழி',
+    lyricsLabel: 'பாடல் வரிகள்',
+    lyricsPlaceholder: 'பாடல் வரிகளை இங்கே தட்டச்சு செய்யவும் அல்லது திருத்தவும்...',
+    communionCheckboxLabel: 'திருவிருந்து பாடலாகக் குறிக்கவும்',
+    saveSongBtn: 'சேமிக்கவும்',
+    savingBtn: 'சேமிக்கப்படுகிறது...',
+    songSavedToast: 'பாடல் வெற்றிகரமாகச் சேமிக்கப்பட்டது!',
+
+    // Song Management & Actions
+    editSong: 'திருத்து',
+    deleteSong: 'நீக்கு',
+    deleteModalTitle: 'பாடலை நீக்கவா?',
+    deleteModalDesc: '"{title}" என்ற பாடலை நீக்க விரும்புகிறீர்களா? இந்த செயலை மாற்ற முடியாது.',
+    deleteConfirmBtn: 'நீக்குக',
+    songDeletedToast: 'பாடல் வெற்றிகரமாக நீக்கப்பட்டது',
+
+    // Chordician Linking (Owner Only)
+    chordicianLinkSection: 'கார்டீசியன் பியானோ நோட்ஸ்',
+    chordicianLinked: 'கார்டீசியனுடன் இணைக்கப்பட்டது',
+    linkChordicianBtn: 'கார்டீசியனுடன் இணைக்க',
+    changeChordicianLinkBtn: 'இணைப்பை மாற்ற',
+    unlinkChordicianBtn: 'இணைப்பை நீக்க',
+    selectChordicianSongModalTitle: 'கார்டீசியன் பாடலைத் தேர்ந்தெடுக்கவும்',
+    selectChordicianSongSearchPlaceholder: 'கார்டீசியன் பாடல்களைத் தேடவும்...',
+    noChordicianSongsFound: 'கார்டீசியன் பாடல்கள் எதுவும் கிடைக்கவில்லை',
+
+    // Lyrics Viewer
+    tabTamil: 'தமிழ்',
+    tabEnglish: 'English',
+    tabHindi: 'ஹிந்தி',
+    lyricsNotAvailable: 'இந்த வடிவம் இன்னும் கிடைக்கவில்லை.',
+    openPianoNotes: 'பியானோ நோட்ஸ் காண்க',
+    backToLibrary: 'அனைத்துப் பாடல்கள்',
+    favorited: 'விருப்பமானது',
+    favorite: 'விருப்பத்தில் சேர்க்க',
+
+    // Settings
+    settingsTitle: 'அமைப்புகள்',
+    settingsSubtitle: 'பயன்பாட்டு விருப்பங்கள், மொழி மற்றும் தோற்றத்தை நிர்வகிக்கவும்.',
+    switchAppSection: 'பயன்பாட்டு முறை (App Mode)',
+    switchAppDesc: 'Chordician (பியானோ நோட்ஸ்) மற்றும் Lyrical (பாடல் வரிகள்) இடையே மாறவும்.',
+    currentModeLabel: 'தற்போதைய முறை:',
+    switchToChordicianBtn: 'Chordician-க்கு மாறவும் (பியானோ நோட்ஸ்)',
+    languageSection: 'இடைமுக மொழி',
+    languageDesc: 'பயன்பாட்டின் மொழியைத் தேர்ந்தெடுக்கவும்.',
+    appearanceSection: 'தோற்றம்',
+    darkTheme: 'இருண்ட நிறம் (Dark Theme)',
+    lightTheme: 'வெளிச்ச நிறம் (Light Theme)',
+    aboutSection: 'Lyrical பற்றி',
+    versionLabel: 'பதிப்பு',
+    lyricalDescription: 'Lyrical என்பது Chordician-இன் பாடல் வரிகளுக்கான பிரத்யேக செயலியாகும்.'
+  },
+
+  hindi: {
+    appName: 'Lyrical',
+    appTagline: 'आराधना गीत के बोल और गीत-पुस्तिका',
+    navHome: 'सारे गाने',
+    navThisSunday: 'इस रविवार',
+    navCommunion: 'प्रभु भोज के गाने',
+    navAdd: 'गीत जोड़ें',
+    navLists: 'सूचियां',
+    navSettings: 'सेटिंग्स',
+    navArtists: 'गायक',
+
+    // Home / Search / Filters
+    homeTitle: 'आराधना गीत के बोल',
+    homeSubtitle: 'ईसाई आराधना गीतों के बोल खोजें और देखें',
+    searchPlaceholder: 'शीर्षक, गायक या शब्दों द्वारा खोजें...',
+    allSongs: 'सभी गीत',
+    catTamil: 'Tamil',
+    catEnglish: 'English',
+    catHindi: 'Hindi',
+    catWorship: 'आराधना',
+    singerLabel: 'गायक',
+    artistLabel: 'गायक',
+    artistsTitle: 'गायक',
+    noArtistsFound: 'कोई गायक नहीं है',
+    noSongsYet: 'अभी कोई गाने नहीं हैं',
+    noSongsFound: 'कोई गीत नहीं मिला',
+    noSongsSubtitle: 'नीचे दिए गए + बटन का उपयोग करके अपना पहला गीत जोड़ें।',
+    songsCountSuffix: 'गाने',
+
+    // This Sunday
+    sundayTitle: 'इस रविवार की गीत सूची',
+    sundaySubtitle: 'आगामी आराधना सेवा के लिए गीत तैयार करें।',
+    sundayPlaceholderTitle: 'रविवार आराधना गीत सूची',
+    sundayPlaceholderDesc: 'रविवार की आराधना के लिए गीतों की सूची यहां उपलब्ध होगी।',
+    sundayEmptyTitle: 'रविवार के कोई गीत नहीं हैं',
+    sundayEmptyDesc: 'आगामी रविवार की आराधना के लिए गीतों की सूची यहाँ तैयार करें।',
+
+    // Communion
+    communionTitle: 'प्रभु भोज के गाने',
+    communionSubtitle: 'प्रभु भोज सेवा के लिए विशेष आराधना गीत के बोल।',
+    communionPlaceholderTitle: 'प्रभु भोज आराधना गीत',
+    communionPlaceholderDesc: 'पवित्र प्रभु भोज सेवा के लिए आराधना गीत यहां उपलब्ध होंगे।',
+    communionEmptyTitle: 'प्रभु भोज के कोई गीत नहीं हैं',
+    communionEmptyDesc: '+ बटन का उपयोग करके प्रभु भोज आराधना के गीत जोड़ें।',
+
+    // Lists
+    listsTitle: 'गीत सूचियां',
+    listsSubtitle: 'अपने गीतों को कस्टम सूचियों और श्रेणियों में व्यवस्थित करें।',
+    listsPlaceholderTitle: 'कस्टम गीत सूचियां',
+    listsPlaceholderDesc: 'प्रार्थना सभाओं, युवा बैठकों और विशेष आयोजनों के लिए सूचियां बनाएं।',
+    createListBtn: 'नई सूची बनाएं',
+
+    // Add Modal Shell
+    addModalTitle: 'गीत जोड़ें',
+    addModalSubtitle: 'Lyrical में गीत जोड़ने का तरीका चुनें।',
+    smartPasteTitle: 'Smart Paste',
+    smartPasteDesc: 'गीत के बोल चिपकाएं और स्वचालित रूप से पद और अंतरा अलग करें।',
+    smartPasteComingSoon: 'Smart Paste अगले चरण में उपलब्ध होगा।',
+    importUrlTitle: 'URL से आयात करें',
+    importUrlDesc: 'वेबसाइटों से सीधे गीत के बोल प्राप्त करें।',
+    addSongManually: 'मैन्युअल रूप से गीत जोड़ें',
+    importFromUrl: 'URL से आयात करें',
+    closeBtn: 'बंद करें',
+    cancelBtn: 'रद्द करें',
+    backBtn: 'पीछे',
+
+    // URL Import Modal
+    importModalTitle: 'URL से आयात करें',
+    importModalSubtitle: 'आराधना गीत के बोल वाले वेबपेज का URL दर्ज करें।',
+    urlInputPlaceholder: 'https://example.com/गीत-के-बोल...',
+    importBtn: 'बोल आयात करें',
+    importingBtn: 'आयात हो रहा है...',
+
+    // Simple Lyrical Editor
+    editorTitle: 'गीत के बोल की समीक्षा करें और सहेजें',
+    editorSubtitle: 'पुस्तकालय में सहेजने से पहले निकाले गए बोल और विवरण की समीक्षा करें।',
+    titleLabel: 'गीत का शीर्षक',
+    titlePlaceholder: 'गीत का शीर्षक दर्ज करें...',
+    secondaryTitlesLabel: 'वैकल्पिक / अतिरिक्त शीर्षक',
+    secondaryTitlePlaceholder: 'वैकल्पिक शीर्षक या अंग्रेज़ी वर्तनी दर्ज करें...',
+    addSecondaryTitleBtn: '+ वैकल्पिक शीर्षक जोड़ें',
+    removeSecondaryTitle: 'शीर्षक हटाएं',
+    artistPlaceholder: 'गायक का नाम दर्ज करें...',
+    languageLabel: 'भाषा',
+    lyricsLabel: 'गीत के बोल',
+    lyricsPlaceholder: 'गीत के बोल यहाँ टाइप या संपादित करें...',
+    communionCheckboxLabel: 'प्रभु भोज गीत के रूप में चिह्नित करें',
+    saveSongBtn: 'सहेजें',
+    savingBtn: 'सहेजा जा रहा है...',
+    songSavedToast: 'गीत सफलतापूर्वक सहेजा गया!',
+
+    // Song Management & Actions
+    editSong: 'संपादित करें',
+    deleteSong: 'हटाएं',
+    deleteModalTitle: 'गीत हटाएं?',
+    deleteModalDesc: 'क्या आप निश्चित रूप से "{title}" को हटाना चाहते हैं? यह क्रिया पूर्ववत नहीं की जा सकती।',
+    deleteConfirmBtn: 'हटाएं',
+    songDeletedToast: 'गीत सफलतापूर्वक हटा दिया गया',
+
+    // Chordician Linking (Owner Only)
+    chordicianLinkSection: 'Chordician पियानो नोट्स',
+    chordicianLinked: 'Chordician से जुड़ा हुआ',
+    linkChordicianBtn: 'Chordician से जोड़ें',
+    changeChordicianLinkBtn: 'लिंक बदलें',
+    unlinkChordicianBtn: 'लिंक हटाएं',
+    selectChordicianSongModalTitle: 'Chordician गीत चुनें',
+    selectChordicianSongSearchPlaceholder: 'शीर्षक या गायक द्वारा खोजें...',
+    noChordicianSongsFound: 'कोई Chordician गीत नहीं मिला',
+
+    // Lyrics Viewer
+    tabTamil: 'तमिल',
+    tabEnglish: 'English',
+    tabHindi: 'हिन्दी',
+    lyricsNotAvailable: 'यह संस्करण अभी उपलब्ध नहीं है.',
+    openPianoNotes: 'पियानो नोट्स खोलें',
+    backToLibrary: 'सभी गीत',
+    favorited: 'पसंदीदा',
+    favorite: 'पसंदीदा में जोड़ें',
+
+    // Settings
+    settingsTitle: 'सेटिंग्स',
+    settingsSubtitle: 'अपनी ऐप प्राथमिकताएं, भाषा और प्रदर्शन विकल्प प्रबंधित करें।',
+    switchAppSection: 'एप्लिकेशन मोड (App Mode)',
+    switchAppDesc: 'Chordician (पियानो नोट्स) और Lyrical (गीत के बोल) के बीच बदलें।',
+    currentModeLabel: 'वर्तमान मोड:',
+    switchToChordicianBtn: 'Chordician पर जाएं (पियानो नोट्स)',
+    languageSection: 'इंटरफ़ेस भाषा',
+    languageDesc: 'इंटरफ़ेस के लिए अपनी पसंदीदा भाषा चुनें।',
+    appearanceSection: 'दिखावट',
+    darkTheme: 'डार्क थीम (Dark Theme)',
+    lightTheme: 'लाइट थीम (Light Theme)',
+    aboutSection: 'Lyrical के बारे में',
+    versionLabel: 'संस्करण',
+    lyricalDescription: 'Lyrical, Chordician का आराधना गीत के बोलों के लिए समर्पित साथी ऐप है।'
+  }
+};
+
+export function getLyricalTranslation(lang = 'english') {
+  return LYRICAL_TRANSLATIONS[lang] || LYRICAL_TRANSLATIONS.english;
+}

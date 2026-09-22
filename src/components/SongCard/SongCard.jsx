@@ -53,6 +53,10 @@ function SongCard({
   const userCanEdit = song && canEditSong ? canEditSong(song) : canEdit;
   const uploaderName = (createdByName || createdBy || 'Jeshurun Selvakumar').replace(/\s*\([Oo]wner\)/g, '').trim();
 
+  const secondaryTitleText = Array.isArray(song.secondaryTitles) && song.secondaryTitles.length > 0
+    ? song.secondaryTitles.filter(Boolean).join(', ')
+    : (song.secondaryTitle || '').trim();
+
   const isSunday = isInThisSunday(id);
   const isCommunion = isInCommunion(id);
 
@@ -167,7 +171,14 @@ function SongCard({
 
           <div className="song-list-text-group">
             <div className="song-list-title-row">
-              <h4 className="song-list-title">{title}</h4>
+              <h4 className="song-list-title">
+                <span>{title}</span>
+                {secondaryTitleText && (
+                  <span className="song-card-secondary-title" style={{ fontSize: '0.82em', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '6px' }}>
+                    ({secondaryTitleText})
+                  </span>
+                )}
+              </h4>
               <KeyBadge songKey={originalKey || 'C'} />
             </div>
             <p className="song-list-subtitle">
@@ -322,7 +333,14 @@ function SongCard({
           )}
 
           <div className="song-title-group">
-            <h3 className="song-card-title">{title}</h3>
+            <h3 className="song-card-title">
+              <span>{title}</span>
+              {secondaryTitleText && (
+                <span className="song-card-secondary-title" style={{ fontSize: '0.82em', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '6px' }}>
+                  ({secondaryTitleText})
+                </span>
+              )}
+            </h3>
             <p className="song-card-artist">
               {artist || 'Unknown Artist'}
               {uploaderName && (

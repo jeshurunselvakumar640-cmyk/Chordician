@@ -26,13 +26,17 @@ import {
   Bell,
   BellOff,
   BellRing,
-  Send
+  Send,
+  FileText,
+  ArrowRight,
+  Layers
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { usePWA } from '../context/PWAContext.jsx';
 import { useDeviceMode } from '../context/DeviceModeContext.jsx';
 import { useAuth, OWNER_DEFAULT_NAME } from '../context/AuthContext.jsx';
+import { useAppMode, SUPPORTED_LANGUAGES } from '../context/AppModeContext.jsx';
 import ContactModal from '../components/Modal/ContactModal.jsx';
 import ConfirmModal from '../components/Modal/ConfirmModal.jsx';
 import { addSong, runFirebaseDiagnostics, transliterateAllRegionalSongsInDb } from '../firebase/songs.js';
@@ -54,6 +58,7 @@ export default function Settings({ onSongAdded }) {
   const { canInstall, isStandalone, installApp } = usePWA();
   const { isDesktopMode, setDesktopMode } = useDeviceMode();
   const { currentUser, userProfile, isOwner, canEdit, logout, openAuthModal } = useAuth();
+  const { language, setLanguage, setAppMode } = useAppMode();
 
   const [isSeeding, setIsSeeding] = useState(false);
   const [isTransliteratingDb, setIsTransliteratingDb] = useState(false);
@@ -732,6 +737,52 @@ export default function Settings({ onSongAdded }) {
             </div>
             {isDesktopMode && <Check size={18} style={{ color: 'var(--color-primary)' }} />}
           </div>
+        </div>
+      </div>
+
+      {/* Application Mode (Chordician Piano Notes vs Lyrical Lyrics) */}
+      <div className="card settings-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <h2 className="settings-section-title" style={{ marginBottom: 0 }}>
+            <Layers size={20} style={{ color: '#ec4899' }} />
+            Application Mode
+          </h2>
+          <span className="badge" style={{ background: 'rgba(99, 102, 241, 0.15)', color: 'var(--color-primary)', border: '1px solid rgba(99, 102, 241, 0.3)', fontWeight: 600, fontSize: '0.78rem' }}>
+            🎹 Active: Chordician (Piano Notes)
+          </span>
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginTop: '8px', marginBottom: '16px' }}>
+          Switch to Lyrical for dedicated worship lyrics, congregation sheets, and multi-language song books.
+        </p>
+
+        <div className="lyrical-switch-box">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="lyrical-action-icon-wrap" style={{ background: 'rgba(236, 72, 153, 0.15)', color: '#ec4899' }}>
+              <FileText size={22} />
+            </div>
+            <div>
+              <strong style={{ display: 'block', fontSize: '0.96rem', color: 'var(--text-main)' }}>
+                Lyrical (Lyrics)
+              </strong>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Worship lyrics, multi-language song sheets, lists & services
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => setAppMode('lyrical')}
+            style={{
+              background: 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(236, 72, 153, 0.35)'
+            }}
+          >
+            <span>Switch to Lyrical</span>
+            <ArrowRight size={14} />
+          </button>
         </div>
       </div>
 
