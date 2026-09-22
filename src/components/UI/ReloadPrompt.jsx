@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw, X, Download, WifiOff } from 'lucide-react';
 import { usePWA } from '../../context/PWAContext';
 
@@ -11,11 +11,19 @@ export default function ReloadPrompt() {
     isOnline
   } = usePWA();
 
-  if (!needRefresh && !offlineReady && isOnline) {
+  const [dismissedOffline, setDismissedOffline] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // When connection returns, reset dismissed state so future offline transitions trigger cleanly
+  useEffect(() => {
+    if (isOnline) {
+      setDismissedOffline(false);
+    }
+  }, [isOnline]);
+
+  if (!needRefresh && !offlineReady && (isOnline || dismissedOffline)) {
     return null;
   }
-
-  const [isUpdating, setIsUpdating] = React.useState(false);
 
   const handleRefresh = async () => {
     setIsUpdating(true);
@@ -25,7 +33,7 @@ export default function ReloadPrompt() {
   return (
     <aside className="pwa-toast-container" aria-live="polite">
       {/* Offline Alert Banner (Only when internet connection is lost) */}
-      {!isOnline && (
+      {!isOnline && !dismissedOffline && (
         <div className="pwa-toast pwa-offline-toast">
           <div className="pwa-toast-icon">
             <WifiOff size={18} />
@@ -33,6 +41,16 @@ export default function ReloadPrompt() {
           <div className="pwa-toast-message">
             <span className="pwa-toast-title">You're currently offline</span>
             <span className="pwa-toast-desc">Cached songs and tools are available. Server features require internet.</span>
+          </div>
+          <div className="pwa-toast-actions">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-icon"
+              onClick={() => setDismissedOffline(true)}
+              aria-label="Dismiss offline notification"
+            >
+              <X size={16} />
+            </button>
           </div>
         </div>
       )}

@@ -99,11 +99,26 @@ export function PWAProvider({ children }) {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Initial sync
+    if (typeof navigator !== 'undefined') {
+      setIsOnline(navigator.onLine);
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // Auto-dismiss offlineReady toast after 4 seconds to prevent lingering banner
+  useEffect(() => {
+    if (offlineReady) {
+      const timer = setTimeout(() => {
+        setOfflineReady(false);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [offlineReady, setOfflineReady]);
 
   const installApp = useCallback(async () => {
     if (!deferredPrompt) {
