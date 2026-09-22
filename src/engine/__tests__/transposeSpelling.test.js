@@ -153,4 +153,124 @@ describe('Transpose Note Spelling & Key-Aware Audit Engine (Part B)', () => {
       }
     });
   });
+
+  describe('7. Canonical Enharmonic Spelling & ±1 Regression Suite', () => {
+    const CANONICAL_ROOTS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const FORBIDDEN_THEORETICAL = ['B#', 'E#', 'Fb', 'Cb', 'F##', 'G##', 'A##', 'C##', 'D##', 'E##', 'B##', 'Abb', 'Bbb', 'Cbb', 'Dbb', 'Ebb'];
+
+    it('7.1. Complete 12-root ±1 transposition matrix', () => {
+      const expectedMinus1 = {
+        'C': 'B', 'C#': 'C', 'D': 'C#', 'D#': 'D',
+        'E': 'D#', 'F': 'E', 'F#': 'F', 'G': 'F#',
+        'G#': 'G', 'A': 'G#', 'A#': 'A', 'B': 'A#'
+      };
+
+      const expectedPlus1 = {
+        'C': 'C#', 'C#': 'D', 'D': 'D#', 'D#': 'E',
+        'E': 'F', 'F': 'F#', 'F#': 'G', 'G': 'G#',
+        'G#': 'A', 'A': 'A#', 'A#': 'B', 'B': 'C'
+      };
+
+      CANONICAL_ROOTS.forEach((root) => {
+        assert.equal(transposeNote(root, -1), expectedMinus1[root], `${root} - 1 must equal ${expectedMinus1[root]}`);
+        assert.equal(transposeNote(root, 1), expectedPlus1[root], `${root} + 1 must equal ${expectedPlus1[root]}`);
+      });
+    });
+
+    it('7.2. Critical bug cases (G# -1 = G, C# -1 = C, F# -1 = F, E +1 = F, B +1 = C, F -1 = E)', () => {
+      assert.equal(transposeNote('G#', -1), 'G', 'G# - 1 must produce G (never F##)');
+      assert.equal(transposeNote('C#', -1), 'C', 'C# - 1 must produce C (never B#)');
+      assert.equal(transposeNote('F#', -1), 'F', 'F# - 1 must produce F (never E#)');
+      assert.equal(transposeNote('E', 1), 'F', 'E + 1 must produce F (never E#)');
+      assert.equal(transposeNote('B', 1), 'C', 'B + 1 must produce C (never B#)');
+      assert.equal(transposeNote('F', -1), 'E', 'F - 1 must produce E (never Fb)');
+    });
+
+    it('7.3. Complete -12 through +12 matrix across all 12 roots produces only canonical notes', () => {
+      for (const root of CANONICAL_ROOTS) {
+        for (let delta = -12; delta <= 12; delta++) {
+          const res = transposeNote(root, delta);
+          assert.ok(
+            CANONICAL_ROOTS.includes(res),
+            `Transposing ${root} by ${delta} produced "${res}", which is not in canonical sharp scale`
+          );
+          assert.ok(
+            !FORBIDDEN_THEORETICAL.includes(res),
+            `Transposing ${root} by ${delta} produced forbidden theoretical spelling "${res}"`
+          );
+          assert.ok(!res.includes('##') && !res.includes('bb'), `Accidental duplication found: ${res}`);
+        }
+      }
+    });
+
+    it('7.4. Flat inputs preserve standard chromatic transposition (Db, Eb, Gb, Ab, Bb)', () => {
+      const flatCases = [
+        { note: 'Db', minus1: 'C', plus1: 'D' },
+        { note: 'Eb', minus1: 'D', plus1: 'E' },
+        { note: 'Gb', minus1: 'F', plus1: 'G' },
+        { note: 'Ab', minus1: 'G', plus1: 'A' },
+        { note: 'Bb', minus1: 'A', plus1: 'B' }
+      ];
+
+      for (const { note, minus1, plus1 } of flatCases) {
+        assert.equal(transposeNote(note, -1), minus1, `${note} - 1 must equal ${minus1}`);
+        assert.equal(transposeNote(note, 1), plus1, `${note} + 1 must equal ${plus1}`);
+      }
+    });
+
+    it('7.5. Chord qualities preserved across all variations on G# and C# roots', () => {
+      const qualities = ['m', 'maj', 'maj7', '7', 'm7', 'sus2', 'sus4', 'dim', 'aug', 'add9'];
+
+      for (const q of qualities) {
+        assert.equal(transposeChord(`G#${q}`, -1), `G${q}`, `G#${q} - 1 must become G${q}`);
+        assert.equal(transposeChord(`C#${q}`, -1), `C${q}`, `C#${q} - 1 must become C${q}`);
+      }
+    });
+
+    it('7.6. Slash chords transpose root and bass independently without token splitting', () => {
+      assert.equal(transposeChord('A/C#', -1), 'G#/C', 'A/C# - 1 must become G#/C');
+      assert.equal(transposeChord('C#/G#', -1), 'C/G', 'C#/G# - 1 must become C/G');
+      assert.equal(transposeChord('F#/C#', -1), 'F/C', 'F#/C# - 1 must become F/C');
+      assert.equal(transposeChord('Bb/F', -1), 'A/E', 'Bb/F - 1 must become A/E');
+      // B# bass note normalizes to pitch 0 (C) and transposes by -1 -> pitch 11 (B)
+      assert.equal(transposeChord('G#/B#', -1), 'G/B', 'G#/B# - 1 must become G/B');
+    });
+
+    it('7.7. Full chord line multi-chord regression preserves spacing and prevents backtracking', () => {
+      assert.equal(
+        transposeChordLine('C#   G#   F#', -1),
+        'C   G   F',
+        'C#   G#   F# - 1 must transpose all chords cleanly to C   G   F'
+      );
+      assert.equal(
+        transposeChordLine('G#m  G#7  G#maj7  C#m  C#7', -1),
+        'Gm  G7  Gmaj7  Cm  C7',
+        'Chord line with suffixes must transpose all roots without leaking double accidentals'
+      );
+      assert.equal(
+        transposeChordLine('| C# | G#m | A/C# |', -1),
+        '| C | Gm | G#/C |',
+        'Barlines and delimiters must remain intact'
+      );
+      assert.equal(
+        transposeChordLine('[C#] (G#7)', -1),
+        '[C] (G7)',
+        'Brackets and parentheses must be preserved'
+      );
+    });
+
+    it('7.8. Round-trip and ±12 octave shift integrity', () => {
+      for (const root of CANONICAL_ROOTS) {
+        const roundTrip1 = transposeNote(transposeNote(root, 1), -1);
+        const roundTrip2 = transposeNote(transposeNote(root, -1), 1);
+        const shiftPlus12 = transposeNote(root, 12);
+        const shiftMinus12 = transposeNote(root, -12);
+
+        assert.equal(roundTrip1, root, `Round-trip (+1, -1) on ${root} must return ${root}`);
+        assert.equal(roundTrip2, root, `Round-trip (-1, +1) on ${root} must return ${root}`);
+        assert.equal(shiftPlus12, root, `+12 shift on ${root} must return ${root}`);
+        assert.equal(shiftMinus12, root, `-12 shift on ${root} must return ${root}`);
+      }
+    });
+  });
 });

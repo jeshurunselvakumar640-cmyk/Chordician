@@ -10,6 +10,13 @@ import { MAJOR_KEY_FAMILIES, MINOR_KEY_FAMILIES } from '../data/keyChordFamilies
 // Pre-computed map from targetKey -> array of 12 note spellings for each semitone (0..11)
 const KEY_SEMITONE_SPELLING_MAP = {};
 
+const THEORETICAL_NOTE_PATTERN = /^(?:[A-G](?:##|bb|[𝄪𝄫])|B#|E#|Fb|Cb)$/i;
+
+export function isTheoreticalSpelling(note) {
+  if (!note || typeof note !== 'string') return false;
+  return THEORETICAL_NOTE_PATTERN.test(note.trim());
+}
+
 function buildKeySpellingMap(keyFamily) {
   const spelling = new Array(12).fill(null);
   const isFlatPref = KEY_SPELLING_PREFERENCE[keyFamily.key] === 'flat';
@@ -26,7 +33,7 @@ function buildKeySpellingMap(keyFamily) {
       const clean = normalizeNoteName(note);
       const st = NOTE_TO_SEMITONE[clean];
       if (st !== undefined) {
-        spelling[st] = clean;
+        spelling[st] = isTheoreticalSpelling(clean) ? defaultScale[st] : clean;
       }
     }
   }
@@ -88,7 +95,10 @@ export function semitoneToNoteName(semitone, preferenceOrTargetKey = 'sharp') {
 
   // 1. Check if target key has a dedicated key-aware scale mapping
   if (KEY_SEMITONE_SPELLING_MAP[preferenceOrTargetKey]) {
-    return KEY_SEMITONE_SPELLING_MAP[preferenceOrTargetKey][normalizedIndex];
+    const candidate = KEY_SEMITONE_SPELLING_MAP[preferenceOrTargetKey][normalizedIndex];
+    if (candidate && !isTheoreticalSpelling(candidate)) {
+      return candidate;
+    }
   }
 
   // 2. Check if preference is explicitly 'flat' or 'sharp'
@@ -112,7 +122,7 @@ export function transposeNote(note, semitoneDelta, preferenceOrTargetKey = 'shar
   if (!(normalized in NOTE_TO_SEMITONE)) return note;
 
   const currentSemitone = NOTE_TO_SEMITONE[normalized];
-  const newSemitone = (currentSemitone + semitoneDelta) % 12;
+  const newSemitone = ((currentSemitone + semitoneDelta) % 12 + 12) % 12;
   return semitoneToNoteName(newSemitone, preferenceOrTargetKey);
 }
 
@@ -127,7 +137,7 @@ export function transposeChord(chordStr, semitoneDelta, preferenceOrTargetKey = 
   if (semitoneDelta % 12 === 0) return trimmed;
 
   // Regex to match: [Root Note][Chord Quality][Optional /Slash Note]
-  const chordRegex = /^([A-Ga-g][#b♭♯]?)([^/]*)(?:\/([A-Ga-g][#b♭♯]?))?$/;
+  const chordRegex = /^([A-Ga-g](?:##|bb|[#b♭♯𝄪𝄫])?)([^/]*)(?:\/([A-Ga-g](?:##|bb|[#b♭♯𝄪𝄫])?))?$/;
   const match = trimmed.match(chordRegex);
 
   if (!match) {
@@ -151,7 +161,8 @@ export function transposeChordLine(chordLine, semitoneDelta, preferenceOrTargetK
   if (!chordLine || typeof chordLine !== 'string') return chordLine;
   if (semitoneDelta % 12 === 0) return chordLine;
 
-  return chordLine.replace(/\b([A-Ga-g][#b♭♯]?(?:[^\s/]*)(?:\/[A-Ga-g][#b♭♯]?)?)\b/g, (match) => {
+  const chordTokenRegex = /\b([A-Ga-g](?:##|bb|[#b♭♯𝄪𝄫])?(?:[^\s/|)}\]–—\-,;:]*)(?:\/[A-Ga-g](?:##|bb|[#b♭♯𝄪𝄫])?)?)/g;
+  return chordLine.replace(chordTokenRegex, (match) => {
     return transposeChord(match, semitoneDelta, preferenceOrTargetKey);
   });
 }
