@@ -102,6 +102,15 @@
   --note-bg: rgba(236, 72, 153, 0.14);
   --note-text: #f472b6;
   --note-border: rgba(236, 72, 153, 0.3);
+
+  --color-border: var(--border-color);
+  --color-text-muted: var(--text-muted);
+  --color-text: var(--text-main);
+  --color-surface: var(--bg-surface);
+  --color-surface-subtle: var(--bg-surface-elevated);
+  --color-primary-bg: var(--color-primary-light);
+  --color-primary-glow: rgba(99, 102, 241, 0.25);
+  --bg-surface-hover: var(--bg-surface-elevated);
 }
 
 /* ==========================================================================
@@ -152,6 +161,15 @@
   --note-bg: #fdf2f8;
   --note-text: #be185d;
   --note-border: #fbcfe8;
+
+  --color-border: var(--border-color);
+  --color-text-muted: var(--text-muted);
+  --color-text: var(--text-main);
+  --color-surface: var(--bg-surface);
+  --color-surface-subtle: var(--bg-surface-elevated);
+  --color-primary-bg: var(--color-primary-light);
+  --color-primary-glow: rgba(99, 102, 241, 0.15);
+  --bg-surface-hover: var(--bg-surface-elevated);
 }
 
 /* ==========================================================================
@@ -996,6 +1014,30 @@ button:disabled {
   font-weight: 700;
 }
 
+.badge-primary {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+:root[data-theme='light'] .badge-primary {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.badge-success {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+:root[data-theme='light'] .badge-success {
+  background-color: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
 .badge-category {
   background-color: var(--bg-surface);
   color: var(--text-muted);
@@ -1006,6 +1048,10 @@ button:disabled {
   background-color: var(--bg-surface);
   color: var(--text-dim);
   font-size: 0.75rem;
+}
+
+:root[data-theme='light'] .badge-section-count {
+  color: var(--text-secondary);
 }
 
 .song-card-footer {
@@ -1589,6 +1635,12 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+:root[data-theme='light'] .badge-notes {
+  background-color: var(--note-bg);
+  color: var(--note-text);
+  border-color: var(--note-border);
 }
 
 .transposed-badge {
@@ -3020,6 +3072,12 @@ button:disabled {
   color: #818cf8;
   border: 1px solid rgba(99, 102, 241, 0.28);
   font-weight: 600;
+}
+
+:root[data-theme='light'] .badge-style {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
 }
 
 .editor-style-row {
@@ -5898,6 +5956,10 @@ button:disabled {
     max-width: 150px;
   }
 
+  [data-theme='light'] .transposer-select {
+    color: #4338ca;
+  }
+
   .song-zoom-control-group {
     display: flex !important;
     align-items: center !important;
@@ -8028,6 +8090,12 @@ body.desktop-mode-forced {
   border: 1px solid rgba(99, 102, 241, 0.25);
 }
 
+:root[data-theme='light'] .song-scale-tag {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
 .song-scale-label {
   font-weight: 700;
   color: var(--text-main);
@@ -8063,6 +8131,12 @@ body.desktop-mode-forced {
   background-color: rgba(16, 185, 129, 0.15);
   color: var(--color-success);
   border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+:root[data-theme='light'] .song-chords-tag {
+  background-color: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
 }
 
 .song-chords-list {

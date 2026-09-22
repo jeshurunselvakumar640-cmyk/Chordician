@@ -9,6 +9,13 @@ import {
 import { db, auth, ensureAuthReady, firebaseConfig } from './config.js';
 import { transliterateSong } from '../transliteration/index.js';
 import { OWNER_EMAIL, OWNER_DEFAULT_NAME } from '../utils/authConstants.js';
+import {
+  getAllSongs as getOfflineAllSongs,
+  getSong as getOfflineSong,
+  saveSongs as saveOfflineSongs,
+  saveSong as saveOfflineSong,
+  deleteSong as deleteOfflineSong
+} from '../services/offline/songDatabase.js';
 
 const SONGS_COLLECTION = 'songs';
 
@@ -136,12 +143,34 @@ export async function getSongs({ forceRefresh = false } = {}) {
       sessionStorage.setItem('chordician_songs_cache_v3', JSON.stringify(songs));
     } catch {}
 
+    // Persist complete fresh catalog to local IndexedDB asynchronously
+    saveOfflineSongs(songs).catch(() => {});
+
     return { data: songs, error: null };
   } catch (err) {
-    // Graceful offline fallback to memory/sessionStorage cache
+    // 2. Offline Fallback Tier 1: In-memory cache
     if (_cachedSongs && _cachedSongs.length > 0) {
       return { data: _cachedSongs, error: null };
     }
+
+    // 3. Offline Fallback Tier 2: IndexedDB offline song database
+    try {
+      const offlineRes = await getOfflineAllSongs();
+      if (offlineRes && Array.isArray(offlineRes.data) && offlineRes.data.length > 0) {
+        _cachedSongs = offlineRes.data;
+        _lastCacheTimestamp = Date.now();
+        offlineRes.data.forEach((s) => {
+          if (s && s.id) {
+            _songMapCache.set(s.id, s);
+          }
+        });
+        return { data: offlineRes.data, error: null };
+      }
+    } catch (offlineErr) {
+      console.warn('[SongsService] IndexedDB fallback notice:', offlineErr);
+    }
+
+    // 4. Offline Fallback Tier 3: sessionStorage
     try {
       const saved = sessionStorage.getItem('chordician_songs_cache_v3');
       if (saved) {
@@ -164,7 +193,7 @@ export async function getSongs({ forceRefresh = false } = {}) {
 export async function getSongById(id) {
   if (!id) return { data: null, error: 'Song ID is required' };
 
-  // Check fast in-memory map
+  // 1. Check fast in-memory map
   if (_songMapCache.has(id)) {
     const cached = _songMapCache.get(id);
     if (cached && Array.isArray(cached.sections)) {
@@ -172,7 +201,7 @@ export async function getSongById(id) {
     }
   }
 
-  // Check in _cachedSongs array
+  // 2. Check in _cachedSongs array
   if (_cachedSongs) {
     const found = _cachedSongs.find((s) => s.id === id);
     if (found && Array.isArray(found.sections) && found.sections.length > 0) {
@@ -189,6 +218,12 @@ export async function getSongById(id) {
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists()) {
+      // If doc does not exist in Firestore, check if stored in local IndexedDB
+      const offlineRes = await getOfflineSong(id);
+      if (offlineRes && offlineRes.data) {
+        _songMapCache.set(id, offlineRes.data);
+        return { data: offlineRes.data, error: null };
+      }
       return { data: null, error: 'Song not found' };
     }
 
@@ -202,11 +237,25 @@ export async function getSongById(id) {
 
     _songMapCache.set(id, songData);
 
+    // Save to IndexedDB asynchronously
+    saveOfflineSong(songData).catch(() => {});
+
     return {
       data: songData,
       error: null
     };
   } catch (err) {
+    // Offline Fallback: Try fetching from local IndexedDB
+    try {
+      const offlineRes = await getOfflineSong(id);
+      if (offlineRes && offlineRes.data) {
+        _songMapCache.set(id, offlineRes.data);
+        return { data: offlineRes.data, error: null };
+      }
+    } catch (offlineErr) {
+      console.warn('[SongsService] getSongById IndexedDB fallback notice:', offlineErr);
+    }
+
     logFirestoreDiagnostic('getDoc', path, err);
     return { data: null, error: formatFirestoreError(err, `getSongById(${id})`) };
   }
@@ -277,6 +326,7 @@ export async function updateSong(id, songData) {
 
     invalidateSongCache(id);
     invalidateSongCache();
+    saveOfflineSong({ id, ...songData }).catch(() => {});
     return { success: true, error: null };
   } catch (err) {
     console.error('updateSong error:', err);
@@ -312,6 +362,7 @@ export async function deleteSong(id) {
 
     invalidateSongCache(id);
     invalidateSongCache();
+    deleteOfflineSong(id).catch(() => {});
     return { success: true, error: null };
   } catch (err) {
     console.error('deleteSong error:', err);
