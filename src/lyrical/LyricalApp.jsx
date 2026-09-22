@@ -7,6 +7,8 @@ import {
   getInitialLyricalSongs,
   saveLyricalSongs,
   fetchCloudLyricalSongs,
+  saveLyricalSongToCloud,
+  deleteLyricalSongFromCloud,
   getInitialLyricalFavorites,
   saveLyricalFavorites
 } from './data/lyricalSongs';
@@ -104,6 +106,8 @@ export default function LyricalApp() {
       return updated;
     });
 
+    deleteLyricalSongFromCloud(songId).catch(() => {});
+
     setFavorites((prev) => {
       if (prev.includes(songId)) {
         const nextFavs = prev.filter((id) => id !== songId);
@@ -139,6 +143,8 @@ export default function LyricalApp() {
       saveLyricalSongs(updated);
       return updated;
     });
+
+    saveLyricalSongToCloud(newSong).catch(() => {});
 
     if (showToast) {
       showToast(t.songSavedToast || 'Song saved to Lyrical library!', 'success', 2500);

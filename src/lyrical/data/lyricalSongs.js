@@ -1,4 +1,4 @@
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config.js';
 import { generateSongTransliterations } from '../transliteration/index.js';
 
@@ -12,87 +12,82 @@ const SAMPLE_SONG_IDS = new Set([
 ]);
 
 /**
- * Converts a Firestore Chordician song document into Lyrical format.
- */
-export function convertFirestoreSongToLyrical(docId, data) {
-  if (!data) return null;
-
-  let lyricsText = '';
-  if (data.originalLyrics && typeof data.originalLyrics === 'string') {
-    lyricsText = data.originalLyrics;
-  } else if (data.lyrics && typeof data.lyrics === 'string') {
-    lyricsText = data.lyrics;
-  } else if (Array.isArray(data.sections)) {
-    const sectionBlocks = [];
-    for (const section of data.sections) {
-      if (!section || !Array.isArray(section.rows)) continue;
-      const sectionLines = [];
-      for (const row of section.rows) {
-        if (row && row.type === 'lyrics' && row.content) {
-          const trimmed = String(row.content).replace(/\t+/g, ' ').trim();
-          if (trimmed && !/^\d+$/.test(trimmed) && !/buy.*book/i.test(trimmed)) {
-            sectionLines.push(trimmed);
-          }
-        }
-      }
-      if (sectionLines.length > 0) {
-        sectionBlocks.push(sectionLines.join('\n'));
-      }
-    }
-    lyricsText = sectionBlocks.join('\n\n');
-  }
-
-  const secondaryTitles = [];
-  if (data.secondaryTitle && typeof data.secondaryTitle === 'string') {
-    secondaryTitles.push(data.secondaryTitle.trim());
-  }
-  if (Array.isArray(data.secondaryTitles)) {
-    secondaryTitles.push(...data.secondaryTitles.filter(Boolean));
-  }
-
-  return {
-    id: data.lyricalId || docId,
-    chordicianSongId: docId,
-    title: data.title || 'Untitled Song',
-    secondaryTitles: Array.from(new Set(secondaryTitles)),
-    artist: data.artist || data.singer || 'Unknown Artist',
-    originalLyrics: lyricsText,
-    originalLanguage: data.category === 'Hindi' ? 'Hindi' : (data.category === 'Marathi' ? 'Marathi' : (data.category === 'Telugu' ? 'Telugu' : 'Tamil')),
-    tamilLyrics: data.tamilLyrics || '',
-    englishLyrics: data.englishLyrics || '',
-    hindiLyrics: data.hindiLyrics || '',
-    isCommunion: Boolean(data.isCommunion || /communion/i.test(data.category || '') || /communion/i.test(data.title || '')),
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt
-  };
-}
-
-/**
- * Fetches the entire 369+ songs library from Firestore and merges with local custom songs.
+ * Fetches dedicated Lyrical songs from Firestore (ONLY documents with isLyrical: true or lyr_ prefix)
+ * Keeps Lyrical library strictly separated from Chordician's chord chart database.
  */
 export async function fetchCloudLyricalSongs() {
   try {
     const snap = await getDocs(collection(db, 'songs'));
     const cloudSongs = [];
-    snap.docs.forEach((doc) => {
-      const lyricalSong = convertFirestoreSongToLyrical(doc.id, doc.data());
-      if (lyricalSong && lyricalSong.originalLyrics) {
-        cloudSongs.push(lyricalSong);
+    snap.docs.forEach((d) => {
+      const data = d.data();
+      // Only include songs specifically added to Lyrical
+      if (data && (data.isLyrical === true || d.id.startsWith('lyr_'))) {
+        cloudSongs.push({
+          id: d.id,
+          ...data,
+          secondaryTitles: Array.isArray(data.secondaryTitles)
+            ? data.secondaryTitles
+            : (data.secondaryTitle ? [data.secondaryTitle] : [])
+        });
       }
     });
 
-    if (cloudSongs.length > 0) {
-      // Merge with custom local songs from localStorage
-      const localSongs = getInitialLyricalSongs();
-      const localCustom = localSongs.filter(s => s && s.id && !cloudSongs.some(c => c.id === s.id || c.chordicianSongId === s.id));
-      const combined = [...localCustom, ...cloudSongs];
-      saveLyricalSongs(combined);
-      return combined;
-    }
+    // Merge with any local custom lyrical songs from localStorage
+    const localSongs = getInitialLyricalSongs();
+    const songMap = new Map();
+    cloudSongs.forEach((s) => songMap.set(s.id, s));
+    localSongs.forEach((s) => {
+      if (s && s.id && !songMap.has(s.id)) {
+        songMap.set(s.id, s);
+        // Upload un-synced local song to Firestore in background
+        saveLyricalSongToCloud(s).catch(() => {});
+      }
+    });
+
+    const combined = Array.from(songMap.values());
+    saveLyricalSongs(combined);
+    return combined;
   } catch (err) {
-    console.warn('[Lyrical Cloud Sync] Error fetching Firestore songs:', err);
+    console.warn('[Lyrical Cloud Sync] Error fetching Lyrical songs:', err);
   }
   return getInitialLyricalSongs();
+}
+
+/**
+ * Saves a dedicated Lyrical song to Firestore cloud database with isLyrical: true.
+ */
+export async function saveLyricalSongToCloud(song) {
+  if (!song || !song.id) return;
+  try {
+    const songId = song.id.startsWith('lyr_') ? song.id : `lyr_${song.id}`;
+    const payload = {
+      ...song,
+      id: songId,
+      isLyrical: true,
+      updatedAt: new Date().toISOString()
+    };
+    if (!payload.createdAt) {
+      payload.createdAt = new Date().toISOString();
+    }
+    await setDoc(doc(db, 'songs', songId), payload);
+    return payload;
+  } catch (err) {
+    console.warn('[Lyrical Save to Cloud Warning]:', err);
+  }
+}
+
+/**
+ * Deletes a Lyrical song from Firestore cloud database.
+ */
+export async function deleteLyricalSongFromCloud(songId) {
+  if (!songId) return;
+  try {
+    const targetId = songId.startsWith('lyr_') ? songId : `lyr_${songId}`;
+    await deleteDoc(doc(db, 'songs', targetId));
+  } catch (err) {
+    console.warn('[Lyrical Delete from Cloud Warning]:', err);
+  }
 }
 
 export function getInitialLyricalSongs() {

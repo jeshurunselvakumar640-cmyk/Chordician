@@ -125,6 +125,11 @@ export async function getSongs({ forceRefresh = false } = {}) {
     const songs = [];
     snapshot.forEach((docSnapshot) => {
       const data = docSnapshot.data();
+      // Keep databases strictly separated: Chordician loads only Chordician chord chart songs
+      if (data && (data.isLyrical === true || docSnapshot.id.startsWith('lyr_'))) {
+        return;
+      }
+
       const songItem = {
         id: docSnapshot.id,
         ...data,
