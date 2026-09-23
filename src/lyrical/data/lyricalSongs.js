@@ -1,9 +1,11 @@
-import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config.js';
+import { collection, getDocs } from 'firebase/firestore';
+import { lyricalDb } from '../firebase/config.js';
 import { generateSongTransliterations } from '../transliteration/index.js';
 
-const LYRICAL_SONGS_STORAGE_KEY = 'lyrical_songs_v1';
+const OLD_STALE_STORAGE_KEY = 'lyrical_songs_v1';
+const LYRICAL_SONGS_STORAGE_KEY = 'lyrical_cloud_songs_cache_v1';
 const LYRICAL_FAVORITES_STORAGE_KEY = 'lyrical_favorites_v1';
+const LYRICAL_SONGS_COLLECTION = 'lyrical_songs';
 
 // Known sample song IDs created during development that must be purged
 const SAMPLE_SONG_IDS = new Set([
@@ -12,17 +14,26 @@ const SAMPLE_SONG_IDS = new Set([
 ]);
 
 /**
- * Fetches dedicated Lyrical songs from Firestore (ONLY documents with isLyrical: true or lyr_ prefix)
- * Keeps Lyrical library strictly separated from Chordician's chord chart database.
+ * Fetches dedicated Lyrical songs from Firestore (Project: notespiano, Collection: /lyrical_songs).
+ * Public read access - completely separated from Chordician's pianonotes-1bd94 database.
+ * If notespiano /lyrical_songs is empty, returns [] and purges any stale legacy cache.
  */
 export async function fetchCloudLyricalSongs() {
+  // Purge legacy stale cache key immediately
   try {
-    const snap = await getDocs(collection(db, 'songs'));
+    localStorage.removeItem(OLD_STALE_STORAGE_KEY);
+  } catch {}
+
+  try {
+    if (!lyricalDb) {
+      return getInitialLyricalSongs();
+    }
+
+    const snap = await getDocs(collection(lyricalDb, LYRICAL_SONGS_COLLECTION));
     const cloudSongs = [];
     snap.docs.forEach((d) => {
       const data = d.data();
-      // Only include songs specifically added to Lyrical
-      if (data && (data.isLyrical === true || d.id.startsWith('lyr_'))) {
+      if (data) {
         cloudSongs.push({
           id: d.id,
           ...data,
@@ -33,65 +44,105 @@ export async function fetchCloudLyricalSongs() {
       }
     });
 
-    // Merge with any local custom lyrical songs from localStorage
-    const localSongs = getInitialLyricalSongs();
-    const songMap = new Map();
-    cloudSongs.forEach((s) => songMap.set(s.id, s));
-    localSongs.forEach((s) => {
-      if (s && s.id && !songMap.has(s.id)) {
-        songMap.set(s.id, s);
-        // Upload un-synced local song to Firestore in background
-        saveLyricalSongToCloud(s).catch(() => {});
-      }
-    });
-
-    const combined = Array.from(songMap.values());
-    saveLyricalSongs(combined);
-    return combined;
+    // notespiano /lyrical_songs is the sole canonical source of truth for Lyrical songs
+    saveLyricalSongs(cloudSongs);
+    return cloudSongs;
   } catch (err) {
-    console.warn('[Lyrical Cloud Sync] Error fetching Lyrical songs:', err);
+    console.warn('[Lyrical Cloud Sync] Error fetching Lyrical songs from notespiano:', err.message);
   }
   return getInitialLyricalSongs();
 }
 
 /**
- * Saves a dedicated Lyrical song to Firestore cloud database with isLyrical: true.
+ * Saves a dedicated Lyrical song to notespiano Firestore via the secure Owner Backend API.
+ * Requires an authorized Owner ID token.
  */
-export async function saveLyricalSongToCloud(song) {
-  if (!song || !song.id) return;
-  try {
-    const songId = song.id.startsWith('lyr_') ? song.id : `lyr_${song.id}`;
-    const payload = {
-      ...song,
-      id: songId,
-      isLyrical: true,
-      updatedAt: new Date().toISOString()
-    };
-    if (!payload.createdAt) {
-      payload.createdAt = new Date().toISOString();
-    }
-    await setDoc(doc(db, 'songs', songId), payload);
-    return payload;
-  } catch (err) {
-    console.warn('[Lyrical Save to Cloud Warning]:', err);
+export async function saveLyricalSongToCloud(song, idToken = null) {
+  if (!song) return { success: false, error: 'Song data is required' };
+
+  // Always persist to local device storage first
+  const currentLocal = getInitialLyricalSongs();
+  const existingIdx = currentLocal.findIndex(s => s.id === song.id);
+  let updatedLocal;
+  if (existingIdx >= 0) {
+    updatedLocal = [...currentLocal];
+    updatedLocal[existingIdx] = song;
+  } else {
+    updatedLocal = [song, ...currentLocal];
   }
+  saveLyricalSongs(updatedLocal);
+
+  // If user is authenticated with an ID token, dispatch write to the secure Owner Backend
+  if (idToken) {
+    try {
+      const res = await fetch('/api/lyrical/songs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify(song)
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        console.warn('[Lyrical Cloud Save Warning]:', result.error);
+        return { success: false, error: result.error, localSaved: true };
+      }
+      return { success: true, id: result.id, song: result.song };
+    } catch (err) {
+      console.warn('[Lyrical Cloud Save Exception]:', err.message);
+      return { success: false, error: err.message, localSaved: true };
+    }
+  }
+
+  return { success: true, id: song.id, song, localSaved: true };
 }
 
 /**
- * Deletes a Lyrical song from Firestore cloud database.
+ * Deletes a Lyrical song from notespiano Firestore via the secure Owner Backend API.
+ * Requires an authorized Owner ID token.
  */
-export async function deleteLyricalSongFromCloud(songId) {
-  if (!songId) return;
-  try {
-    const targetId = songId.startsWith('lyr_') ? songId : `lyr_${songId}`;
-    await deleteDoc(doc(db, 'songs', targetId));
-  } catch (err) {
-    console.warn('[Lyrical Delete from Cloud Warning]:', err);
+export async function deleteLyricalSongFromCloud(songId, idToken = null) {
+  if (!songId) return { success: false, error: 'Song ID is required' };
+
+  // Always delete from local device storage
+  const currentLocal = getInitialLyricalSongs();
+  const updatedLocal = currentLocal.filter(s => s.id !== songId);
+  saveLyricalSongs(updatedLocal);
+
+  // If user is authenticated with an ID token, dispatch delete to the secure Owner Backend
+  if (idToken) {
+    try {
+      const res = await fetch(`/api/lyrical/songs/${encodeURIComponent(songId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        console.warn('[Lyrical Cloud Delete Warning]:', result.error);
+        return { success: false, error: result.error };
+      }
+      return { success: true, id: songId };
+    } catch (err) {
+      console.warn('[Lyrical Cloud Delete Exception]:', err.message);
+      return { success: false, error: err.message };
+    }
   }
+
+  return { success: true, id: songId };
 }
 
 export function getInitialLyricalSongs() {
   try {
+    // Proactively purge old stale cache from prior development step
+    if (localStorage.getItem(OLD_STALE_STORAGE_KEY)) {
+      localStorage.removeItem(OLD_STALE_STORAGE_KEY);
+    }
+
     const raw = localStorage.getItem(LYRICAL_SONGS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);

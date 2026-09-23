@@ -9,6 +9,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import importUrlRouter from './routes/importUrl.js';
 import notificationsRouter from './routes/notifications.js';
 import songsRouter from './routes/songs.js';
+import lyricalRouter from './routes/lyrical.js';
 
 dotenv.config();
 
@@ -39,6 +40,10 @@ app.use((req, res, next) => {
   console.log(`[HTTP API] ${req.method} ${req.url}`);
   next();
 });
+
+// Register Lyrical write routes (Project: notespiano)
+app.use('/api/lyrical', lyricalRouter);
+app.use('/lyrical', lyricalRouter);
 
 // Register Song write routes
 app.use('/api/songs', songsRouter);

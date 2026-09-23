@@ -1,0 +1,26 @@
+rules_version = '2';
+
+/**
+ * Firestore Security Rules for Lyrical Firebase Project: notespiano
+ * 
+ * Security Architecture:
+ * - Public Users: READ-ONLY access to lyrical_songs and lyrical_sunday_setlist without authentication.
+ * - Public Writes: STRICTLY FORBIDDEN (allow write: if false).
+ * - Owner/Admin Writes: Executed via cryptographic token verification through the secure backend API (/api/lyrical/*).
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Lyrical Songbook Library (Public Read Only)
+    match /lyrical_songs/{songId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 2. Lyrical Sunday Setlist (Public Read Only)
+    match /lyrical_sunday_setlist/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

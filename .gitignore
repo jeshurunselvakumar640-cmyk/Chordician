@@ -31,4 +31,6 @@ dev-dist
 
 # Scratch files
 scratch/
-
+notespiano-key*
+notespiano-key.json
+notespiano-key.json.json

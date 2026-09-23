@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAppMode } from '../context/AppModeContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getLyricalTranslation } from './i18n/translations';
 import {
@@ -33,6 +34,7 @@ import LyricalDeleteConfirmModal from './components/LyricalDeleteConfirmModal';
 export default function LyricalApp() {
   const navigate = useNavigate();
   const { language } = useAppMode();
+  const { currentUser, isOwner } = useAuth();
   const { showToast } = useToast();
   const t = getLyricalTranslation(language);
 
@@ -43,7 +45,7 @@ export default function LyricalApp() {
   useEffect(() => {
     let isMounted = true;
     fetchCloudLyricalSongs().then((synced) => {
-      if (isMounted && Array.isArray(synced) && synced.length > 0) {
+      if (isMounted && Array.isArray(synced)) {
         setSongs(synced);
       }
     });
@@ -99,14 +101,22 @@ export default function LyricalApp() {
   };
 
   // On confirming song deletion
-  const handleConfirmDelete = (songId) => {
+  const handleConfirmDelete = async (songId) => {
     setSongs((prev) => {
       const updated = prev.filter((s) => s.id !== songId);
       saveLyricalSongs(updated);
       return updated;
     });
 
-    deleteLyricalSongFromCloud(songId).catch(() => {});
+    let idToken = null;
+    if (currentUser && isOwner && typeof currentUser.getIdToken === 'function') {
+      try {
+        idToken = await currentUser.getIdToken();
+      } catch (tokenErr) {
+        console.warn('[Lyrical Auth] Failed to acquire ID token for delete:', tokenErr);
+      }
+    }
+    deleteLyricalSongFromCloud(songId, idToken).catch(() => {});
 
     setFavorites((prev) => {
       if (prev.includes(songId)) {
@@ -130,28 +140,44 @@ export default function LyricalApp() {
   };
 
   // On saving reviewed song in Simple Editor
-  const handleSaveSong = (newSong) => {
+  const handleSaveSong = async (newSong) => {
+    let idToken = null;
+    if (currentUser && isOwner && typeof currentUser.getIdToken === 'function') {
+      try {
+        idToken = await currentUser.getIdToken();
+      } catch (tokenErr) {
+        console.warn('[Lyrical Auth] Failed to acquire ID token for save:', tokenErr);
+      }
+    }
+
+    const cloudResult = await saveLyricalSongToCloud(newSong, idToken);
+    const finalSong = (cloudResult && cloudResult.song) ? cloudResult.song : newSong;
+
     setSongs((prev) => {
-      const existingIndex = prev.findIndex((s) => s.id === newSong.id);
+      const existingIndex = prev.findIndex((s) => s.id === finalSong.id);
       let updated;
       if (existingIndex >= 0) {
         updated = [...prev];
-        updated[existingIndex] = newSong;
+        updated[existingIndex] = finalSong;
       } else {
-        updated = [newSong, ...prev];
+        updated = [finalSong, ...prev];
       }
       saveLyricalSongs(updated);
       return updated;
     });
 
-    saveLyricalSongToCloud(newSong).catch(() => {});
-
     if (showToast) {
-      showToast(t.songSavedToast || 'Song saved to Lyrical library!', 'success', 2500);
+      if (cloudResult && cloudResult.success && !cloudResult.localOnly) {
+        showToast(t.songSavedToast || 'Song saved to Lyrical cloud library!', 'success', 2500);
+      } else if (cloudResult && cloudResult.localOnly) {
+        showToast('Saved locally. Log in as Owner in Chordician to publish to cloud.', 'info', 3500);
+      } else {
+        showToast(cloudResult?.error || 'Failed to save song to cloud', 'error', 3000);
+      }
     }
 
     setIsEditorOpen(false);
-    navigate(`/song/${newSong.id}`);
+    navigate(`/song/${finalSong.id}`);
   };
 
   // Derived distinct artists and their song counts
@@ -235,7 +261,18 @@ export default function LyricalApp() {
                 />
               }
             />
-            <Route path="/this-sunday" element={<LyricalThisSunday />} />
+            <Route
+              path="/this-sunday"
+              element={
+                <LyricalThisSunday
+                  songs={songs}
+                  favorites={favorites}
+                  onToggleFavorite={handleToggleFavorite}
+                  onEditSong={handleEditSong}
+                  onDeleteSong={handleDeletePrompt}
+                />
+              }
+            />
             <Route
               path="/communion"
               element={

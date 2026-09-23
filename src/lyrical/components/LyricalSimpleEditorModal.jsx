@@ -89,7 +89,7 @@ export default function LyricalSimpleEditorModal({
     const transliterations = generateSongTransliterations(cleanLyrics, songLanguage);
 
     const newSong = {
-      id: initialData?.id || `lyr-${Date.now()}`,
+      id: initialData?.id || `lyr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       title: title.trim(),
       secondaryTitles: cleanSecondaryTitles,
       artist: artist.trim() || 'Unknown Artist',
