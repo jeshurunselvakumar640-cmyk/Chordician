@@ -837,9 +837,9 @@ export default function SongDetails({
           <div className="song-details-title-group">
             <h1 className="song-details-title">
               <span>{title}</span>
-              {secondaryTitleText && (
+              {secondaryTitle && (
                 <span className="song-details-secondary-title" style={{ fontSize: '0.78em', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '8px' }}>
-                  ({secondaryTitleText})
+                  ({secondaryTitle})
                 </span>
               )}
             </h1>
