@@ -44,15 +44,20 @@ export default function SongViewer({ transposedSong, zoomLevel = 100 }) {
           border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
           borderRadius: 'var(--radius-md, 8px)',
           display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          flexDirection: 'column',
+          gap: '6px',
           lineHeight: '1.4'
         }}
       >
-        <span style={{ fontSize: '1rem', flexShrink: 0 }}>🎹</span>
-        <span>
-          <strong>Note:</strong> Style number is according to <strong>Yamaha PSR I425</strong> & <strong>Yamaha PSR F51</strong>.
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '1rem', flexShrink: 0 }}>🎹</span>
+          <span>
+            <strong>Note:</strong> Style number is according to <strong>Yamaha PSR I425</strong> & <strong>Yamaha PSR F51</strong>.
+          </span>
+        </div>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', opacity: 0.9 }}>
+          Leads with ( ' ) are higher octave and leads with 2 are lower octave and while using transpose it may change.
+        </div>
       </div>
     </div>
   );

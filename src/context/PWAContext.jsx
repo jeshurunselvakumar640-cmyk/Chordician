@@ -13,7 +13,9 @@ const PWAContext = createContext({
 });
 
 export function PWAProvider({ children }) {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(() => {
+    return (typeof window !== 'undefined' && window.__chordician_deferred_prompt) || null;
+  });
   const [isStandalone, setIsStandalone] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
@@ -67,16 +69,28 @@ export function PWAProvider({ children }) {
     };
   }, []);
 
+  // Sync deferred prompt if captured early
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.__chordician_deferred_prompt && !deferredPrompt) {
+      setDeferredPrompt(window.__chordician_deferred_prompt);
+    }
+  }, [deferredPrompt]);
+
   // Listen for beforeinstallprompt event
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       // Prevent browser default mini-infobar on mobile
       e.preventDefault();
-      // Stash event so it can be triggered unobtrusively by user action
+      if (typeof window !== 'undefined') {
+        window.__chordician_deferred_prompt = e;
+      }
       setDeferredPrompt(e);
     };
 
     const handleAppInstalled = () => {
+      if (typeof window !== 'undefined') {
+        window.__chordician_deferred_prompt = null;
+      }
       setDeferredPrompt(null);
       setIsStandalone(true);
       console.log('Chordician PWA installed successfully');
@@ -121,21 +135,26 @@ export function PWAProvider({ children }) {
   }, [offlineReady, setOfflineReady]);
 
   const installApp = useCallback(async () => {
-    if (!deferredPrompt) {
-      return false;
+    const promptEvent = deferredPrompt || (typeof window !== 'undefined' && window.__chordician_deferred_prompt);
+    if (!promptEvent) {
+      return { success: false, reason: 'no-prompt' };
     }
 
     try {
-      await deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
-      if (choiceResult && choiceResult.outcome === 'accepted') {
-        setDeferredPrompt(null);
-        return true;
+      await promptEvent.prompt();
+      const choiceResult = await promptEvent.userChoice;
+      if (typeof window !== 'undefined') {
+        window.__chordician_deferred_prompt = null;
       }
-      return false;
+      setDeferredPrompt(null);
+      if (choiceResult && choiceResult.outcome === 'accepted') {
+        setIsStandalone(true);
+        return { success: true, outcome: 'accepted' };
+      }
+      return { success: false, outcome: choiceResult ? choiceResult.outcome : 'dismissed' };
     } catch (err) {
       console.warn('Error during PWA installation:', err);
-      return false;
+      return { success: false, error: err.message };
     }
   }, [deferredPrompt]);
 

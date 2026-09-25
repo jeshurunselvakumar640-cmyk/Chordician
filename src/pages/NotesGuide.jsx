@@ -332,6 +332,26 @@ export default function NotesGuide() {
         </div>
       </div>
 
+      {/* Lead Octave Notation Informational Banner */}
+      <div
+        className="card"
+        style={{
+          padding: '12px 18px',
+          marginBottom: '16px',
+          background: 'rgba(99, 102, 241, 0.08)',
+          border: '1px solid rgba(99, 102, 241, 0.2)',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}
+      >
+        <Music size={18} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+        <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          Lead notation: <code style={{ color: 'var(--color-primary)', background: 'rgba(99, 102, 241, 0.12)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>'</code> means one octave higher, while <code style={{ color: 'var(--color-primary)', background: 'rgba(99, 102, 241, 0.12)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>2</code> means one octave lower. These octave markers are based on the PSR-F51 / PSR-I425 styles.
+        </div>
+      </div>
+
       {/* Main Chord Reference Cards Grid */}
       <div className="notes-guide-grid">
         {filteredSections.map((sec) => (

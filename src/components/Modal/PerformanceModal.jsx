@@ -658,10 +658,14 @@ export default function PerformanceModal({
             textAlign: 'center',
             fontSize: '0.78rem',
             color: 'var(--text-muted)',
-            opacity: 0.8
+            opacity: 0.85,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
           }}
         >
-          🎹 Note: Style number is according to <strong>Yamaha PSR I425</strong> & <strong>Yamaha PSR F51</strong>.
+          <div>🎹 Note: Style number is according to <strong>Yamaha PSR I425</strong> & <strong>Yamaha PSR F51</strong>.</div>
+          <div>Leads with ( ' ) are higher octave and leads with 2 are lower octave and while using transpose it may change.</div>
         </div>
       </div>
 

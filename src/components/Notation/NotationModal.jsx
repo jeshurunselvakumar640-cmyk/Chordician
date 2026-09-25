@@ -299,6 +299,8 @@ export default function NotationModal({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
           fontSize: '0.78rem',
           color: '#9ca3af'
         }}>
@@ -306,7 +308,7 @@ export default function NotationModal({
             Press <kbd style={{ padding: '2px 5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}>+</kbd> / <kbd style={{ padding: '2px 5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}>-</kbd> to zoom, <kbd style={{ padding: '2px 5px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px' }}>Esc</kbd> to close.
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Western Vocal Lead Sheet • 3 Layers: Chords, Vocal Melody & Lyrics</span>
+            <span>Lead notation: <code style={{ color: '#818cf8' }}>'</code> = octave higher, <code style={{ color: '#818cf8' }}>2</code> = octave lower (PSR-F51 / PSR-I425)</span>
           </div>
         </div>
       </div>

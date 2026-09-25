@@ -16,6 +16,8 @@ import {
   estimateTextWidth
 } from '../notation/staffNotationRenderer.js';
 
+import { transposeNoteWithOctave } from '../../services/transposer.js';
+
 describe('Vocal Lead Sheet & Musical Notation Engine', () => {
   describe('1. Octave Conventions & Scientific Pitch Parsing', () => {
     it('1.1. Basic octave: c d e f g a b -> C3 D3 E3 F3 G3 A3 B3', () => {
@@ -83,6 +85,85 @@ describe('Vocal Lead Sheet & Musical Notation Engine', () => {
         'C3', 'D3', 'E3', 'F3', 'G3', 'A3', 'B3',
         'C4', 'D4', 'E4', 'C2'
       ]);
+    });
+
+    it('1.7. PSR-F51 / PSR-I425 Lead Octave Notation & Transposition Verification', () => {
+      // 1. C plays at normal octave (MIDI 48)
+      const cNormal = parseLeadTokenToPitch('c');
+      assert.equal(cNormal.octave, 3);
+      assert.equal(cNormal.midiNote, 48);
+
+      // 2. C' plays 1 octave higher (+12 semitones)
+      const cHigh = parseLeadTokenToPitch("c'");
+      assert.equal(cHigh.octave, 4);
+      assert.equal(cHigh.midiNote, 60);
+      assert.equal(cHigh.midiNote - cNormal.midiNote, 12);
+
+      // 3. C2 plays 1 octave lower (-12 semitones)
+      const cLow = parseLeadTokenToPitch('c2');
+      assert.equal(cLow.octave, 2);
+      assert.equal(cLow.midiNote, 36);
+      assert.equal(cNormal.midiNote - cLow.midiNote, 12);
+
+      // 4. G' plays 1 octave higher (+12 semitones above G3)
+      const gNormal = parseLeadTokenToPitch('g');
+      const gHigh = parseLeadTokenToPitch("g'");
+      assert.equal(gHigh.octave, 4);
+      assert.equal(gHigh.midiNote, 67);
+      assert.equal(gHigh.midiNote - gNormal.midiNote, 12);
+
+      // 5. G2 plays 1 octave lower (-12 semitones below G3)
+      const gLow = parseLeadTokenToPitch('g2');
+      assert.equal(gLow.octave, 2);
+      assert.equal(gLow.midiNote, 43);
+      assert.equal(gNormal.midiNote - gLow.midiNote, 12);
+
+      // 6. Transpose C' upward (+2 semitones) -> D' (D4, MIDI 62)
+      const cHighTransposed = transposeNoteWithOctave("c'", 2);
+      assert.equal(cHighTransposed, "d'");
+      const dHigh = parseLeadTokenToPitch(cHighTransposed);
+      assert.equal(dHigh.scientificPitch, 'D4');
+      assert.equal(dHigh.midiNote, 62);
+
+      // 7. Transpose C2 upward (+2 semitones) -> D2 (D2, MIDI 38)
+      const cLowTransposed = transposeNoteWithOctave("c2", 2);
+      assert.equal(cLowTransposed, "d2");
+      const dLow = parseLeadTokenToPitch(cLowTransposed);
+      assert.equal(dLow.scientificPitch, 'D2');
+      assert.equal(dLow.midiNote, 38);
+
+      // 8. Downward transposition: C4 (-2) -> Bb3 (MIDI 58), C2 (-2) -> Bb1 (MIDI 34)
+      const cHighDown = transposeNoteWithOctave("c4", -2, 'flat');
+      assert.equal(cHighDown.toLowerCase(), "bb3");
+      const bbHigh = parseLeadTokenToPitch(cHighDown);
+      assert.equal(bbHigh.scientificPitch, 'Bb3');
+      assert.equal(bbHigh.midiNote, 58);
+
+      const cLowDown = transposeNoteWithOctave("c2", -2, 'flat');
+      assert.equal(cLowDown.toLowerCase(), "bb1");
+      const bbLow = parseLeadTokenToPitch(cLowDown);
+      assert.equal(bbLow.scientificPitch, 'Bb1');
+      assert.equal(bbLow.midiNote, 34);
+
+      // 9. Notes with accidentals: C#' -> D#', Bb2 -> C2
+      const cSharpHigh = parseLeadTokenToPitch("c#'");
+      assert.equal(cSharpHigh.scientificPitch, 'C#4');
+      assert.equal(cSharpHigh.midiNote, 61);
+      const cSharpHighTrans = transposeNoteWithOctave("c#'", 2);
+      assert.equal(cSharpHighTrans.toLowerCase(), "d#'");
+      assert.equal(parseLeadTokenToPitch(cSharpHighTrans).midiNote, 63);
+
+      const bFlatLow = parseLeadTokenToPitch('bb2');
+      assert.equal(bFlatLow.scientificPitch, 'Bb2');
+      assert.equal(bFlatLow.midiNote, 46);
+      const bFlatLowTrans = transposeNoteWithOctave('bb2', 2);
+      assert.equal(bFlatLowTrans.toUpperCase(), 'C3');
+      assert.equal(parseLeadTokenToPitch(bFlatLowTrans).midiNote, 48);
+
+      // 10. Normal notes without octave markers: C -> D
+      const cPlainTrans = transposeNoteWithOctave('c', 2);
+      assert.equal(cPlainTrans.toLowerCase(), 'd');
+      assert.equal(parseLeadTokenToPitch(cPlainTrans).midiNote, 50);
     });
   });
 

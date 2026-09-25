@@ -29,7 +29,8 @@ import {
   Send,
   FileText,
   ArrowRight,
-  Layers
+  Layers,
+  KeyRound
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -39,6 +40,7 @@ import { useAuth, OWNER_DEFAULT_NAME } from '../context/AuthContext.jsx';
 import { useAppMode, SUPPORTED_LANGUAGES } from '../context/AppModeContext.jsx';
 import ContactModal from '../components/Modal/ContactModal.jsx';
 import ConfirmModal from '../components/Modal/ConfirmModal.jsx';
+import ChangePasswordModal from '../components/Modal/ChangePasswordModal.jsx';
 import { addSong, runFirebaseDiagnostics, transliterateAllRegionalSongsInDb } from '../firebase/songs.js';
 import { firebaseConfig } from '../firebase/config.js';
 import { DEMO_PRESETS } from '../services/aiSongParser.js';
@@ -63,6 +65,7 @@ export default function Settings({ onSongAdded }) {
   const [isSeeding, setIsSeeding] = useState(false);
   const [isTransliteratingDb, setIsTransliteratingDb] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   // Push Notification state
   const isSupported = isPushNotificationSupported();
@@ -336,6 +339,38 @@ export default function Settings({ onSongAdded }) {
               )}
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Account & Security */}
+      <div className="card settings-card">
+        <h2 className="settings-section-title" style={{ marginBottom: '14px' }}>
+          <Lock size={20} style={{ color: 'var(--color-primary)' }} />
+          Account & Security
+        </h2>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}>Password</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.86rem', marginTop: '2px' }}>
+              Change your Chordician account password.
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              if (!currentUser) {
+                openAuthModal('login');
+              } else {
+                setIsChangePasswordOpen(true);
+              }
+            }}
+          >
+            <KeyRound size={15} />
+            <span>Change Password</span>
+          </button>
         </div>
       </div>
 
@@ -652,24 +687,78 @@ export default function Settings({ onSongAdded }) {
         )}
       </div>
 
-      {/* PWA & App Installation */}
+      {/* App Installation */}
       <div className="card settings-card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <h2 className="settings-section-title" style={{ marginBottom: 0 }}>
-            <Smartphone size={20} style={{ color: 'var(--color-primary)' }} />
-            Progressive Web App (PWA)
-          </h2>
-          {canInstall && (
+          <div>
+            <h2 className="settings-section-title" style={{ marginBottom: '4px' }}>
+              <Smartphone size={20} style={{ color: 'var(--color-primary)' }} />
+              App Installation
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.86rem', margin: 0 }}>
+              Install Chordician as an app on your device.
+            </p>
+          </div>
+
+          {isStandalone ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 12px',
+                borderRadius: '20px',
+                background: 'rgba(16, 185, 129, 0.12)',
+                color: 'var(--color-success)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                fontWeight: 600,
+                fontSize: '0.82rem'
+              }}
+            >
+              <Check size={14} />
+              <span>Installed</span>
+            </span>
+          ) : (
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              onClick={installApp}
+              onClick={async () => {
+                if (!canInstall) {
+                  showToast("Your browser doesn't provide a direct install prompt. Use your browser's Add to Home Screen option.", 'info', 4000);
+                  return;
+                }
+                const res = await installApp();
+                if (res && res.outcome === 'accepted') {
+                  showToast('✓ Chordician installed successfully!', 'success', 3000);
+                }
+              }}
+              style={{ minWidth: '120px' }}
             >
               <Download size={14} />
               <span>Install App</span>
             </button>
           )}
         </div>
+
+        {!isStandalone && !canInstall && (
+          <div
+            style={{
+              marginTop: '14px',
+              padding: '10px 14px',
+              background: 'rgba(99, 102, 241, 0.06)',
+              border: '1px solid rgba(99, 102, 241, 0.18)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.84rem',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Info size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+            <span>Your browser doesn't provide a direct install prompt. Use your browser's Add to Home Screen option.</span>
+          </div>
+        )}
 
         <div className="settings-db-info-list" style={{ marginTop: '16px' }}>
           <div className="settings-db-row">
@@ -885,6 +974,12 @@ export default function Settings({ onSongAdded }) {
             setIsConfirmBroadcastOpen(false);
           }
         }}
+      />
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+        onSuccess={() => showToast('✓ Password updated successfully!', 'success')}
       />
     </div>
   );

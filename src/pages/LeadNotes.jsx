@@ -165,6 +165,27 @@ export default function LeadNotes({
         </div>
       </div>
 
+      {/* Lead Octave Notation Info Note */}
+      <div
+        style={{
+          padding: '12px 16px',
+          marginBottom: '20px',
+          background: 'rgba(99, 102, 241, 0.08)',
+          border: '1px solid rgba(99, 102, 241, 0.18)',
+          borderRadius: 'var(--radius-md)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '0.85rem',
+          color: 'var(--text-secondary)'
+        }}
+      >
+        <Music size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+        <span>
+          Lead notation: <code style={{ color: 'var(--color-primary)', background: 'rgba(99, 102, 241, 0.12)', padding: '2px 5px', borderRadius: '4px', fontWeight: 600 }}>'</code> means one octave higher, while <code style={{ color: 'var(--color-primary)', background: 'rgba(99, 102, 241, 0.12)', padding: '2px 5px', borderRadius: '4px', fontWeight: 600 }}>2</code> means one octave lower. These octave markers are based on the PSR-F51 / PSR-I425 styles.
+        </span>
+      </div>
+
       {/* Search within Lead Notes */}
       {(allEligibleLeadSongs.length > 0 || myLeadSongs.length > 0) && (
         <div className="card" style={{ padding: '12px 16px', marginBottom: '28px' }}>
