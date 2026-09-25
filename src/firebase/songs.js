@@ -107,20 +107,53 @@ export async function getSongs({ forceRefresh = false } = {}) {
     return { data: _cachedSongs, error: null };
   }
 
+  // 2. Fast offline check: If device is offline during cold start, return IndexedDB cache immediately
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    try {
+      const offlineRes = await getOfflineAllSongs();
+      if (offlineRes && Array.isArray(offlineRes.data) && offlineRes.data.length > 0) {
+        _cachedSongs = offlineRes.data;
+        _lastCacheTimestamp = Date.now();
+        offlineRes.data.forEach((s) => {
+          if (s && s.id) _songMapCache.set(s.id, s);
+        });
+        return { data: offlineRes.data, error: null };
+      }
+    } catch {}
+
+    try {
+      const saved = sessionStorage.getItem('chordician_songs_cache_v3');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          _cachedSongs = parsed;
+          return { data: parsed, error: null };
+        }
+      }
+    } catch {}
+  }
+
   await ensureAuthReady();
   const path = SONGS_COLLECTION;
 
   try {
     const songsRef = collection(db, SONGS_COLLECTION);
     let q = query(songsRef, orderBy('updatedAt', 'desc'));
-    let snapshot;
-    
-    try {
-      snapshot = await getDocs(q);
-    } catch {
-      // Fallback query if composite index or timestamp ordering is initializing
-      snapshot = await getDocs(songsRef);
-    }
+
+    // Race Firestore network query with a 3.5s safety timeout for slow/offline network conditions
+    const fetchPromise = (async () => {
+      try {
+        return await getDocs(q);
+      } catch {
+        return await getDocs(songsRef);
+      }
+    })();
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore network query timeout')), 3500)
+    );
+
+    const snapshot = await Promise.race([fetchPromise, timeoutPromise]);
 
     const songs = [];
     snapshot.forEach((docSnapshot) => {

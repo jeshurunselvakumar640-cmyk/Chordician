@@ -116,10 +116,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let syncUnsub = null;
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       if (user && !user.isAnonymous) {
-        await syncUserProfile(user);
+        syncUserProfile(user).catch((err) => {
+          console.warn('[Auth] Non-fatal user profile sync notice:', err);
+        });
         initNotificationOnboarding(user).catch(() => {});
         syncUnsub = initUserProfileSync(user);
       } else {
