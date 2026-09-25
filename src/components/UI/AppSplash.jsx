@@ -54,7 +54,7 @@ export default function AppSplash({ isReady = false }) {
         <div className="app-splash-logo-wrap">
           <div className="app-splash-glow-ring" />
           <div className="brand-logo app-splash-brand-logo" aria-hidden="true">
-            <Piano size={38} />
+            <img src="/favicon.svg" alt="" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
           </div>
         </div>
 

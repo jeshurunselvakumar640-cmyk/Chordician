@@ -92,7 +92,7 @@ export default function Sidebar({
         {/* Brand Header */}
         <div className="sidebar-header">
           <Link to="/" className="brand-logo" onClick={onCloseMobile} aria-label="Chordician Home">
-            <Piano size={22} />
+            <img src="/favicon.svg" alt="Chordician Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} />
           </Link>
           <div className="brand-info">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
