@@ -277,10 +277,10 @@ button:disabled {
   width: 40px;
   height: 40px;
   min-width: 40px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: transparent;
   border-radius: var(--radius-md);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  box-shadow: none;
 }
 
 .brand-info {
@@ -9263,8 +9263,9 @@ body.desktop-mode-forced {
   width: 72px;
   height: 72px;
   min-width: 72px;
+  background: transparent;
   border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+  box-shadow: none;
 }
 
 .app-splash-wordmark-wrap {
@@ -10104,10 +10105,10 @@ body.desktop-mode-forced {
   width: 40px;
   height: 40px;
   min-width: 40px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: transparent;
   border-radius: var(--radius-md);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  box-shadow: none;
 }
 
 .lyrical-lang-switch-btn {
