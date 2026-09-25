@@ -74,7 +74,7 @@ export default function Header({
         {/* Brand in Header on Mobile */}
         <Link to="/" className="mobile-brand-link">
           <div className="mobile-brand-icon">
-            <Piano size={20} />
+            <img src="/favicon.svg" alt="Chordician Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
           </div>
           <span className="mobile-brand-title">Chordician</span>
           <span className="app-version-badge" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>v{APP_VERSION}</span>

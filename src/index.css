@@ -434,14 +434,14 @@ button:disabled {
 .mobile-brand-icon {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: transparent;
   border-radius: var(--radius-sm);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  box-shadow: none;
 }
 
 .mobile-brand-title {
