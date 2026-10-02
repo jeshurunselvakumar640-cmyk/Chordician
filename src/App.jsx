@@ -17,6 +17,8 @@ import AuthModal from './components/Modal/AuthModal';
 import AppSplash from './components/UI/AppSplash';
 import ProtectedRoute from './components/UI/ProtectedRoute';
 import ErrorBoundary from './components/UI/ErrorBoundary';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import { SongCardSkeleton } from './components/UI/SkeletonLoader';
 import { getSongs, deleteSong, toggleFavoriteSong } from './firebase/songs';
 import { initNotificationOnboarding, setupForegroundNotificationListener } from './services/fcmService';
@@ -387,6 +389,8 @@ function AppContent() {
               path="/chord-sheet"
               element={<Navigate to="/chord-guide" replace />}
             />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
