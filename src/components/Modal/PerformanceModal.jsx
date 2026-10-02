@@ -19,6 +19,23 @@ import TransposeBar from '../Transposer/TransposeBar';
 import SectionViewer from '../SongView/SectionViewer';
 import { formatMainStyleHighlight, formatStyleCode, resolveFullStyle, getStyleNumberCode } from '../../data/songStyles.js';
 
+function getFormattedScale(keyStr) {
+  if (!keyStr) return 'C';
+  const cleanKey = String(keyStr).trim();
+  
+  if (/minor/i.test(cleanKey)) {
+    const root = cleanKey.replace(/\s*minor/i, '').trim();
+    return root.endsWith('m') ? root : `${root}m`;
+  }
+  
+  if (/major/i.test(cleanKey)) {
+    const root = cleanKey.replace(/\s*major/i, '').trim();
+    return root;
+  }
+  
+  return cleanKey;
+}
+
 export default function PerformanceModal({
   isOpen,
   onClose,
@@ -33,6 +50,7 @@ export default function PerformanceModal({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(2); // 1 to 5
+  const [isDetailsCollapsed, setIsDetailsCollapsed] = useState(false);
 
   // Layout preference: 'auto', 'single', 'dual'
   const [layoutPreference, setLayoutPreference] = useState(() => {
@@ -68,65 +86,115 @@ export default function PerformanceModal({
   useEffect(() => {
     if (!isOpen) return;
     const updateSize = () => {
-      if (scrollContainerRef.current) {
-        setViewportSize({
-          width: scrollContainerRef.current.clientWidth || window.innerWidth,
-          height: scrollContainerRef.current.clientHeight || window.innerHeight
-        });
-      } else {
-        setViewportSize({
-          width: window.innerWidth,
-          height: window.innerHeight
-        });
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [isOpen]);
+
+  const hasSetlist = Array.isArray(setlistSongs) && setlistSongs.length > 1;
+  const canGoNext = hasSetlist && currentIndex < setlistSongs.length - 1;
+  const canGoPrev = hasSetlist && currentIndex > 0;
+
+  const title = transposedSong?.title || '';
+  const artist = transposedSong?.artist || '';
+  const activeKey = transposedSong?.activeKey || transposedSong?.key || '';
+  const originalKey = transposedSong?.key || transposedSong?.originalKey || '';
+  const tempo = transposedSong?.tempo;
+  const timeSignature = transposedSong?.timeSignature;
+  const style = transposedSong?.style;
+  const sections = transposedSong?.sections || [];
+
+  const formattedScale = useMemo(() => {
+    return getFormattedScale(activeKey || originalKey || 'C');
+  }, [activeKey, originalKey]);
+
+  const compactControlText = useMemo(() => {
+    const numCode = getStyleNumberCode(style);
+    return numCode ? `${numCode} ${formattedScale}` : formattedScale;
+  }, [style, formattedScale]);
+
+  // Keyboard Navigation: Esc to close, Arrow keys for font size & setlist navigation
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is interacting with form controls or inputs
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowRight' && canGoNext) {
+        onNextSong();
+      } else if (e.key === 'ArrowLeft' && canGoPrev) {
+        onPrevSong();
+      } else if (e.key === ' ') {
+        // Spacebar toggles autoscroll
+        e.preventDefault();
+        setIsScrolling((prev) => !prev);
       }
     };
 
-    updateSize();
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, canGoNext, canGoPrev, onNextSong, onPrevSong]);
 
-    let resizeObserver;
-    if (typeof ResizeObserver !== 'undefined' && scrollContainerRef.current) {
-      resizeObserver = new ResizeObserver(() => {
-        updateSize();
-      });
-      resizeObserver.observe(scrollContainerRef.current);
+  // Fullscreen Toggle
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
     } else {
-      window.addEventListener('resize', updateSize);
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setIsFullscreen(false);
     }
+  };
 
-    return () => {
-      if (resizeObserver) resizeObserver.disconnect();
-      else window.removeEventListener('resize', updateSize);
-    };
-  }, [isOpen]);
-
-  // Scroll-aware Collapsing Toolbar (Hides on scroll down, reveals on scroll up or top)
   useEffect(() => {
-    if (!isOpen) return;
-    const container = scrollContainerRef.current;
-    if (!container) return;
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
-    lastScrollTopRef.current = container.scrollTop || 0;
-    setIsToolbarVisible(true);
+  // Measure heights of rendered section elements to optimize 2-column balancing
+  useEffect(() => {
+    if (!isOpen || !contentContainerRef.current) return;
+
+    // Small delay to ensure DOM layout has computed fonts & styles
+    const timer = setTimeout(() => {
+      if (!contentContainerRef.current) return;
+      const sectionElements = contentContainerRef.current.querySelectorAll('.section-viewer-card');
+      const heights = Array.from(sectionElements).map((el) => el.getBoundingClientRect().height);
+      setMeasuredHeights(heights);
+    }, 60);
+
+    return () => clearTimeout(timer);
+  }, [isOpen, transposedSong?.id, fontSize, viewportSize.width]);
+
+  // Handle Scroll to auto-hide toolbar when scrolling down, auto-show when scrolling up
+  useEffect(() => {
+    if (!isOpen || !scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
 
     const handleScroll = () => {
-      if (scrollRafRef.current) return;
-
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
       scrollRafRef.current = requestAnimationFrame(() => {
-        scrollRafRef.current = null;
-        if (!container) return;
         const currentScrollTop = container.scrollTop;
-        const prevScrollTop = lastScrollTopRef.current;
-        const delta = currentScrollTop - prevScrollTop;
+        const delta = currentScrollTop - lastScrollTopRef.current;
 
-        // Force visible at the top
-        if (currentScrollTop <= 15) {
-          setIsToolbarVisible((prev) => (prev ? prev : true));
-        } else if (delta > 8 && currentScrollTop > 40) {
-          // Scrolling down -> collapse toolbar
-          setIsToolbarVisible((prev) => (prev ? false : prev));
-        } else if (delta < -8) {
-          // Scrolling up -> reveal toolbar
-          setIsToolbarVisible((prev) => (!prev ? true : prev));
+        if (currentScrollTop < 50) {
+          setIsToolbarVisible(true);
+        } else if (delta > 25 && isToolbarVisible) {
+          setIsToolbarVisible(false);
+        } else if (delta < -15 && !isToolbarVisible) {
+          setIsToolbarVisible(true);
         }
 
         lastScrollTopRef.current = currentScrollTop;
@@ -138,115 +206,25 @@ export default function PerformanceModal({
       container.removeEventListener('scroll', handleScroll);
       if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
     };
-  }, [isOpen]);
+  }, [isOpen, isToolbarVisible]);
 
-  // Extract song data
-  const {
-    title = '',
-    artist = '',
-    activeKey = 'C',
-    originalKey = 'C',
-    semitoneDelta = 0,
-    sections = [],
-    style,
-    tempo,
-    timeSignature
-  } = transposedSong || {};
-
-  // Measure actual rendered DOM section heights without triggering render loops
+  // Smooth Auto-Scroll Handler
   useEffect(() => {
-    if (!isOpen || !contentContainerRef.current) return;
+    if (!isScrolling || !scrollContainerRef.current) return;
 
-    const measureSections = () => {
-      const container = contentContainerRef.current;
-      if (!container) return;
-      const sectionEls = container.querySelectorAll('.song-section-card');
-      if (sectionEls && sectionEls.length > 0) {
-        const heights = Array.from(sectionEls).map((el) => el.getBoundingClientRect().height);
-        setMeasuredHeights((prev) => {
-          if (prev.length === heights.length && prev.every((h, i) => Math.abs(h - heights[i]) < 2)) {
-            return prev; // Identical measurements within 2px tolerance, skip state update to prevent loop
-          }
-          return heights;
-        });
-      }
-    };
+    let lastTime = performance.now();
+    const container = scrollContainerRef.current;
 
-    const raf = requestAnimationFrame(measureSections);
+    const scrollStep = (currentTime) => {
+      const deltaTime = currentTime - lastTime;
+      lastTime = currentTime;
 
-    let resizeObserver;
-    if (typeof ResizeObserver !== 'undefined' && contentContainerRef.current) {
-      resizeObserver = new ResizeObserver(measureSections);
-      resizeObserver.observe(contentContainerRef.current);
-    }
+      if (deltaTime > 0 && container) {
+        // Calculate smooth speed in pixels per frame based on speed setting
+        const speedMultiplier = scrollSpeed * 0.45;
+        container.scrollTop += (speedMultiplier * deltaTime) / 16.6;
 
-    return () => {
-      cancelAnimationFrame(raf);
-      if (resizeObserver) resizeObserver.disconnect();
-    };
-  }, [isOpen, sections, fontSize, activeKey, semitoneDelta]);
-
-  const hasSetlist = Array.isArray(setlistSongs) && setlistSongs.length > 1;
-  const canGoPrev = hasSetlist && currentIndex > 0 && typeof onPrevSong === 'function';
-  const canGoNext = hasSetlist && currentIndex < setlistSongs.length - 1 && typeof onNextSong === 'function';
-
-  // Handle Fullscreen toggle
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => {
-        setIsFullscreen(true);
-      }).catch((err) => {
-        console.warn('Fullscreen request failed:', err);
-      });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().then(() => {
-          setIsFullscreen(false);
-        }).catch((err) => {
-          console.warn('Exit fullscreen failed:', err);
-        });
-      }
-    }
-  };
-
-  // Keyboard Shortcuts (Esc to exit, Space to toggle auto-scroll, [ / ] or Left/Right for song nav)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
-        e.preventDefault();
-        setIsScrolling((prev) => !prev);
-      } else if ((e.key === '[' || (e.altKey && e.key === 'ArrowLeft')) && canGoPrev) {
-        e.preventDefault();
-        onPrevSong();
-      } else if ((e.key === ']' || (e.altKey && e.key === 'ArrowRight')) && canGoNext) {
-        e.preventDefault();
-        onNextSong();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, canGoPrev, canGoNext, onPrevSong, onNextSong]);
-
-  // Auto-scroll loop (Mathematics and Speed Algorithm 100% Intact)
-  useEffect(() => {
-    if (!isScrolling) {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      return;
-    }
-
-    const scrollStep = () => {
-      if (scrollContainerRef.current) {
-        const container = scrollContainerRef.current;
-        container.scrollTop += (scrollSpeed * 0.45);
-
-        // Stop when reached bottom
+        // Auto stop at the very bottom
         if (container.scrollTop + container.clientHeight >= container.scrollHeight - 5) {
           setIsScrolling(false);
           return;
@@ -264,40 +242,240 @@ export default function PerformanceModal({
     };
   }, [isScrolling, scrollSpeed]);
 
-  // Touch Gesture Swipe Navigation in Performance Mode
-  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+  // Mobile & Desktop Songbook Pointer Swipe Gesture Engine (Identical to SongDetails.jsx)
+  const swipeContainerRef = useRef(null);
+  const swipeTrackRef = useRef(null);
+  const swipeHintRef = useRef(null);
+  const swipeHintTextRef = useRef(null);
 
-  const handleTouchStart = (e) => {
-    if (!e.touches || e.touches.length !== 1) return;
-    touchStartRef.current = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-      time: Date.now()
+  const pointerStateRef = useRef({
+    isTracking: false,
+    isSwiping: false,
+    isVerticalScroll: false,
+    startX: 0,
+    startY: 0,
+    currentDx: 0,
+    startTime: 0,
+    pointerId: null,
+    viewportWidth: 360,
+    rafId: null,
+    isNavigating: false,
+    navTimeoutId: null
+  });
+
+  // Reset swipe track position when song changes
+  useEffect(() => {
+    const state = pointerStateRef.current;
+    state.isNavigating = false;
+    state.isTracking = false;
+    state.isSwiping = false;
+    if (state.navTimeoutId) clearTimeout(state.navTimeoutId);
+    if (state.rafId) cancelAnimationFrame(state.rafId);
+
+    if (swipeTrackRef.current) {
+      swipeTrackRef.current.style.transition = 'none';
+      swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+      swipeTrackRef.current.style.opacity = '1';
+      swipeTrackRef.current.classList.remove('is-dragging');
+    }
+    if (swipeHintRef.current) {
+      swipeHintRef.current.style.opacity = '0';
+      swipeHintRef.current.style.transform = 'translateX(-50%) translateY(-8px) scale(0.95)';
+    }
+  }, [transposedSong?.id, title, currentIndex]);
+
+  // Clean up animation frame / timers on unmount
+  useEffect(() => {
+    return () => {
+      const state = pointerStateRef.current;
+      if (state.navTimeoutId) clearTimeout(state.navTimeoutId);
+      if (state.rafId) cancelAnimationFrame(state.rafId);
     };
+  }, []);
+
+  const nextSongItem = hasSetlist && currentIndex < setlistSongs.length - 1 ? setlistSongs[currentIndex + 1] : null;
+  const prevSongItem = hasSetlist && currentIndex > 0 ? setlistSongs[currentIndex - 1] : null;
+
+  const handlePointerDown = (e) => {
+    const state = pointerStateRef.current;
+    if (state.isNavigating) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const target = e.target;
+    if (
+      target &&
+      (target.closest('button') ||
+        target.closest('a') ||
+        target.closest('input') ||
+        target.closest('textarea') ||
+        target.closest('select') ||
+        target.closest('.perf-control-group') ||
+        target.closest('.perf-toolbar-right'))
+    ) {
+      return;
+    }
+    state.isTracking = true;
+    state.isSwiping = false;
+    state.isVerticalScroll = false;
+    state.startX = e.clientX;
+    state.startY = e.clientY;
+    state.currentDx = 0;
+    state.startTime = Date.now();
+    state.pointerId = e.pointerId;
+    state.viewportWidth = window.innerWidth || 360;
   };
 
-  const handleTouchEnd = (e) => {
-    if (!e.changedTouches || e.changedTouches.length !== 1) return;
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const deltaX = endX - touchStartRef.current.x;
-    const deltaY = endY - touchStartRef.current.y;
-    const deltaTime = Date.now() - touchStartRef.current.time;
+  const handlePointerMove = (e) => {
+    const state = pointerStateRef.current;
+    if (!state.isTracking || state.isVerticalScroll || state.isNavigating) return;
 
-    // Must be predominantly horizontal swipe and fast (< 650ms)
-    if (deltaTime < 650 && Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
-      const target = e.target;
-      if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target?.tagName) || target?.closest('button') || target?.closest('.perf-control-group')) {
-        return;
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+
+    // Immediately yield to native vertical scrolling if vertical movement dominates
+    if (Math.abs(dy) > Math.abs(dx)) {
+      state.isVerticalScroll = true;
+      state.isTracking = false;
+      return;
+    }
+
+    if (!state.isSwiping) {
+      if (Math.abs(dx) > Math.abs(dy) * 1.5 && Math.abs(dx) > 15) {
+        // Yield to card horizontal scrolling if card can scroll horizontally in swipe direction
+        const sectionCard = e.target && e.target.closest('.song-section-card');
+        if (sectionCard && sectionCard.scrollWidth > sectionCard.clientWidth + 5) {
+          const canScrollRight = sectionCard.scrollLeft < (sectionCard.scrollWidth - sectionCard.clientWidth - 4);
+          const canScrollLeft = sectionCard.scrollLeft > 4;
+          if ((dx < 0 && canScrollRight) || (dx > 0 && canScrollLeft)) {
+            state.isVerticalScroll = true;
+            state.isTracking = false;
+            return;
+          }
+        }
+
+        state.isSwiping = true;
+        try {
+          if (e.currentTarget && typeof e.currentTarget.setPointerCapture === 'function') {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }
+        } catch {}
+      }
+    }
+
+    if (state.isSwiping && swipeTrackRef.current) {
+      let offset = dx;
+      if (dx > 0 && !canGoPrev) {
+        offset = dx * 0.22;
+      } else if (dx < 0 && !canGoNext) {
+        offset = dx * 0.22;
+      }
+      state.currentDx = offset;
+
+      if (state.rafId) cancelAnimationFrame(state.rafId);
+      state.rafId = requestAnimationFrame(() => {
+        if (!state.isTracking || !swipeTrackRef.current) return;
+        swipeTrackRef.current.style.transition = 'none';
+        swipeTrackRef.current.style.transform = `translate3d(${offset}px, 0, 0)`;
+        swipeTrackRef.current.classList.add('is-dragging');
+
+        if (swipeHintRef.current && swipeHintTextRef.current) {
+          if (Math.abs(offset) > 18) {
+            swipeHintRef.current.style.opacity = '1';
+            swipeHintRef.current.style.transform = 'translateX(-50%) translateY(0) scale(1)';
+            if (offset < 0) {
+              swipeHintTextRef.current.textContent = canGoNext
+                ? (nextSongItem?.title ? `Next: ${nextSongItem.title}` : 'Next Song')
+                : 'Last Song';
+            } else {
+              swipeHintTextRef.current.textContent = canGoPrev
+                ? (prevSongItem?.title ? `Previous: ${prevSongItem.title}` : 'Previous Song')
+                : 'First Song';
+            }
+          } else {
+            swipeHintRef.current.style.opacity = '0';
+            swipeHintRef.current.style.transform = 'translateX(-50%) translateY(-8px) scale(0.95)';
+          }
+        }
+      });
+    }
+  };
+
+  const handlePointerUpOrCancel = (e) => {
+    const state = pointerStateRef.current;
+    if (state.rafId) cancelAnimationFrame(state.rafId);
+    if (!state.isTracking) return;
+    state.isTracking = false;
+
+    try {
+      if (e.currentTarget && typeof e.currentTarget.releasePointerCapture === 'function') {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+
+    if (swipeHintRef.current) {
+      swipeHintRef.current.style.opacity = '0';
+      swipeHintRef.current.style.transform = 'translateX(-50%) translateY(-8px) scale(0.95)';
+    }
+
+    if (state.isSwiping && swipeTrackRef.current) {
+      swipeTrackRef.current.classList.remove('is-dragging');
+      const deltaTime = Math.max(1, Date.now() - state.startTime);
+      const velocity = Math.abs(state.currentDx) / deltaTime;
+      const distanceThreshold = state.viewportWidth * 0.22;
+      const isFastFlick = velocity > 0.45 && Math.abs(state.currentDx) > 35;
+      const isDistanceMet = Math.abs(state.currentDx) > distanceThreshold;
+
+      if ((isDistanceMet || isFastFlick) && !state.isNavigating) {
+        if (state.currentDx < 0 && canGoNext) {
+          state.isNavigating = true;
+          state.isTracking = false;
+          state.isSwiping = false;
+          state.currentDx = 0;
+          if (state.rafId) cancelAnimationFrame(state.rafId);
+          if (state.navTimeoutId) clearTimeout(state.navTimeoutId);
+
+          swipeTrackRef.current.style.transition = 'transform 180ms ease-out, opacity 180ms ease-out';
+          swipeTrackRef.current.style.transform = 'translate3d(-100vw, 0, 0)';
+          swipeTrackRef.current.style.opacity = '0.3';
+          onNextSong();
+
+          state.navTimeoutId = setTimeout(() => {
+            state.isNavigating = false;
+            if (swipeTrackRef.current) {
+              swipeTrackRef.current.style.transition = 'none';
+              swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+              swipeTrackRef.current.style.opacity = '1';
+            }
+          }, 350);
+          return;
+        } else if (state.currentDx > 0 && canGoPrev) {
+          state.isNavigating = true;
+          state.isTracking = false;
+          state.isSwiping = false;
+          state.currentDx = 0;
+          if (state.rafId) cancelAnimationFrame(state.rafId);
+          if (state.navTimeoutId) clearTimeout(state.navTimeoutId);
+
+          swipeTrackRef.current.style.transition = 'transform 180ms ease-out, opacity 180ms ease-out';
+          swipeTrackRef.current.style.transform = 'translate3d(100vw, 0, 0)';
+          swipeTrackRef.current.style.opacity = '0.3';
+          onPrevSong();
+
+          state.navTimeoutId = setTimeout(() => {
+            state.isNavigating = false;
+            if (swipeTrackRef.current) {
+              swipeTrackRef.current.style.transition = 'none';
+              swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+              swipeTrackRef.current.style.opacity = '1';
+            }
+          }, 350);
+          return;
+        }
       }
 
-      if (deltaX < 0 && canGoNext) {
-        // Swiped Left -> Next Song
-        onNextSong();
-      } else if (deltaX > 0 && canGoPrev) {
-        // Swiped Right -> Previous Song
-        onPrevSong();
-      }
+      // Snap back smoothly
+      swipeTrackRef.current.style.transition = 'transform 200ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms ease';
+      swipeTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+      swipeTrackRef.current.style.opacity = '1';
     }
   };
 
@@ -317,85 +495,58 @@ export default function PerformanceModal({
       };
     }
 
-    // Use actual measured DOM heights if available; fallback to row count weights on initial paint
-    const weights = sections.map((section, idx) => {
-      if (measuredHeights[idx] && measuredHeights[idx] > 0) {
-        return measuredHeights[idx];
-      }
-      let count = 0;
-      if (Array.isArray(section.rows) && section.rows.length > 0) {
-        count = section.rows.length;
-      } else if (Array.isArray(section.lines) && section.lines.length > 0) {
-        count = section.lines.length * 2;
-      } else {
-        count = 4;
-      }
-      return (count + 2) * 28;
-    });
+    // Calculate section height estimates if DOM measurement not finished yet
+    const getEstimate = (sec) => {
+      const lineCount = (sec.content || '').split('\n').filter(Boolean).length;
+      return 40 + Math.max(1, lineCount) * 44;
+    };
 
-    if (sections.length === 2) {
-      return {
-        col1Sections: [sections[0]],
-        col2Sections: [sections[1]],
-        canUseDual: true,
-        totalMeasuredHeight: weights[0] + weights[1] + 12
-      };
-    }
+    const sectionHeights = sections.map((sec, i) => measuredHeights[i] || getEstimate(sec));
+    const totalH = sectionHeights.reduce((sum, h) => sum + h, 0);
 
-    // Partition contiguous sections[0..k] and [k+1..N-1] minimizing imbalance
-    const totalWeight = weights.reduce((acc, w) => acc + w, 0);
-    let bestK = 0;
-    let bestDiff = Infinity;
-    let runningSum = 0;
+    // Find partition index that minimizes column height difference
+    let bestSplit = 1;
+    let minDiff = Infinity;
+    let currentLeftSum = 0;
 
-    for (let k = 0; k < sections.length - 1; k++) {
-      runningSum += weights[k];
-      const rightSum = totalWeight - runningSum;
-      const diff = Math.abs(runningSum - rightSum);
-      if (diff < bestDiff) {
-        bestDiff = diff;
-        bestK = k;
+    for (let i = 0; i < sections.length - 1; i++) {
+      currentLeftSum += sectionHeights[i];
+      const rightSum = totalH - currentLeftSum;
+      const diff = Math.abs(currentLeftSum - rightSum);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestSplit = i + 1;
       }
     }
+
+    const c1 = sections.slice(0, bestSplit);
+    const c2 = sections.slice(bestSplit);
+
+    // Dual column requires desktop viewport (> 860px) and sufficient total content
+    const dualEligible = viewportSize.width >= 860 && totalH > 380;
 
     return {
-      col1Sections: sections.slice(0, bestK + 1),
-      col2Sections: sections.slice(bestK + 1),
-      canUseDual: true,
-      totalMeasuredHeight: totalWeight + ((sections.length - 1) * 12)
+      col1Sections: c1,
+      col2Sections: c2,
+      canUseDual: dualEligible,
+      totalMeasuredHeight: totalH
     };
-  }, [sections, measuredHeights]);
+  }, [sections, measuredHeights, viewportSize.width]);
 
-  // Layout Decision: single column vs dual column
+  // Determine effective layout mode based on preference & eligibility
   const effectiveLayout = useMemo(() => {
-    const isNarrowScreen = viewportSize.width < 768;
-    if (isNarrowScreen) {
-      return 'single'; // Always single column on narrow mobile screens to maintain readability
-    }
+    if (layoutPreference === 'single') return 'single';
+    if (layoutPreference === 'dual') return canUseDual ? 'dual' : 'single';
 
-    if (!canUseDual) {
-      return 'single';
-    }
+    // Auto mode: Use dual column on widescreen if eligible and content fits screen nicely
+    if (canUseDual) {
+      const availableHeight = viewportSize.height - 120;
+      const halfHeight = totalMeasuredHeight / 2;
 
-    if (layoutPreference === 'single') {
-      return 'single';
-    }
-    if (layoutPreference === 'dual') {
-      return 'dual';
-    }
-
-    // Auto mode: compare actual rendered content height vs available viewport height
-    const toolbarHeight = toolbarRef.current?.offsetHeight || 60;
-    const availableHeight = Math.max(250, viewportSize.height - toolbarHeight - 40);
-
-    // If the song already fits completely on one screen in 1 column, keep single column
-    if (totalMeasuredHeight > 0 && totalMeasuredHeight <= availableHeight) {
-      return 'single';
-    }
-
-    // If 1 column overflows the screen, switch to 2 columns to maximize single-screen visibility
-    if (totalMeasuredHeight > availableHeight) {
-      return 'dual';
+      // If split column height fits viewport reasonably well, use dual column
+      if (halfHeight <= availableHeight * 1.25) {
+        return 'dual';
+      }
     }
 
     return 'single';
@@ -411,8 +562,6 @@ export default function PerformanceModal({
     <div
       className="performance-overlay"
       ref={scrollContainerRef}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       {/* Top Edge Touch/Click Hitbox to restore toolbar when hidden */}
       {!isToolbarVisible && (
@@ -424,248 +573,282 @@ export default function PerformanceModal({
         />
       )}
 
-      {/* Performance Top Sticky Toolbar */}
-      <div
-        className={`performance-toolbar ${!isToolbarVisible ? 'is-collapsed' : ''}`}
-        ref={toolbarRef}
-      >
-        {/* Left: Title & Key Info */}
-        <div className="perf-header-info">
-          <div className="perf-title-row">
-            <h2 className="perf-song-title">{title}</h2>
-          </div>
-          <span className="perf-song-subtitle">
-            {artist ? `${artist} • ` : ''}Key: <strong style={{ color: 'var(--color-primary)' }}>{activeKey}</strong>
-            {tempo && ` • ${tempo} BPM`}
-            {timeSignature && ` • ${timeSignature}`}
-          </span>
-        </div>
-
-        {/* Primary Style Highlight Box for Musician */}
-        {styleName && (
-          <div
-            className="perf-style-highlight-box"
-            title={`Style: ${resolvedStyle?.category ? resolvedStyle.category + ' → ' : ''}${styleName} (${formatStyleCode(resolvedStyle || style)}) • Style number is according to Yamaha PSR I425 & Yamaha PSR F51`}
+      {/* Collapsed Top-Right Dedicated Trigger OR Full Sticky Toolbar */}
+      {isDetailsCollapsed ? (
+        <div className="perf-collapsed-trigger-wrapper">
+          <button
+            type="button"
+            className="perf-compact-details-btn"
+            onClick={() => setIsDetailsCollapsed(false)}
+            title="Expand Song Details"
+            aria-label="Expand Song Details"
           >
-            <div className="perf-style-badge-icon">
-              <Sliders size={15} />
-            </div>
-            <div className="perf-style-badge-body">
-              <div className="perf-style-tag-row">
-                <span className="perf-style-tag">STYLE</span>
-                {styleNumber && (
-                  <span className="perf-style-number">
-                    {styleNumber.includes('/') ? styleNumber.replace('/', ' / ') : styleNumber}
-                  </span>
-                )}
+            {compactControlText}
+          </button>
+        </div>
+      ) : (
+        <div
+          className={`performance-toolbar ${!isToolbarVisible ? 'is-collapsed' : ''}`}
+          ref={toolbarRef}
+        >
+          {/* Full Details Panel (Visible when NOT collapsed) */}
+          <div className="perf-details-panel">
+            <div className="perf-details-main">
+              <div className="perf-header-info">
+                <div className="perf-title-row">
+                  <h2 className="perf-song-title">{title}</h2>
+                </div>
+                <span className="perf-song-subtitle">
+                  {artist ? `${artist} • ` : ''}Key: <strong style={{ color: 'var(--color-primary)' }}>{activeKey}</strong>
+                  {tempo && ` • ${tempo} BPM`}
+                  {timeSignature && ` • ${timeSignature}`}
+                </span>
               </div>
-              <div className="perf-style-name">
-                {styleName}
-              </div>
+
+              {styleName && (
+                <div
+                  className="perf-style-highlight-box"
+                  title={`Style: ${resolvedStyle?.category ? resolvedStyle.category + ' → ' : ''}${styleName} (${formatStyleCode(resolvedStyle || style)}) • Style number is according to Yamaha PSR I425 & Yamaha PSR F51`}
+                >
+                  <div className="perf-style-badge-icon">
+                    <Sliders size={15} />
+                  </div>
+                  <div className="perf-style-badge-body">
+                    <div className="perf-style-tag-row">
+                      <span className="perf-style-tag">STYLE</span>
+                      {styleNumber && (
+                        <span className="perf-style-number">
+                          {styleNumber.includes('/') ? styleNumber.replace('/', ' / ') : styleNumber}
+                        </span>
+                      )}
+                    </div>
+                    <div className="perf-style-name">
+                      {styleName}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
 
-        {/* Center: Transpose & Font & Layout & Auto-Scroll Controls */}
-        <div className="perf-toolbar-controls">
-          <TransposeBar
-            originalKey={originalKey}
-            activeKey={activeKey}
-            semitoneDelta={semitoneDelta}
-            onChangeKey={onChangeKey}
-            compact={true}
-          />
-
-          {/* Font Size Selector */}
-          <div className="perf-control-group perf-font-group">
-            <Type size={15} style={{ margin: '0 2px', color: 'var(--text-muted)' }} />
-            {['small', 'normal', 'large', 'xlarge'].map((size) => (
-              <button
-                key={size}
-                type="button"
-                className={`btn btn-sm ${fontSize === size ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setFontSize(size)}
-                style={{ padding: '4px 8px', fontSize: '0.78rem' }}
-                aria-label={`Set font size to ${size}`}
-              >
-                {size === 'xlarge' ? 'XL' : size[0].toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          {/* Smart Layout Selector (Auto / 1-Col / 2-Col) */}
-          <div className="perf-control-group perf-layout-group">
-            <Columns size={15} style={{ margin: '0 2px', color: 'var(--text-muted)' }} />
-            {[
-              { id: 'auto', label: 'Auto' },
-              { id: 'single', label: '1-Col' },
-              { id: 'dual', label: '2-Col' }
-            ].map((mode) => (
-              <button
-                key={mode.id}
-                type="button"
-                className={`btn btn-sm ${layoutPreference === mode.id ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => handleSetLayoutPreference(mode.id)}
-                style={{ padding: '4px 8px', fontSize: '0.78rem' }}
-                aria-label={`Set layout mode to ${mode.label}`}
-                title={
-                  mode.id === 'auto'
-                    ? 'Auto: Smart fit 1 or 2 columns based on screen height'
-                    : mode.id === 'single'
-                    ? '1-Col: Force single vertical column'
-                    : '2-Col: Force two side-by-side vertical columns'
-                }
-              >
-                {mode.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Auto-Scroll Controls */}
-          <div className="perf-control-group perf-scroll-group">
             <button
               type="button"
-              className={`btn btn-sm ${isScrolling ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setIsScrolling(!isScrolling)}
-              title="Toggle auto-scroll (Space)"
+              className="perf-details-collapse-btn"
+              onClick={() => setIsDetailsCollapsed(true)}
+              title="Collapse Song Details"
+              aria-label="Collapse Song Details"
             >
-              {isScrolling ? <Pause size={14} /> : <Play size={14} />}
-              <span className="perf-scroll-btn-text">{isScrolling ? 'Pause' : 'Scroll'}</span>
+              <X size={14} />
             </button>
-
-            {isScrolling && (
-              <div className="perf-speed-controls">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setScrollSpeed(Math.max(1, scrollSpeed - 1))}
-                  disabled={scrollSpeed <= 1}
-                  aria-label="Decrease scroll speed"
-                >
-                  <Minus size={12} />
-                </button>
-                <span className="perf-speed-label">{scrollSpeed}x</span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setScrollSpeed(Math.min(5, scrollSpeed + 1))}
-                  disabled={scrollSpeed >= 5}
-                  aria-label="Increase scroll speed"
-                >
-                  <Plus size={12} />
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* Setlist Previous & Next Song Navigation */}
-          {hasSetlist && (
-            <div className="perf-control-group perf-setlist-nav-group" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {/* Center: Transpose & Font & Layout & Auto-Scroll Controls */}
+          <div className="perf-toolbar-controls">
+            {/* Key Transpose Control */}
+            <div className="perf-control-group">
+              <TransposeBar
+                originalKey={originalKey}
+                activeKey={activeKey}
+                onChangeKey={onChangeKey}
+                size="sm"
+              />
+            </div>
+
+            {/* Scalable Typography Font Control */}
+            <div className="perf-control-group" title="Adjust lyrics & chords font size">
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={onPrevSong}
-                disabled={!canGoPrev}
-                title="Previous song in setlist (Keyboard: [ or Alt+Left)"
-                aria-label="Previous song"
-                style={{ padding: '4px 8px' }}
+                onClick={() => {
+                  const sizes = ['small', 'normal', 'large', 'xlarge'];
+                  const idx = sizes.indexOf(fontSize);
+                  if (idx > 0) setFontSize(sizes[idx - 1]);
+                }}
+                disabled={fontSize === 'small'}
+                title="Decrease font size"
               >
-                <ChevronLeft size={16} />
-                <span className="hide-mobile">Prev</span>
+                <Minus size={13} />
               </button>
-
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, padding: '0 4px', color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
-                {currentIndex + 1}/{setlistSongs.length}
+              <span
+                style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  padding: '0 4px',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-muted)'
+                }}
+              >
+                Font: {fontSize}
               </span>
-
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
-                onClick={onNextSong}
-                disabled={!canGoNext}
-                title="Next song in setlist (Keyboard: ] or Alt+Right)"
-                aria-label="Next song"
-                style={{ padding: '4px 8px' }}
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  const sizes = ['small', 'normal', 'large', 'xlarge'];
+                  const idx = sizes.indexOf(fontSize);
+                  if (idx < sizes.length - 1) setFontSize(sizes[idx + 1]);
+                }}
+                disabled={fontSize === 'xlarge'}
+                title="Increase font size"
               >
-                <span className="hide-mobile">Next</span>
-                <ChevronRight size={16} />
+                <Plus size={13} />
               </button>
             </div>
-          )}
+
+            {/* Layout Preference Selector (Auto / Single / Dual Column) */}
+            <div className="perf-control-group" title="Presentation layout preference">
+              <button
+                type="button"
+                className={`btn btn-sm ${layoutPreference === 'auto' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleSetLayoutPreference('auto')}
+                title="Auto: Select optimal layout based on screen width"
+              >
+                Auto
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${layoutPreference === 'single' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleSetLayoutPreference('single')}
+                title="Single Column: Vertical continuous scroll"
+              >
+                1-Col
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${layoutPreference === 'dual' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => handleSetLayoutPreference('dual')}
+                disabled={!canUseDual && layoutPreference !== 'dual'}
+                title={canUseDual ? 'Dual Column: 2-Column presentation mode' : 'Dual column requires wider screen (> 860px)'}
+              >
+                2-Col
+              </button>
+            </div>
+
+            {/* Auto-Scroll Toggle & Speed Controller */}
+            <div className="perf-control-group">
+              <button
+                type="button"
+                className={`btn btn-sm ${isScrolling ? 'btn-danger' : 'btn-primary'}`}
+                onClick={() => setIsScrolling(!isScrolling)}
+                title={isScrolling ? 'Pause Auto-Scroll (Space)' : 'Start Auto-Scroll (Space)'}
+              >
+                {isScrolling ? <Pause size={14} /> : <Play size={14} />}
+                <span>{isScrolling ? 'Pause' : 'Scroll'}</span>
+              </button>
+
+              {isScrolling && (
+                <div className="perf-speed-controls">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setScrollSpeed((s) => Math.max(1, s - 1))}
+                    disabled={scrollSpeed <= 1}
+                    title="Slower scroll speed"
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <span className="perf-speed-label">{scrollSpeed}x</span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setScrollSpeed((s) => Math.min(5, s + 1))}
+                    disabled={scrollSpeed >= 5}
+                    title="Faster scroll speed"
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Tools (Fullscreen & Exit) */}
+          <div className="perf-toolbar-right">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm perf-fullscreen-btn"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              aria-label="Toggle fullscreen"
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm perf-exit-btn"
+              onClick={onClose}
+              title="Exit Performance Mode (Esc)"
+              aria-label="Exit performance mode"
+            >
+              <X size={16} />
+              <span className="hide-extra-small">Exit</span>
+            </button>
+          </div>
         </div>
+      )}
 
-        {/* Right Tools (Fullscreen & Exit) */}
-        <div className="perf-toolbar-right">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm perf-fullscreen-btn"
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-            aria-label="Toggle fullscreen"
-          >
-            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm perf-exit-btn"
-            onClick={onClose}
-            title="Exit Performance Mode (Esc)"
-            aria-label="Exit performance mode"
-          >
-            <X size={16} />
-            <span className="hide-extra-small">Exit</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Performance Sheet (Scalable Responsive Typography & Smart Columns) */}
+      {/* Main Performance Sheet Viewport with Swipe Gesture Track */}
       <div
-        className={`performance-content perf-font-${fontSize}`}
-        ref={contentContainerRef}
-        style={{ paddingBottom: hasSetlist ? '80px' : '40px' }}
+        className="song-swipe-viewport"
+        ref={swipeContainerRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUpOrCancel}
+        onPointerCancel={handlePointerUpOrCancel}
       >
-        {sections.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-            <Music size={40} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
-            <p>No musical sections to display.</p>
-          </div>
-        ) : effectiveLayout === 'dual' ? (
-          <div className="perf-columns-dual">
-            <div className="perf-column perf-column-left">
-              {col1Sections.map((section, index) => (
-                <SectionViewer key={section.id || `c1_${index}`} section={section} />
-              ))}
-            </div>
-            <div className="perf-column perf-column-right">
-              {col2Sections.map((section, index) => (
-                <SectionViewer key={section.id || `c2_${index}`} section={section} />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="perf-column perf-column-single">
-            {sections.map((section, index) => (
-              <SectionViewer key={section.id || index} section={section} />
-            ))}
-          </div>
-        )}
+        <div className="song-swipe-hint-badge" ref={swipeHintRef} aria-hidden="true">
+          <span ref={swipeHintTextRef} />
+        </div>
 
-        {/* Keyboard Style Reference Note */}
-        <div
-          style={{
-            marginTop: '28px',
-            textAlign: 'center',
-            fontSize: '0.78rem',
-            color: 'var(--text-muted)',
-            opacity: 0.85,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px'
-          }}
-        >
-          <div>🎹 Note: Style number is according to <strong>Yamaha PSR I425</strong> & <strong>Yamaha PSR F51</strong>.</div>
-          <div>Leads with ( ' ) are higher octave and leads with 2 are lower octave and while using transpose it may change.</div>
+        <div className="song-swipe-track" ref={swipeTrackRef}>
+          <div
+            className={`performance-content perf-font-${fontSize}`}
+            ref={contentContainerRef}
+            style={{ paddingBottom: hasSetlist ? '80px' : '40px' }}
+          >
+            {sections.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+                <Music size={40} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
+                <p>No musical sections to display.</p>
+              </div>
+            ) : effectiveLayout === 'dual' ? (
+              <div className="perf-columns-dual">
+                <div className="perf-column perf-column-left">
+                  {col1Sections.map((section, index) => (
+                    <SectionViewer key={section.id || `c1_${index}`} section={section} />
+                  ))}
+                </div>
+                <div className="perf-column perf-column-right">
+                  {col2Sections.map((section, index) => (
+                    <SectionViewer key={section.id || `c2_${index}`} section={section} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="perf-column perf-column-single">
+                {sections.map((section, index) => (
+                  <SectionViewer key={section.id || index} section={section} />
+                ))}
+              </div>
+            )}
+
+            {/* Keyboard Style Reference Note */}
+            <div
+              style={{
+                marginTop: '28px',
+                textAlign: 'center',
+                fontSize: '0.78rem',
+                color: 'var(--text-muted)',
+                opacity: 0.85,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px'
+              }}
+            >
+              <div>🎹 Note: Style number is according to <strong>Yamaha PSR I425</strong> & <strong>Yamaha PSR F51</strong>.</div>
+              <div>Leads with ( ' ) are higher octave and leads with 2 are lower octave and while using transpose it may change.</div>
+            </div>
+          </div>
         </div>
       </div>
 
