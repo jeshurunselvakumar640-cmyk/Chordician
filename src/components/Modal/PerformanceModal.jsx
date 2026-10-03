@@ -189,7 +189,10 @@ export default function PerformanceModal({
         const currentScrollTop = container.scrollTop;
         const delta = currentScrollTop - lastScrollTopRef.current;
 
-        if (currentScrollTop < 50) {
+        if (isScrolling) {
+          // Keep toolbar visible during auto-scroll so user can pause or adjust speed
+          setIsToolbarVisible(true);
+        } else if (currentScrollTop < 50) {
           setIsToolbarVisible(true);
         } else if (delta > 25 && isToolbarVisible) {
           setIsToolbarVisible(false);
@@ -206,23 +209,36 @@ export default function PerformanceModal({
       container.removeEventListener('scroll', handleScroll);
       if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
     };
-  }, [isOpen, isToolbarVisible]);
+  }, [isOpen, isToolbarVisible, isScrolling]);
 
   // Smooth Auto-Scroll Handler
   useEffect(() => {
     if (!isScrolling || !scrollContainerRef.current) return;
 
-    let lastTime = performance.now();
     const container = scrollContainerRef.current;
+
+    // If near the bottom when user starts scrolling, rewind to top
+    if (container.scrollTop + container.clientHeight >= container.scrollHeight - 20) {
+      container.scrollTop = 0;
+    }
+
+    let scrollPos = container.scrollTop;
+    let lastTime = performance.now();
 
     const scrollStep = (currentTime) => {
       const deltaTime = currentTime - lastTime;
       lastTime = currentTime;
 
       if (deltaTime > 0 && container) {
+        // Sync scrollPos if user manually scrolled (wheel, drag, touch)
+        if (Math.abs(container.scrollTop - scrollPos) > 4) {
+          scrollPos = container.scrollTop;
+        }
+
         // Calculate smooth speed in pixels per frame based on speed setting
-        const speedMultiplier = scrollSpeed * 0.45;
-        container.scrollTop += (speedMultiplier * deltaTime) / 16.6;
+        const speedMultiplier = scrollSpeed * 0.6;
+        scrollPos += (speedMultiplier * deltaTime) / 16.667;
+        container.scrollTop = scrollPos;
 
         // Auto stop at the very bottom
         if (container.scrollTop + container.clientHeight >= container.scrollHeight - 5) {
@@ -537,6 +553,7 @@ export default function PerformanceModal({
   const effectiveLayout = useMemo(() => {
     if (layoutPreference === 'single') return 'single';
     if (layoutPreference === 'dual') return canUseDual ? 'dual' : 'single';
+    if (isScrolling) return 'single'; // Continuous vertical scroll while auto-scrolling
 
     // Auto mode: Use dual column on widescreen if eligible and content fits screen nicely
     if (canUseDual) {
@@ -550,7 +567,7 @@ export default function PerformanceModal({
     }
 
     return 'single';
-  }, [viewportSize, canUseDual, layoutPreference, totalMeasuredHeight]);
+  }, [viewportSize, canUseDual, layoutPreference, totalMeasuredHeight, isScrolling]);
 
   if (!isOpen || !transposedSong) return null;
 
@@ -562,7 +579,33 @@ export default function PerformanceModal({
     <div
       className="performance-overlay"
       ref={scrollContainerRef}
+      style={{
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'var(--border-medium) transparent',
+        WebkitOverflowScrolling: 'touch'
+      }}
     >
+      <style>{`
+        .performance-overlay::-webkit-scrollbar {
+          width: 8px;
+        }
+        .performance-overlay::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .performance-overlay::-webkit-scrollbar-thumb {
+          background: var(--border-medium);
+          border-radius: 4px;
+        }
+        .performance-overlay::-webkit-scrollbar-thumb:hover {
+          background: var(--color-primary);
+        }
+        .perf-toolbar-edge-hitbox {
+          right: 18px !important;
+        }
+        .perf-collapsed-trigger-wrapper {
+          right: 20px !important;
+        }
+      `}</style>
       {/* Top Edge Touch/Click Hitbox to restore toolbar when hidden */}
       {!isToolbarVisible && (
         <div
