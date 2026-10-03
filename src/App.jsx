@@ -422,6 +422,19 @@ function AppContent() {
 
 function MainRouter() {
   const { isSetupComplete, appMode } = useAppMode();
+  const { currentUser } = useAuth();
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
+  const isAuthenticated = Boolean(currentUser && !currentUser.isAnonymous);
+
+  if (!isAuthenticated && ['/', '/privacy', '/terms'].includes(pathname)) {
+    return (
+      <>
+        {pathname === '/' ? <PublicHome /> : pathname === '/privacy' ? <PrivacyPolicy /> : <TermsOfService />}
+        {pathname === '/' && <AuthModal />}
+        <ReloadPrompt />
+      </>
+    );
+  }
 
   // First-launch flow: User chooses Language then App Mode (Chordician vs Lyrical)
   if (!isSetupComplete) {
@@ -447,6 +460,108 @@ function MainRouter() {
         </BrowserRouter>
       </CommunionProvider>
     </ThisSundayProvider>
+  );
+}
+
+function PublicHome() {
+  const { openAuthModal } = useAuth();
+  const signInButtonStyle = {
+    minHeight: '44px',
+    padding: '0 20px',
+    border: 0,
+    borderRadius: 'var(--radius-sm)',
+    background: 'var(--color-primary)',
+    color: '#fff',
+    fontWeight: 700,
+    cursor: 'pointer'
+  };
+
+  return (
+    <main
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--bg-app)',
+        color: 'var(--text-main)'
+      }}
+    >
+      <header
+        style={{
+          minHeight: '68px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          width: 'min(100% - 40px, 1080px)',
+          margin: '0 auto',
+          borderBottom: '1px solid var(--border-color)'
+        }}
+      >
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '20px', fontWeight: 800 }}>Chordician</span>
+        <button type="button" onClick={() => openAuthModal('login')} style={signInButtonStyle}>
+          Sign In
+        </button>
+      </header>
+
+      <div style={{ width: 'min(100% - 40px, 1080px)', margin: '0 auto', flex: 1 }}>
+        <section style={{ padding: 'clamp(64px, 12vh, 112px) 0 56px', maxWidth: '780px' }}>
+          <h1 style={{ marginBottom: '12px', fontSize: '48px' }}>Chordician</h1>
+          <p style={{ marginBottom: '20px', color: 'var(--color-primary)', fontSize: '21px', fontWeight: 700 }}>
+            Every Chord, For Him
+          </p>
+          <p style={{ maxWidth: '720px', color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1.7 }}>
+            Chordician is a web application for musicians and worship teams to organize, view, edit, and use songs with lyrics and chords.
+          </p>
+          <button
+            type="button"
+            onClick={() => openAuthModal('login')}
+            style={{ ...signInButtonStyle, marginTop: '28px' }}
+          >
+            Sign In
+          </button>
+        </section>
+
+        <section
+          aria-label="Chordician features"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+            gap: '28px',
+            padding: '28px 0 48px',
+            borderTop: '1px solid var(--border-color)'
+          }}
+        >
+          <article>
+            <h2 style={{ marginBottom: '8px', fontSize: '17px' }}>Song library</h2>
+            <p style={{ color: 'var(--text-muted)' }}>Keep songs organized for your music and worship teams.</p>
+          </article>
+          <article>
+            <h2 style={{ marginBottom: '8px', fontSize: '17px' }}>Lyrics and chords</h2>
+            <p style={{ color: 'var(--text-muted)' }}>View and edit song lyrics, chord charts, and musical details.</p>
+          </article>
+          <article>
+            <h2 style={{ marginBottom: '8px', fontSize: '17px' }}>Chordex AI and Smart Paste</h2>
+            <p style={{ color: 'var(--text-muted)' }}>Import and structure song content with Chordician’s song tools.</p>
+          </article>
+        </section>
+      </div>
+
+      <footer
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '24px',
+          padding: '20px',
+          borderTop: '1px solid var(--border-color)',
+          color: 'var(--text-muted)',
+          fontSize: '14px'
+        }}
+      >
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+      </footer>
+    </main>
   );
 }
 
