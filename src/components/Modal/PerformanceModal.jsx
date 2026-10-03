@@ -605,6 +605,11 @@ export default function PerformanceModal({
         .perf-collapsed-trigger-wrapper {
           right: 20px !important;
         }
+        .performance-overlay .song-swipe-viewport {
+          overflow: visible !important;
+          flex-shrink: 0 !important;
+          min-height: max-content !important;
+        }
       `}</style>
       {/* Top Edge Touch/Click Hitbox to restore toolbar when hidden */}
       {!isToolbarVisible && (
@@ -834,6 +839,11 @@ export default function PerformanceModal({
       <div
         className="song-swipe-viewport"
         ref={swipeContainerRef}
+        style={{
+          overflow: 'visible',
+          flexShrink: 0,
+          minHeight: 'max-content'
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUpOrCancel}
